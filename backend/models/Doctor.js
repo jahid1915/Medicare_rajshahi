@@ -1,55 +1,72 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
+// ─── Chamber Sub-Schema ───────────────────────────────────────────────────
+const chamberSchema = new mongoose.Schema({
+  name:                { type: String },
+  address:             { type: String },
+  visiting_hours:      { type: String },
+  appointment_numbers: [{ type: String }]
+}, { _id: false });
+
+// ─── Doctor Schema ────────────────────────────────────────────────────────
 const doctorSchema = new mongoose.Schema({
-  user_id:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  name:        { type: String, required: true },
-  title:       { type: String },
-  degrees:     { type: String },
-  specialization: { type: String, required: true },
-  specialty_id:   { type: String },
+  // Core identity
+  name:             { type: String, required: true, trim: true },
+  slug:             { type: String, required: true, unique: true, lowercase: true, trim: true },
 
-  // Primary hospital/clinic
-  hospital_id:  { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
-  hospital_name:{ type: String },
+  // Professional info
+  specialty:        { type: String, trim: true, default: "General Practice" },
+  qualifications:   { type: String, trim: true },
+  training:         { type: String, trim: true },
+  designation:      { type: String, trim: true },
+  workplace:        { type: String, trim: true },
+  experience:       { type: String, trim: true },
 
-  experience_years: { type: Number },
-  consultation_fee: { type: Number },
-  currency:         { type: String, default: "BDT" },
+  // Verification & Ratings
+  bmdcRegistration: { type: String, trim: true },
+  verified:         { type: Boolean, default: false },
+  rating:           { type: Number, default: null, min: 0, max: 5 },
+  reviewCount:      { type: Number, default: 0 },
+
+  // Chambers
+  chambers:         [chamberSchema],
+
+  // Media & Source
+  imageUrl:         { type: String, trim: true },
+  profileUrl:       { type: String, trim: true },
+  source:           { type: String, default: "BDDoctorDirectory" },
+  lastScraped:      { type: Date },
 
   // Location
-  city:     { type: String, default: "Rajshahi" },
-  district: { type: String, default: "Rajshahi" },
-  area:     { type: String },
+  city:             { type: String, default: "Rajshahi" },
+  country:          { type: String, default: "Bangladesh" },
 
-  bio:       { type: String },
-  languages: [{ type: String }],
-  avatar:    { type: String },
-  rating:    { type: Number, default: 0 },
-  review_count: { type: Number, default: 0 },
+  // Admin fields (for future use)
+  is_active:        { type: Boolean, default: true },
+  isOutdated:       { type: Boolean, default: false },
+  adminNotes:       { type: String },
 
-  is_verified:  { type: Boolean, default: false },
-  is_active:    { type: Boolean, default: true },
+  // Legacy fields (kept for backward compatibility with appointment system)
+  user_id:          { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  hospital_id:      { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
+  consultation_fee: { type: Number },
+  currency:         { type: String, default: "BDT" },
   available_for_telemedicine: { type: Boolean, default: false },
-
-  // Chambers / schedules (embedded for simplicity)
-  chambers: [{
-    facility_name:   { type: String },
-    facility_id:     { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
-    address:         { type: String },
-    schedule: [{
-      day:        { type: String }, // "Saturday", "Sunday" etc
-      start_time: { type: String }, // "08:00"
-      end_time:   { type: String }  // "13:00"
-    }],
-    consultation_fee: { type: Number }
-  }]
 
 }, { timestamps: true });
 
-doctorSchema.index({ specialization: 1 });
-doctorSchema.index({ city: 1, district: 1 });
-doctorSchema.index({ hospital_id: 1 });
-doctorSchema.index({ is_verified: 1, is_active: 1 });
-doctorSchema.index({ name: "text", specialization: "text" });
+// ─── Indexes ──────────────────────────────────────────────────────────────
+// Note: slug unique index is auto-created by `unique: true` in the schema field
+doctorSchema.index({ specialty: 1 });
+doctorSchema.index({ workplace: 1 });
+doctorSchema.index({ verified: 1 });
+doctorSchema.index({ rating: -1 });
+doctorSchema.index({ city: 1 });
+doctorSchema.index({ profileUrl: 1 }, { sparse: true });
+doctorSchema.index({ bmdcRegistration: 1 }, { sparse: true });
+doctorSchema.index(
+  { name: "text", specialty: "text", qualifications: "text", designation: "text", workplace: "text" },
+  { weights: { name: 10, specialty: 5, designation: 3, qualifications: 2, workplace: 2 } }
+);
 
 module.exports = mongoose.model("Doctor", doctorSchema);

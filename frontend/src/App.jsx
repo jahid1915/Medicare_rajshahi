@@ -25,6 +25,7 @@ import PatientDashboard from './components/Dashboard/PatientDashboard';
 import AIVoiceChatContainer from './components/AI/AIVoiceChatContainer';
 import AIReportExplainer from './components/AI/AIReportExplainer';
 import DoctorDiscovery from './components/Doctor/DoctorDiscovery';
+import DoctorProfile from './components/Doctor/DoctorProfile';
 import TeleconsultationRoom from './components/Doctor/TeleconsultationRoom';
 import PharmacyStore from './components/Pharmacy/PharmacyStore';
 import DiagnosticCenterView from './components/Diagnostic/DiagnosticCenterView';
@@ -69,6 +70,7 @@ export default function App() {
             <Route element={<PublicLayout />}>
               <Route index element={<PublicLandingPage />} />
               <Route path="doctors" element={<DoctorDiscovery />} />
+              <Route path="doctors/:slug" element={<DoctorProfile />} />
               <Route path="hospitals" element={<HospitalSearchPage />} />
               <Route path="pharmacies" element={<PharmacyDirectory />} />
               <Route path="pharmacies/:id" element={<PharmacyDetail />} />
