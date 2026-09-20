@@ -72,7 +72,7 @@ export default function NiramoyNavbar() {
 
           {/* Logo */}
           <Link to="/" style={{ textDecoration: 'none' }} aria-label="Niramoy Home">
-            <NiramoyLogo size="md" tagline="Rajshahi Digital Health" />
+            <NiramoyLogo size="md" variant={solid ? 'default' : 'light'} tagline="Rajshahi Digital Health" />
           </Link>
 
           {/* Desktop Nav */}

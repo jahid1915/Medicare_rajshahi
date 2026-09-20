@@ -222,22 +222,40 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <img 
-                          src={docProfile.avatar || apt.doctorAvatar} 
-                          alt={apt.doctorName} 
-                          style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
-                        />
+                        <div style={{
+                          width: '48px', height: '48px', borderRadius: '50%',
+                          background: 'linear-gradient(135deg, var(--color-primary, #0d7c6e) 0%, #064e3b 100%)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', fontSize: '1rem', fontWeight: 800, flexShrink: 0,
+                          overflow: 'hidden', border: '2px solid var(--primary)'
+                        }}>
+                          {apt.doctorAvatar ? (
+                            <img 
+                              src={apt.doctorAvatar} 
+                              alt={apt.doctorName} 
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                          ) : (
+                            (apt.doctorName || 'Dr').replace(/^(Prof\.|Dr\.)\s*/i, '').slice(0, 2).toUpperCase()
+                          )}
+                        </div>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                               {apt.doctorName}
                             </span>
                             <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)' }}>
                               {apt.specialty}
                             </span>
+                            {apt.serialNumber && (
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#dcfce7', color: '#15803d' }}>
+                                Serial #{apt.serialNumber}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                            📅 {apt.date} at {apt.time} • Facility: {apt.hospital || 'Rajshahi Chamber'}
+                            📅 {apt.dateDisplay || apt.date} at {apt.time} • Chamber: <strong>{apt.chamberName || apt.hospital || 'Rajshahi Chamber'}</strong>
                           </div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                             Patient: <strong>{apt.patientName}</strong> • Txn: <span style={{ fontFamily: 'monospace' }}>{apt.paymentTxnId}</span>
@@ -246,7 +264,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                       </div>
 
                       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary)' }}>
                           {apt.currency || '৳'}{apt.fee}
                         </span>
                         <span style={{ 

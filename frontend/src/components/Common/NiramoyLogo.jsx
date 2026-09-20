@@ -149,7 +149,7 @@ export default function NiramoyLogo({
             fontSize: config.text,
             fontWeight: 900,
             letterSpacing: '-0.03em',
-            color: isLightText ? '#ffffff' : 'var(--color-text-primary)',
+            color: isLightText ? '#ffffff' : 'var(--color-text, #0f172a)',
             display: 'flex',
             alignItems: 'baseline'
           }}
@@ -158,12 +158,12 @@ export default function NiramoyLogo({
           <span
             style={{
               display: 'inline-block',
-              width: 5,
-              height: 5,
+              width: 6,
+              height: 6,
               borderRadius: '50%',
-              background: '#10b981',
+              background: isLightText ? '#34d399' : '#10b981',
               marginLeft: 3,
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.7)'
+              boxShadow: isLightText ? '0 0 10px rgba(52, 211, 153, 0.9)' : '0 0 8px rgba(16, 185, 129, 0.7)'
             }}
           />
         </div>
@@ -172,10 +172,11 @@ export default function NiramoyLogo({
           <span
             style={{
               fontSize: config.tagline,
-              fontWeight: 700,
+              fontWeight: 800,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: isLightText ? 'rgba(255, 255, 255, 0.75)' : 'var(--color-text-muted)',
+              color: isLightText ? '#a7f3d0' : '#0d7c6e',
+              textShadow: isLightText ? '0 1px 2px rgba(0, 0, 0, 0.3)' : 'none',
               marginTop: 2
             }}
           >

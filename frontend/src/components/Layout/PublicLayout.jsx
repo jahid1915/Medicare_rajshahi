@@ -26,7 +26,7 @@ function NiramoyFooter() {
           {/* Brand */}
           <div>
             <div style={{ marginBottom: 'var(--sp-4)' }}>
-              <NiramoyLogo size="md" tagline="Healthcare Made Simple" />
+              <NiramoyLogo size="md" variant="light" tagline="Healthcare Made Simple" />
             </div>
             <p className="footer__brand-desc">
               Healthcare made simple. Find trusted doctors, pharmacies, and health services across Rajshahi — all in one place.
