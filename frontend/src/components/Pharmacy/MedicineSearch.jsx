@@ -158,7 +158,7 @@ const DEFAULT_PHARMACIES_STOCK = [
   {
     pharmacy: {
       _id: "p1",
-      name: "Medicare Model Pharmacy - Laxmipur",
+      name: "Niramoy Model Pharmacy - Laxmipur",
       area: "Laxmipur",
       delivery_fee: 30,
       delivery_eta_mins: 20,

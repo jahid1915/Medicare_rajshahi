@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NiramoyLogo from '../Common/NiramoyLogo';
 import {
-  HeartPulse, LayoutDashboard, Sparkles, UserCheck, ShoppingBag,
+  LayoutDashboard, Sparkles, UserCheck, ShoppingBag,
   FileText, Activity, Users, Lock, LogOut, Sun, Moon,
   Building2, Sliders, AlertOctagon, BarChart2, Radio, Stethoscope,
-  Pill, ClipboardList, Ambulance, CreditCard, Bell, CalendarDays,
-  Heart, FolderOpen, Settings, Home
+  Pill, ClipboardList, Ambulance, CreditCard, CalendarDays,
+  Heart, FolderOpen, Settings, Home, ChevronRight, Menu, X
 } from 'lucide-react';
 
 const PATIENT_NAV = [
@@ -93,45 +94,85 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [theme, setTheme] = useState(localStorage.getItem('medicare_theme') || 'light');
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('medicare_theme', theme);
-  }, [theme]);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = getNavForRole(user?.role);
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="app-canvas">
+    <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg)' }}>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(13, 31, 30, 0.4)',
+            backdropFilter: 'blur(4px)', zIndex: 90
+          }}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside
+        className={`dashboard-sidebar ${mobileOpen ? 'open' : ''}`}
+        style={{
+          width: 270,
+          background: 'var(--color-surface)',
+          borderRight: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: 'var(--sp-6) var(--sp-4)',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          zIndex: 95,
+          overflowY: 'auto'
+        }}
+      >
         <div>
-          {/* Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: 'var(--primary)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'white'
-            }}>
-              <HeartPulse style={{ width: 22, height: 22 }} />
+          {/* Brand Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-6)', padding: '0 var(--sp-2)' }}>
+            <Link
+              to="/"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                textDecoration: 'none', color: 'inherit'
+              }}
+            >
+              <NiramoyLogo size="sm" tagline={getRoleLabel(user?.role)} />
+            </Link>
+
+            {mobileOpen && (
+              <button
+                onClick={() => setMobileOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+              >
+                <X style={{ width: 20, height: 20 }} />
+              </button>
+            )}
+          </div>
+
+          {/* User Card */}
+          <div style={{
+            padding: '12px 14px', borderRadius: 'var(--radius-lg)',
+            background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.1)',
+            marginBottom: 'var(--sp-6)'
+          }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.name || 'User'}
             </div>
-            <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4, letterSpacing: '-0.03em' }}>
-                Medicare <span style={{ fontSize: '0.625rem', padding: '2px 6px', background: 'var(--bg-badge)', color: 'var(--primary)', borderRadius: 6, fontWeight: 700 }}>AI</span>
-              </h2>
-              <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontWeight: 600 }}>{getRoleLabel(user?.role)}</span>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email}
             </div>
           </div>
 
-          {/* User Info */}
-          <div style={{ marginTop: 16, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-badge)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.name}</div>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 2 }}>{user?.email}</div>
-          </div>
-
-          {/* Nav */}
-          <nav style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Navigation Links */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(item => {
               const isActive = location.pathname === item.path ||
                 (item.path !== '/dashboard' && item.path !== '/doctor-portal' && item.path !== '/pharmacy-portal' && item.path !== '/hospital-portal' && item.path !== '/admin' && location.pathname.startsWith(item.path));
@@ -139,18 +180,19 @@ export default function DashboardLayout() {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`sidebar-btn ${isActive ? 'active' : ''}`}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                    borderRadius: 10, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
-                    fontSize: '0.78rem', fontWeight: isActive ? 700 : 500,
-                    background: isActive ? 'var(--primary-glow)' : 'transparent',
-                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease'
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                    borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
+                    fontSize: 'var(--text-sm)', fontWeight: isActive ? 700 : 500,
+                    background: isActive ? 'var(--color-primary)' : 'transparent',
+                    color: isActive ? 'white' : 'var(--color-text-secondary)',
+                    transition: 'all var(--trans-fast)',
+                    boxShadow: isActive ? '0 4px 12px rgba(13, 124, 110, 0.25)' : 'none'
                   }}
                 >
-                  <item.icon style={{ width: 16, height: 16, flexShrink: 0 }} />
-                  {item.label}
+                  <item.icon style={{ width: 17, height: 17, flexShrink: 0, color: isActive ? 'white' : 'currentColor' }} />
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {isActive && <ChevronRight style={{ width: 14, height: 14, opacity: 0.8 }} />}
                 </button>
               );
             })}
@@ -158,49 +200,59 @@ export default function DashboardLayout() {
         </div>
 
         {/* Bottom Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 'var(--sp-4)', borderTop: '1px solid var(--color-border)' }}>
           <button
             onClick={() => navigate('/')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontSize: '0.75rem', fontWeight: 500, background: 'transparent',
-              color: 'var(--text-muted)'
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+              borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+              fontSize: 'var(--text-sm)', fontWeight: 500, background: 'transparent',
+              color: 'var(--color-text-secondary)', transition: 'background var(--trans-fast)'
             }}
           >
-            <Home style={{ width: 15, height: 15 }} /> Public Site
-          </button>
-          <button
-            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontSize: '0.75rem', fontWeight: 500, background: 'transparent',
-              color: 'var(--text-muted)'
-            }}
-          >
-            {theme === 'dark' ? <Sun style={{ width: 15, height: 15 }} /> : <Moon style={{ width: 15, height: 15 }} />}
-            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            <Home style={{ width: 16, height: 16 }} /> Public Site
           </button>
           <button
             onClick={() => { logout(); navigate('/'); }}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontSize: '0.75rem', fontWeight: 600, background: 'transparent',
-              color: 'var(--danger)'
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+              borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+              fontSize: 'var(--text-sm)', fontWeight: 600, background: 'rgba(220, 38, 38, 0.05)',
+              color: 'var(--color-error)', transition: 'background var(--trans-fast)'
             }}
           >
-            <LogOut style={{ width: 15, height: 15 }} /> Sign Out
+            <LogOut style={{ width: 16, height: 16 }} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', width: '100%' }}>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        {/* Mobile Top bar */}
+        <header
+          className="dashboard-mobile-bar"
+          style={{
+            display: 'none', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 18px', background: 'var(--color-surface)',
+            borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 40
+          }}
+        >
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <NiramoyLogo size="sm" showTagline={false} />
+          </Link>
+          <button
+            onClick={() => setMobileOpen(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
+            aria-label="Open menu"
+          >
+            <Menu style={{ width: 22, height: 22 }} />
+          </button>
+        </header>
+
+        {/* Router Outlet */}
+        <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--sp-6)' }}>
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );

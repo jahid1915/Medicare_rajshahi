@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, Eye, Activity, Users, FileText, 
-  Settings, UserCheck, AlertTriangle, Play, RefreshCw 
+  Settings, UserCheck, AlertTriangle, Play, RefreshCw, CreditCard, ArrowRight
 } from 'lucide-react';
 import { getStoredState, saveStoredState, addAuditLog } from '../../data/mockUserStore';
 
@@ -74,6 +75,41 @@ export default function AdminDashboard() {
             </div>
           );
         })}
+      </div>
+
+      {/* Transactions & Status Transition Hub Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(13,124,110,0.08) 0%, rgba(52,197,181,0.12) 100%)',
+        border: '1.5px solid rgba(13,124,110,0.25)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '20px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CreditCard style={{ width: 22, height: 22 }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 4px' }}>
+              Transaction History & Status Transitions
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: 0 }}>
+              Audit financial settlements, inspect status transition history (initiated ➔ pending ➔ processing ➔ settled / refunded), and trigger admin overrides.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          to="/admin/payments"
+          className="btn btn-primary"
+          style={{ padding: '10px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          Open Transaction Hub <ArrowRight style={{ width: 15, height: 15 }} />
+        </Link>
       </div>
 
       {/* Two Column Layout: Settings Toggles + Audit Log */}

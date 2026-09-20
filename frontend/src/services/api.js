@@ -1,5 +1,5 @@
 /**
- * Medicare API Client
+ * Niramoy API Client
  * Central axios-like fetch wrapper for all backend API calls
  * Replace BASE_URL with your deployed backend URL in production
  */
@@ -10,7 +10,7 @@ async function request(method, path, body = null, requireAuth = false) {
   const headers = { "Content-Type": "application/json" };
 
   if (requireAuth) {
-    const token = localStorage.getItem("medicare_token");
+    const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -71,9 +71,14 @@ export const appointmentsAPI = {
 
 // Payments API
 export const paymentsAPI = {
-  create:     (body) => request("POST", "/payments/create", body, true),
-  getById:    (id)   => request("GET",  `/payments/${id}`, null, true),
-  handleWebhook: (body) => request("POST", "/payments/webhook", body)
+  create:           (body) => request("POST", "/payments/create", body, true),
+  getById:          (id)   => request("GET",  `/payments/${id}`, null, true),
+  getAll:           (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request("GET", `/payments${qs ? "?" + qs : ""}`, null, true);
+  },
+  transitionStatus: (id, body) => request("PATCH", `/payments/${id}/transition`, body, true),
+  handleWebhook:    (body) => request("POST", "/payments/webhook", body)
 };
 
 // Pharmacies API

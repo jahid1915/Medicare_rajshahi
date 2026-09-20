@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { RAJSHAHI_HOSPITALS, RAJSHAHI_AREAS } from "../../data/rajshahiHospitals";
 import { Search, Filter, MapPin, Phone, ShieldCheck, ChevronRight, Building2, Ambulance, AlertTriangle } from "lucide-react";
 
@@ -239,7 +239,7 @@ export default function HospitalSearchPage({ onViewHospital }) {
       }}>
         <AlertTriangle size={14} style={{ flexShrink: 0 }} />
         <span>
-          Medicare is currently in early access for Rajshahi. Real-time resource data requires hospital admin cooperation.
+          Niramoy is currently in early access for Rajshahi. Real-time resource data requires hospital admin cooperation.
           Contact information may be incomplete — help us improve by reporting corrections.
         </span>
       </div>

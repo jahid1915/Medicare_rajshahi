@@ -193,7 +193,7 @@ export default function PharmacyOwnerDashboard() {
   const useFallbackPharmacy = () => {
     setPharmacy({
       _id: "pharm-laxmipur",
-      name: "Medicare Model Pharmacy - Laxmipur",
+      name: "Niramoy Model Pharmacy - Laxmipur",
       area: "Laxmipur",
       address: "Holding 142, Medical College Main Gate Road, Laxmipur, Rajshahi",
       phone: "+880 1711-445566",

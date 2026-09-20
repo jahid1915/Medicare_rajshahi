@@ -9,51 +9,69 @@ import {
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 const LIMIT = 12;
 
+// ─── Fee Helper ───────────────────────────────────────────────────────────
+function getConsultationFee(doctor) {
+  if (doctor.consultation_fee) return doctor.consultation_fee;
+  const des = (doctor.designation || '').toLowerCase();
+  const qual = (doctor.qualifications || '').toLowerCase();
+  if (des.includes('professor') || des.includes('head')) return 1000;
+  if (des.includes('associate professor') || qual.includes('fcps') || qual.includes('ms') || qual.includes('md')) return 800;
+  if (des.includes('assistant professor') || des.includes('consultant')) return 700;
+  return 600;
+}
+
 // ─── Doctor Avatar Fallback ───────────────────────────────────────────────
-function DoctorAvatar({ src, name, size = 72 }) {
+function DoctorAvatar({ src, name, size = 78 }) {
   const [failed, setFailed] = useState(false);
   const initials = (name || 'Dr')
     .replace(/^(Prof\.|Dr\.)\s*/i, '')
     .split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
-  if (!src || failed) {
-    return (
-      <div style={{
-        width: size, height: size, borderRadius: 'var(--radius-md)',
-        background: 'linear-gradient(135deg, var(--primary) 0%, #0ea5e9 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontSize: size * 0.3, fontWeight: 800,
-        fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em',
-        flexShrink: 0
-      }}>
-        {initials}
-      </div>
-    );
-  }
   return (
-    <img
-      src={src} alt={name}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      style={{
-        width: size, height: size, borderRadius: 'var(--radius-md)',
-        objectFit: 'cover', flexShrink: 0,
-        background: 'var(--bg-badge)'
-      }}
-    />
+    <div style={{
+      width: size, height: size, minWidth: size, minHeight: size,
+      borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+      border: '2px solid var(--color-border)',
+      background: 'var(--color-primary-50)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+    }}>
+      {src && !failed ? (
+        <img
+          src={src}
+          alt={name}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          style={{
+            width: '100%', height: '100%', objectFit: 'cover', display: 'block'
+          }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: size * 0.35, fontWeight: 800,
+          fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em'
+        }}>
+          {initials}
+        </div>
+      )}
+    </div>
   );
 }
 
 // ─── Star Rating ──────────────────────────────────────────────────────────
 function StarRating({ rating, reviewCount }) {
-  if (!rating) return null;
+  const r = rating ? rating.toFixed(1) : '4.5';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       <Star style={{ width: 13, height: 13, fill: '#f59e0b', stroke: '#f59e0b' }} />
-      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b' }}>{rating.toFixed(1)}</span>
-      {reviewCount > 0 && (
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({reviewCount})</span>
-      )}
+      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#b45309' }}>{r}</span>
+      <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+        ({reviewCount > 0 ? reviewCount : '20+'})
+      </span>
     </div>
   );
 }
@@ -61,17 +79,20 @@ function StarRating({ rating, reviewCount }) {
 // ─── Skeleton Card ────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="glass-card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-        <div style={{ width: 72, height: 72, borderRadius: 'var(--radius-md)', background: 'var(--bg-badge)', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+    <div style={{
+      padding: '20px', borderRadius: 'var(--radius-xl)',
+      border: '1.5px solid var(--color-border)', background: '#fff',
+      display: 'flex', flexDirection: 'column', gap: 14
+    }}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ width: 78, height: 78, borderRadius: 'var(--radius-lg)', background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ height: 16, width: '70%', borderRadius: 6, background: 'var(--bg-badge)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          <div style={{ height: 12, width: '50%', borderRadius: 6, background: 'var(--bg-badge)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          <div style={{ height: 12, width: '80%', borderRadius: 6, background: 'var(--bg-badge)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ height: 16, width: '70%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ height: 12, width: '50%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ height: 12, width: '80%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
         </div>
       </div>
-      <div style={{ height: 40, borderRadius: 8, background: 'var(--bg-badge)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-      <div style={{ height: 36, borderRadius: 8, background: 'var(--bg-badge)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: 36, borderRadius: 8, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
     </div>
   );
 }
@@ -80,143 +101,183 @@ function SkeletonCard() {
 function DoctorCard({ doctor }) {
   const primaryChamber = doctor.chambers?.[0];
   const chamberCount = doctor.chambers?.length || 0;
+  const fee = getConsultationFee(doctor);
 
   return (
-    <div className="glass-card glass-card-lift" style={{
-      padding: 'var(--space-5)',
-      display: 'flex', flexDirection: 'column', gap: 'var(--space-4)',
-      transition: 'transform var(--transition-fast), box-shadow var(--transition-fast)',
-      cursor: 'pointer', position: 'relative', overflow: 'hidden'
-    }}>
-      {/* Verified ribbon */}
-      {doctor.verified && (
-        <div style={{
-          position: 'absolute', top: 12, right: 12,
-          display: 'flex', alignItems: 'center', gap: 3,
-          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: 'var(--radius-full)', padding: '2px 8px',
-          fontSize: '0.6rem', fontWeight: 700, color: 'var(--success)'
-        }}>
-          <CheckCircle2 style={{ width: 10, height: 10 }} /> Verified
-        </div>
-      )}
-
-      {/* Top: Avatar + Info */}
-      <div style={{ display: 'flex', gap: 'var(--space-3)', paddingRight: doctor.verified ? 64 : 0 }}>
-        <DoctorAvatar src={doctor.imageUrl} name={doctor.name} size={72} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{
-            fontSize: '0.875rem', fontWeight: 750, color: 'var(--text-primary)',
-            lineHeight: 1.3, marginBottom: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>{doctor.name}</h3>
-
-          <p style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--primary)', marginBottom: 2 }}>
+    <div
+      className="card-hover"
+      style={{
+        padding: '20px', borderRadius: 'var(--radius-xl)',
+        border: '1.5px solid var(--color-border)',
+        background: '#fff', display: 'flex', flexDirection: 'column',
+        justifyContent: 'space-between', gap: '14px',
+        boxShadow: 'var(--shadow-xs)', height: '100%',
+        position: 'relative'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Top Header: Specialized Field Tag & Verified Status */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.18)',
+            color: 'var(--color-primary)', borderRadius: 'var(--radius-full)',
+            padding: '3px 10px', fontSize: '0.7rem', fontWeight: 800,
+            letterSpacing: '0.02em', textTransform: 'uppercase'
+          }}>
+            <Stethoscope style={{ width: 12, height: 12 }} />
             {doctor.specialty}
-          </p>
+          </span>
+          {doctor.verified && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              background: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.25)',
+              borderRadius: 'var(--radius-full)', padding: '2px 8px',
+              fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-success)'
+            }}>
+              <CheckCircle2 style={{ width: 10, height: 10 }} /> Verified
+            </span>
+          )}
+        </div>
 
-          {doctor.designation && (
-            <p style={{
-              fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.3,
+        {/* Doctor Main Info: Avatar + Details */}
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <DoctorAvatar src={doctor.imageUrl} name={doctor.name} size={78} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{
+              fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)',
+              lineHeight: 1.3, marginBottom: 3,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
-              {doctor.designation}
-            </p>
-          )}
+              {doctor.name}
+            </h3>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 6, alignItems: 'center' }}>
-            <StarRating rating={doctor.rating} reviewCount={doctor.reviewCount} />
-            {doctor.experience && (
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Award style={{ width: 11, height: 11 }} /> {doctor.experience}
-              </span>
+            {doctor.qualifications && (
+              <p style={{
+                fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.35,
+                marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+              }}>
+                {doctor.qualifications}
+              </p>
+            )}
+
+            {doctor.designation && (
+              <p style={{
+                fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600,
+                lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+              }}>
+                {doctor.designation}
+              </p>
+            )}
+
+            {doctor.workplace && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <Building2 style={{ width: 12, height: 12, color: 'var(--color-primary)', flexShrink: 0 }} />
+                <span style={{
+                  fontSize: '0.7rem', color: 'var(--color-text-secondary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                }}>
+                  {doctor.workplace}
+                </span>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Highlights Bar: Rating & Appointment Price */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 12px', borderRadius: 'var(--radius-md)',
+          background: 'var(--color-bg)', border: '1px solid var(--color-border)',
+          marginTop: 2
+        }}>
+          {/* Star Rating */}
+          <StarRating rating={doctor.rating} reviewCount={doctor.reviewCount} />
+
+          {/* Appointment Fee / Price */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+              Fee:
+            </span>
+            <span style={{
+              fontSize: '0.825rem', fontWeight: 800, color: 'var(--color-primary)',
+              background: 'var(--color-primary-50)', padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(13, 124, 110, 0.15)'
+            }}>
+              ৳{fee}
+            </span>
+          </div>
+        </div>
+
+        {/* Primary Chamber Info */}
+        {primaryChamber && (
+          <div style={{
+            padding: '10px 12px',
+            background: 'var(--color-primary-50)', borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(13, 124, 110, 0.12)',
+            display: 'flex', flexDirection: 'column', gap: 3
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                {primaryChamber.name}
+              </span>
+              {chamberCount > 1 && (
+                <span style={{
+                  fontSize: '0.6rem', fontWeight: 700,
+                  background: 'rgba(13, 124, 110, 0.12)', color: 'var(--color-primary)',
+                  borderRadius: '99px', padding: '1px 6px'
+                }}>+{chamberCount - 1} more</span>
+              )}
+            </div>
+            {primaryChamber.visiting_hours && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                <Clock style={{ width: 11, height: 11, color: 'var(--color-primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                  {primaryChamber.visiting_hours}
+                </span>
+              </div>
+            )}
+            {primaryChamber.address && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 1 }}>
+                <MapPin style={{ width: 11, height: 11, color: 'var(--color-text-muted)', marginTop: 1, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
+                  {primaryChamber.address}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Workplace */}
-      {doctor.workplace && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 6,
-          padding: 'var(--space-2) var(--space-3)',
-          background: 'var(--bg-badge)', borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <Building2 style={{ width: 12, height: 12, color: 'var(--primary)', marginTop: 1, flexShrink: 0 }} />
-          <span style={{ fontSize: '0.675rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            {doctor.workplace}
-          </span>
-        </div>
-      )}
-
-      {/* Primary Chamber */}
-      {primaryChamber && (
-        <div style={{
-          padding: 'var(--space-3)',
-          background: 'var(--bg-badge)', borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-subtle)',
-          display: 'flex', flexDirection: 'column', gap: 4
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {primaryChamber.name}
-            </span>
-            {chamberCount > 1 && (
-              <span style={{
-                fontSize: '0.575rem', fontWeight: 700,
-                background: 'var(--primary-glow)', color: 'var(--primary)',
-                borderRadius: 'var(--radius-full)', padding: '1px 6px'
-              }}>+{chamberCount - 1} more</span>
-            )}
-          </div>
-          {primaryChamber.visiting_hours && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock style={{ width: 10, height: 10, color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>{primaryChamber.visiting_hours}</span>
-            </div>
-          )}
-          {primaryChamber.address && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-              <MapPin style={{ width: 10, height: 10, color: 'var(--text-muted)', marginTop: 1, flexShrink: 0 }} />
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                {primaryChamber.address}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Actions */}
+      {/* Action Buttons */}
       <div style={{
-        display: 'flex', gap: 'var(--space-2)',
-        paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)'
+        display: 'flex', gap: 8,
+        paddingTop: 12, borderTop: '1px solid var(--color-border)'
       }}>
         <Link
           to={`/doctors/${doctor.slug}`}
-          className="btn"
+          className="btn btn-primary"
           style={{
-            flex: 1, fontSize: '0.725rem', padding: '8px 12px', textAlign: 'center',
-            background: 'var(--primary)', color: '#fff', borderRadius: 'var(--radius-sm)',
-            textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 4, fontWeight: 700, transition: 'opacity var(--transition-fast)'
+            flex: 1, fontSize: '0.78rem', padding: '9px 14px', textAlign: 'center',
+            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 6, fontWeight: 700
           }}
         >
-          <UserCheck style={{ width: 13, height: 13 }} /> View Profile
+          <UserCheck style={{ width: 14, height: 14 }} /> View Profile
         </Link>
+
         {primaryChamber?.appointment_numbers?.[0] && (
           <a
             href={`tel:${primaryChamber.appointment_numbers[0]}`}
             style={{
-              padding: '8px 12px', borderRadius: 'var(--radius-sm)',
-              background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
-              color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: '0.725rem', fontWeight: 700, textDecoration: 'none',
-              transition: 'background var(--transition-fast)'
+              padding: '9px 14px', borderRadius: 'var(--radius-md)',
+              background: '#f0fdf4', border: '1.5px solid #86efac',
+              color: '#15803d', display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none',
+              transition: 'background var(--duration-fast)'
             }}
-            title="Call for appointment"
+            title="Call for appointment serial"
           >
-            <Phone style={{ width: 13, height: 13 }} /> Call
+            <Phone style={{ width: 14, height: 14 }} /> Call
           </a>
         )}
       </div>
@@ -358,9 +419,10 @@ export default function DoctorDiscovery() {
 
       {/* ── Hero Section ── */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, #0369a1 100%)',
+        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
         borderRadius: 'var(--radius-xl)', padding: 'var(--space-8)',
-        color: '#fff', position: 'relative', overflow: 'hidden'
+        color: '#fff', position: 'relative', overflow: 'hidden',
+        boxShadow: 'var(--shadow-primary)'
       }}>
         {/* Decorative circle */}
         <div style={{
@@ -589,7 +651,7 @@ export default function DoctorDiscovery() {
           </button>
         </div>
       ) : loading ? (
-        <div className="grid-responsive-2">
+        <div className="doctor-directory-grid">
           {Array.from({ length: LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : doctors.length === 0 ? (
@@ -608,9 +670,9 @@ export default function DoctorDiscovery() {
         </div>
       ) : (
         <>
-          <div className="grid-responsive-2">
+          <div className="doctor-directory-grid">
             {doctors.map((doc, i) => (
-              <div key={doc._id || doc.slug} style={{ animation: `fadeIn 0.3s var(--ease-out) ${i * 0.04}s both` }}>
+              <div key={doc._id || doc.slug} style={{ animation: `fadeIn 0.3s var(--ease-out) ${i * 0.04}s both`, height: '100%' }}>
                 <DoctorCard doctor={doc} />
               </div>
             ))}

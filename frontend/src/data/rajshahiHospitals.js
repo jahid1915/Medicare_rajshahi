@@ -1,4 +1,4 @@
-﻿// Rajshahi Hospital Data — Medicare Platform
+// Rajshahi Hospital Data — Niramoy Platform
 // Note: Real-time bed/resource availability comes from backend API.
 // These are placeholder records. Unknown values are null.
 

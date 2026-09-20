@@ -115,7 +115,7 @@ export default function MedicineCart() {
         delivery_type: form.delivery_type,
         payment_method: form.payment_method,
         prescription_image: form.prescription_name
-          ? `https://medicare.rajshahi.health/uploads/rx-${Date.now()}.png`
+          ? `https://niramoy.health/uploads/rx-${Date.now()}.png`
           : null
       };
 

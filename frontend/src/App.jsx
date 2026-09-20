@@ -31,6 +31,7 @@ import PharmacyStore from './components/Pharmacy/PharmacyStore';
 import DiagnosticCenterView from './components/Diagnostic/DiagnosticCenterView';
 import PrivacyConsentCenter from './components/Privacy/PrivacyConsentCenter';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminTransactions from './components/Admin/AdminTransactions';
 import WhatIfSimulator from './components/Simulation/WhatIfSimulator';
 import EarlyWarningCenter from './components/Admin/EarlyWarningCenter';
 import SpecialistWorkspaces from './components/Doctor/SpecialistWorkspaces';
@@ -54,7 +55,7 @@ function ComingSoon({ title }) {
       </div>
       <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>{title}</h2>
       <p style={{ color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
-        This section is being built. The feature is part of the Medicare AI platform roadmap.
+        This section is being built. The feature is part of the Niramoy platform roadmap.
       </p>
     </div>
   );
@@ -161,7 +162,7 @@ export default function App() {
             <Route path="admin/hospitals" element={<HospitalSearchPage />} />
             <Route path="admin/pharmacies" element={<ComingSoon title="Pharmacy Management" />} />
             <Route path="admin/doctors" element={<DoctorDiscovery />} />
-            <Route path="admin/payments" element={<ComingSoon title="Payment Overview" />} />
+            <Route path="admin/payments" element={<AdminTransactions />} />
             <Route path="admin/ai" element={<ComingSoon title="AI Model Management" />} />
             <Route path="admin/research" element={<ResearchSuiteView />} />
             <Route path="admin/audit" element={<ComingSoon title="Audit Logs" />} />

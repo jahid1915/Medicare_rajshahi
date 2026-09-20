@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-const TOKEN_KEY = 'medicare_token';
-const USER_KEY = 'medicare_user';
+const TOKEN_KEY = 'niramoy_token';
+const USER_KEY = 'niramoy_user';
 
 const AuthContext = createContext(null);
 
@@ -13,8 +13,8 @@ export function AuthProvider({ children }) {
 
   // Restore session on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    const savedUser = localStorage.getItem(USER_KEY);
+    const savedToken = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('medicare_token');
+    const savedUser = localStorage.getItem(USER_KEY) || localStorage.getItem('medicare_user');
     if (savedToken && savedUser) {
       try {
         setToken(savedToken);
@@ -22,6 +22,8 @@ export function AuthProvider({ children }) {
       } catch {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem('medicare_token');
+        localStorage.removeItem('medicare_user');
       }
     }
     setLoading(false);
@@ -39,6 +41,8 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('medicare_token');
+    localStorage.removeItem('medicare_user');
   }, []);
 
   const register = useCallback(async (formData) => {

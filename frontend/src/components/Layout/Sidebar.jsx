@@ -1,4 +1,5 @@
 import React from 'react';
+import NiramoyLogo from '../Common/NiramoyLogo';
 import { 
   LayoutDashboard, Sparkles, UserCheck, ShoppingBag, 
   FileText, Activity, Users, Lock, LogOut, HeartPulse, Sun, Moon, ShieldAlert,
@@ -53,25 +54,8 @@ export default function Sidebar({
     <aside className="sidebar">
       <div>
         {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: 'var(--primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white'
-          }}>
-            <HeartPulse style={{ width: '22px', height: '22px' }} />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px', letterSpacing: '-0.03em' }}>
-              Medicare <span style={{ fontSize: '0.625rem', padding: '2px 6px', background: 'var(--bg-badge)', color: 'var(--primary)', borderRadius: '6px', fontWeight: 700 }}>AI</span>
-            </h2>
-            <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontWeight: 600 }}>Rajshahi Healthcare Platform</span>
-          </div>
+        <div style={{ marginBottom: '8px' }}>
+          <NiramoyLogo size="md" tagline="Rajshahi Healthcare" />
         </div>
 
         {/* 14 ROLE SWITCHER DROP DOWN */}
