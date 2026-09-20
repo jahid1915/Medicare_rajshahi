@@ -285,8 +285,8 @@ export default function MedicineSearch() {
       {/* Header Banner */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(13, 148, 136, 0.08) 100%)",
-          border: "1px solid rgba(14, 165, 233, 0.25)",
+          background: "linear-gradient(135deg, rgba(13, 124, 110, 0.08) 0%, rgba(52, 197, 181, 0.06) 100%)",
+          border: "1px solid var(--color-border, #e2eceb)",
           borderRadius: "16px",
           padding: "2rem",
           marginBottom: "2rem",
@@ -298,13 +298,13 @@ export default function MedicineSearch() {
         }}
       >
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(14, 165, 233, 0.2)", padding: "0.25rem 0.75rem", borderRadius: "999px", color: "#38bdf8", fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(13, 124, 110, 0.12)", border: "1px solid rgba(13, 124, 110, 0.2)", padding: "0.3rem 0.85rem", borderRadius: "999px", color: "var(--color-primary, #0d7c6e)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.75rem" }}>
             <Sparkles size={14} /> Multi-Pharmacy Price & Stock Comparison
           </div>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--text-primary, #f8fafc)" }}>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
             Search Medicines in Rajshahi
           </h1>
-          <p style={{ color: "var(--text-secondary, #94a3b8)", margin: 0, maxWidth: "680px", lineHeight: 1.5 }}>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0, maxWidth: "680px", lineHeight: 1.5, fontSize: "0.95rem" }}>
             Compare live prices, batch availability, and delivery options across verified Rajshahi pharmacies for both OTC and prescription medicines.
           </p>
         </div>
@@ -318,12 +318,12 @@ export default function MedicineSearch() {
               gap: "0.5rem",
               padding: "0.75rem 1.5rem",
               borderRadius: "10px",
-              background: "var(--teal-600, #0d9488)",
+              background: "var(--color-primary, #0d7c6e)",
               color: "#fff",
               textDecoration: "none",
               fontWeight: 700,
               fontSize: "0.95rem",
-              boxShadow: "0 4px 12px rgba(13,148,136,0.3)"
+              boxShadow: "0 4px 14px rgba(13, 124, 110, 0.25)"
             }}
           >
             <ShoppingCart size={18} /> Cart ({totalItemsCount})
@@ -334,16 +334,17 @@ export default function MedicineSearch() {
       {/* Search & Category Filter */}
       <div
         style={{
-          background: "var(--card-bg, #1e293b)",
-          border: "1px solid var(--border-color, #334155)",
-          borderRadius: "14px",
+          background: "#ffffff",
+          border: "1px solid var(--color-border, #e2eceb)",
+          borderRadius: "16px",
           padding: "1.25rem",
-          marginBottom: "1.75rem"
+          marginBottom: "1.75rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
         }}
       >
         <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
           <div style={{ flex: "1 1 320px", position: "relative" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted, #64748b)" }} />
+            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted, #47615f)" }} />
             <input
               type="text"
               placeholder="Search by brand name (Napa, Seclo), generic (Paracetamol), or manufacturer (Square)..."
@@ -353,9 +354,9 @@ export default function MedicineSearch() {
                 width: "100%",
                 padding: "0.75rem 1rem 0.75rem 2.75rem",
                 borderRadius: "10px",
-                border: "1px solid var(--border-color, #334155)",
-                background: "var(--input-bg, #0f172a)",
-                color: "var(--text-primary, #f8fafc)",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                background: "#ffffff",
+                color: "var(--color-text, #142422)",
                 fontSize: "0.95rem"
               }}
             />
@@ -365,11 +366,12 @@ export default function MedicineSearch() {
             style={{
               padding: "0.75rem 1.5rem",
               borderRadius: "10px",
-              background: "var(--teal-500, #0d9488)",
+              background: "var(--color-primary, #0d7c6e)",
               border: "none",
               color: "#fff",
-              fontWeight: 600,
-              cursor: "pointer"
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(13, 124, 110, 0.2)"
             }}
           >
             Search
@@ -377,21 +379,22 @@ export default function MedicineSearch() {
         </form>
 
         {/* Category pills */}
-        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.35rem" }}>
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               style={{
-                padding: "0.4rem 0.85rem",
+                padding: "0.45rem 0.95rem",
                 borderRadius: "999px",
                 fontSize: "0.82rem",
-                fontWeight: 500,
+                fontWeight: selectedCategory === cat ? 700 : 500,
                 whiteSpace: "nowrap",
                 cursor: "pointer",
-                border: selectedCategory === cat ? "1px solid var(--teal-500, #0d9488)" : "1px solid var(--border-color, #334155)",
-                background: selectedCategory === cat ? "rgba(13, 148, 136, 0.2)" : "transparent",
-                color: selectedCategory === cat ? "var(--teal-400, #2dd4bf)" : "var(--text-secondary, #94a3b8)"
+                border: selectedCategory === cat ? "1.5px solid var(--color-primary, #0d7c6e)" : "1px solid var(--color-border, #e2eceb)",
+                background: selectedCategory === cat ? "var(--color-primary-light, #eaf6f4)" : "#ffffff",
+                color: selectedCategory === cat ? "var(--color-primary-dark, #09594f)" : "var(--color-text-secondary, #2f4847)",
+                transition: "all 0.15s ease"
               }}
             >
               {cat}
@@ -404,13 +407,13 @@ export default function MedicineSearch() {
       {loading ? (
         <div style={{ textAlign: "center", padding: "4rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p style={{ color: "var(--text-secondary, #94a3b8)" }}>Searching medicine catalog...</p>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)" }}>Searching medicine catalog...</p>
         </div>
       ) : medicines.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "4rem", background: "var(--card-bg, #1e293b)", borderRadius: "14px" }}>
-          <AlertCircle size={40} style={{ color: "var(--text-muted, #64748b)", margin: "0 auto 1rem" }} />
-          <h3 style={{ color: "var(--text-primary, #f8fafc)", margin: "0 0 0.5rem" }}>No medicines matched your query</h3>
-          <p style={{ color: "var(--text-secondary, #94a3b8)", margin: 0 }}>Try searching with a generic name (e.g., Paracetamol, Omeprazole) or broad term.</p>
+        <div style={{ textAlign: "center", padding: "4rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)" }}>
+          <AlertCircle size={40} style={{ color: "var(--color-text-muted, #47615f)", margin: "0 auto 1rem" }} />
+          <h3 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>No medicines matched your query</h3>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0 }}>Try searching with a generic name (e.g., Paracetamol, Omeprazole) or broad term.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -421,50 +424,51 @@ export default function MedicineSearch() {
               <div
                 key={med._id}
                 style={{
-                  background: "var(--card-bg, #1e293b)",
-                  border: "1px solid var(--border-color, #334155)",
-                  borderRadius: "14px",
+                  background: "#ffffff",
+                  border: isExpanded ? "1.5px solid var(--color-primary, #0d7c6e)" : "1px solid var(--color-border, #e2eceb)",
+                  borderRadius: "16px",
                   overflow: "hidden",
-                  transition: "border-color 0.2s ease"
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  transition: "border-color 0.2s ease, box-shadow 0.2s ease"
                 }}
               >
                 {/* Main Medicine Row */}
-                <div style={{ padding: "1.25rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+                <div style={{ padding: "1.35rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
                   <div style={{ flex: "1 1 350px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "0.75rem", padding: "0.15rem 0.5rem", borderRadius: "4px", background: "rgba(255,255,255,0.06)", color: "var(--text-muted, #94a3b8)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.45rem", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem", borderRadius: "6px", background: "var(--color-surface-2, #f0f5f4)", color: "var(--color-text-secondary, #2f4847)", border: "1px solid var(--color-border, #e2eceb)", fontWeight: 600 }}>
                         {med.dosage_form} • {med.strength}
                       </span>
-                      <span style={{ fontSize: "0.75rem", padding: "0.15rem 0.5rem", borderRadius: "4px", background: "rgba(14,165,233,0.15)", color: "#38bdf8" }}>
+                      <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem", borderRadius: "6px", background: "rgba(13, 124, 110, 0.08)", color: "var(--color-primary, #0d7c6e)", border: "1px solid rgba(13, 124, 110, 0.2)", fontWeight: 600 }}>
                         {med.category}
                       </span>
 
                       {med.requires_prescription ? (
-                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#f87171", background: "rgba(239,68,68,0.15)", padding: "0.15rem 0.4rem", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}>
-                          <ShieldAlert size={12} /> Prescription Required
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#c91c1c", background: "rgba(201, 28, 28, 0.1)", border: "1px solid rgba(201, 28, 28, 0.25)", padding: "0.2rem 0.55rem", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                          <ShieldAlert size={13} /> Prescription Required
                         </span>
                       ) : (
-                        <span style={{ fontSize: "0.72rem", color: "#4ade80", background: "rgba(74,222,128,0.15)", padding: "0.15rem 0.4rem", borderRadius: "4px" }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f8a3c", background: "rgba(15, 138, 60, 0.1)", border: "1px solid rgba(15, 138, 60, 0.25)", padding: "0.2rem 0.55rem", borderRadius: "6px" }}>
                           OTC Available
                         </span>
                       )}
                     </div>
 
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, margin: "0 0 0.25rem 0", color: "var(--text-primary, #f8fafc)" }}>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, margin: "0 0 0.25rem 0", color: "var(--color-text, #142422)" }}>
                       {med.brand_name}
                     </h3>
 
-                    <p style={{ fontSize: "0.88rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.4rem 0", fontStyle: "italic" }}>
-                      Generic: <strong style={{ color: "var(--text-primary, #f8fafc)" }}>{med.generic_name}</strong>
+                    <p style={{ fontSize: "0.88rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.4rem 0" }}>
+                      Generic: <strong style={{ color: "var(--color-text, #142422)" }}>{med.generic_name}</strong>
                     </p>
 
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted, #64748b)" }}>
+                    <div style={{ fontSize: "0.82rem", color: "var(--color-text-muted, #47615f)" }}>
                       Mfg: {med.manufacturer} • {med.unit || "strip of 10"}
                     </div>
 
                     {med.indications && (
-                      <p style={{ fontSize: "0.8rem", color: "var(--text-secondary, #94a3b8)", margin: "0.5rem 0 0 0", lineHeight: 1.4 }}>
-                        <span style={{ color: "var(--text-muted, #64748b)" }}>Indications:</span> {med.indications}
+                      <p style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", margin: "0.5rem 0 0 0", lineHeight: 1.45 }}>
+                        <span style={{ color: "var(--color-text-muted, #47615f)", fontWeight: 600 }}>Indications:</span> {med.indications}
                       </p>
                     )}
                   </div>
@@ -472,11 +476,11 @@ export default function MedicineSearch() {
                   {/* Price & Compare CTA */}
                   <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>Starts from</div>
-                      <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--teal-400, #2dd4bf)" }}>
+                      <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #47615f)", fontWeight: 500 }}>Starts from</div>
+                      <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)" }}>
                         ৳{med.unit_price || 30}
                       </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>per {med.unit || "unit"}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted, #47615f)" }}>per {med.unit || "unit"}</div>
                     </div>
 
                     <button
@@ -487,12 +491,13 @@ export default function MedicineSearch() {
                         gap: "0.5rem",
                         padding: "0.65rem 1.25rem",
                         borderRadius: "10px",
-                        border: "1px solid var(--teal-500, #0d9488)",
-                        background: isExpanded ? "var(--teal-600, #0d9488)" : "rgba(13, 148, 136, 0.15)",
-                        color: "#fff",
-                        fontWeight: 600,
+                        border: "1.5px solid var(--color-primary, #0d7c6e)",
+                        background: isExpanded ? "var(--color-primary, #0d7c6e)" : "var(--color-primary-light, #eaf6f4)",
+                        color: isExpanded ? "#ffffff" : "var(--color-primary-dark, #09594f)",
+                        fontWeight: 700,
                         fontSize: "0.88rem",
-                        cursor: "pointer"
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
                       }}
                     >
                       <Store size={16} /> Compare Pharmacies {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -504,13 +509,13 @@ export default function MedicineSearch() {
                 {isExpanded && (
                   <div
                     style={{
-                      background: "rgba(15, 23, 42, 0.6)",
-                      borderTop: "1px solid var(--border-color, #334155)",
+                      background: "var(--color-surface-2, #f8fafb)",
+                      borderTop: "1px solid var(--color-border, #e2eceb)",
                       padding: "1.5rem"
                     }}
                   >
-                    <h4 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 1rem 0", color: "var(--text-primary, #f8fafc)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      <Store size={16} color="var(--teal-400, #2dd4bf)" /> Available at Rajshahi Pharmacies:
+                    <h4 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 1rem 0", color: "var(--color-text, #142422)", display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                      <Store size={17} color="var(--color-primary, #0d7c6e)" /> Available at Rajshahi Pharmacies:
                     </h4>
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
@@ -524,29 +529,30 @@ export default function MedicineSearch() {
                           <div
                             key={pharmacy._id}
                             style={{
-                              background: "var(--card-bg, #1e293b)",
-                              border: "1px solid var(--border-color, #334155)",
-                              borderRadius: "10px",
-                              padding: "1rem",
+                              background: "#ffffff",
+                              border: "1.5px solid var(--color-border, #e2eceb)",
+                              borderRadius: "12px",
+                              padding: "1.1rem",
                               display: "flex",
                               justifyContent: "space-between",
-                              alignItems: "center"
+                              alignItems: "center",
+                              boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
                             }}
                           >
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--text-primary, #f8fafc)", marginBottom: "0.2rem" }}>
+                              <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text, #142422)", marginBottom: "0.25rem" }}>
                                 {pharmacy.name}
                               </div>
-                              <div style={{ fontSize: "0.78rem", color: "var(--text-muted, #94a3b8)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                                <MapPin size={12} /> {pharmacy.area} • Delivery ~{pharmacy.delivery_eta_mins}m (৳{pharmacy.delivery_fee})
+                              <div style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                                <MapPin size={13} color="var(--color-primary, #0d7c6e)" /> {pharmacy.area} • Delivery ~{pharmacy.delivery_eta_mins}m (৳{pharmacy.delivery_fee})
                               </div>
-                              <div style={{ fontSize: "0.75rem", color: "#4ade80", marginTop: "0.3rem", fontWeight: 600 }}>
-                                ✓ In Stock ({stock.stock_quantity} units)
+                              <div style={{ fontSize: "0.78rem", color: "#0f8a3c", marginTop: "0.35rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                <Check size={13} /> In Stock ({stock.stock_quantity} units)
                               </div>
                             </div>
 
                             <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--teal-400, #2dd4bf)", marginBottom: "0.4rem" }}>
+                              <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)", marginBottom: "0.45rem" }}>
                                 ৳{price}
                               </div>
                               <button
@@ -554,15 +560,16 @@ export default function MedicineSearch() {
                                 style={{
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  gap: "0.3rem",
-                                  padding: "0.45rem 0.85rem",
-                                  borderRadius: "6px",
+                                  gap: "0.35rem",
+                                  padding: "0.5rem 0.95rem",
+                                  borderRadius: "8px",
                                   border: "none",
-                                  background: isAdded ? "#16a34a" : "var(--teal-600, #0d9488)",
+                                  background: isAdded ? "#0f8a3c" : "var(--color-primary, #0d7c6e)",
                                   color: "#fff",
-                                  fontSize: "0.82rem",
-                                  fontWeight: 600,
-                                  cursor: "pointer"
+                                  fontSize: "0.85rem",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  boxShadow: "0 2px 6px rgba(0,0,0,0.08)"
                                 }}
                               >
                                 {isAdded ? (

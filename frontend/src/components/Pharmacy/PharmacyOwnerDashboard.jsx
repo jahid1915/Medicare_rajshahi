@@ -275,8 +275,8 @@ export default function PharmacyOwnerDashboard() {
       {/* Top Header Card */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)",
-          border: "1px solid rgba(13, 148, 136, 0.3)",
+          background: "linear-gradient(135deg, rgba(13, 124, 110, 0.08) 0%, rgba(52, 197, 181, 0.06) 100%)",
+          border: "1px solid var(--color-border, #e2eceb)",
           borderRadius: "16px",
           padding: "2rem",
           marginBottom: "2rem"
@@ -284,15 +284,15 @@ export default function PharmacyOwnerDashboard() {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(13, 148, 136, 0.2)", padding: "0.25rem 0.75rem", borderRadius: "999px", color: "var(--teal-400, #2dd4bf)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(13, 124, 110, 0.12)", border: "1px solid rgba(13, 124, 110, 0.2)", padding: "0.3rem 0.85rem", borderRadius: "999px", color: "var(--color-primary, #0d7c6e)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem" }}>
               <Store size={14} /> Registered Pharmacist & Store Owner Console
             </div>
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "var(--text-primary, #f8fafc)" }}>
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
               {pharmacy?.name || "Rajshahi Pharmacy Portal"}
             </h1>
-            <p style={{ color: "var(--text-secondary, #94a3b8)", margin: "0.4rem 0 0", fontSize: "0.9rem" }}>
+            <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: "0.4rem 0 0", fontSize: "0.95rem" }}>
               {pharmacy?.address || "Laxmipur, Rajshahi"} • Operator:{" "}
-              <strong style={{ color: "#fff" }}>{user?.name || "Registered Pharmacist"}</strong>
+              <strong style={{ color: "var(--color-text, #142422)" }}>{user?.name || "Registered Pharmacist"}</strong>
             </p>
           </div>
 
@@ -303,14 +303,15 @@ export default function PharmacyOwnerDashboard() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.4rem",
-                padding: "0.6rem 1.25rem",
-                borderRadius: "8px",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                color: "#fff",
+                padding: "0.65rem 1.25rem",
+                borderRadius: "10px",
+                background: "#ffffff",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                color: "var(--color-text, #142422)",
                 textDecoration: "none",
-                fontWeight: 600,
-                fontSize: "0.88rem"
+                fontWeight: 700,
+                fontSize: "0.88rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
               }}
             >
               Public Directory View
@@ -327,68 +328,70 @@ export default function PharmacyOwnerDashboard() {
             marginTop: "1.75rem"
           }}
         >
-          <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "1.25rem", borderRadius: "12px", border: "1px solid var(--border-color, #334155)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text-muted, #94a3b8)", fontSize: "0.82rem", marginBottom: "0.4rem" }}>
+          <div style={{ background: "#ffffff", padding: "1.35rem", borderRadius: "14px", border: "1.5px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--color-text-secondary, #2f4847)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem", letterSpacing: "0.02em" }}>
               <span>PENDING ORDERS</span>
-              <Clock size={16} color="#fbbf24" />
+              <Clock size={16} color="#c25e00" />
             </div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#fbbf24" }}>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, color: "#c25e00" }}>
               {pendingOrdersCount}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary, #94a3b8)" }}>Requires pharmacist review</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #47615f)", marginTop: "0.2rem" }}>Requires pharmacist review</div>
           </div>
 
-          <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "1.25rem", borderRadius: "12px", border: "1px solid var(--border-color, #334155)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text-muted, #94a3b8)", fontSize: "0.82rem", marginBottom: "0.4rem" }}>
+          <div style={{ background: "#ffffff", padding: "1.35rem", borderRadius: "14px", border: "1.5px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--color-text-secondary, #2f4847)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem", letterSpacing: "0.02em" }}>
               <span>INVENTORY ITEMS</span>
-              <Package size={16} color="#38bdf8" />
+              <Package size={16} color="var(--color-primary, #0d7c6e)" />
             </div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--text-primary, #f8fafc)" }}>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, color: "var(--color-text, #142422)" }}>
               {inventory.length}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary, #94a3b8)" }}>Catalog active SKUs</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #47615f)", marginTop: "0.2rem" }}>Catalog active SKUs</div>
           </div>
 
-          <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "1.25rem", borderRadius: "12px", border: "1px solid var(--border-color, #334155)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text-muted, #94a3b8)", fontSize: "0.82rem", marginBottom: "0.4rem" }}>
+          <div style={{ background: "#ffffff", padding: "1.35rem", borderRadius: "14px", border: "1.5px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--color-text-secondary, #2f4847)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem", letterSpacing: "0.02em" }}>
               <span>LOW STOCK ALERTS</span>
-              <AlertTriangle size={16} color="#f87171" />
+              <AlertTriangle size={16} color={lowStockCount > 0 ? "#c91c1c" : "#0f8a3c"} />
             </div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 800, color: lowStockCount > 0 ? "#f87171" : "#4ade80" }}>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, color: lowStockCount > 0 ? "#c91c1c" : "#0f8a3c" }}>
               {lowStockCount}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary, #94a3b8)" }}>Reorder threshold (&lt; 30)</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #47615f)", marginTop: "0.2rem" }}>Reorder threshold (&lt; 30)</div>
           </div>
 
-          <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "1.25rem", borderRadius: "12px", border: "1px solid var(--border-color, #334155)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--text-muted, #94a3b8)", fontSize: "0.82rem", marginBottom: "0.4rem" }}>
+          <div style={{ background: "#ffffff", padding: "1.35rem", borderRadius: "14px", border: "1.5px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--color-text-secondary, #2f4847)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.5rem", letterSpacing: "0.02em" }}>
               <span>TODAY'S REVENUE</span>
-              <DollarSign size={16} color="var(--teal-400, #2dd4bf)" />
+              <DollarSign size={16} color="var(--color-primary, #0d7c6e)" />
             </div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--teal-400, #2dd4bf)" }}>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)" }}>
               ৳{todayRevenue}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary, #94a3b8)" }}>Delivered orders completed</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #47615f)", marginTop: "0.2rem" }}>Delivered orders completed</div>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: "flex", gap: "1rem", borderBottom: "1px solid var(--border-color, #334155)", paddingBottom: "0.75rem", marginBottom: "1.75rem" }}>
+      <div style={{ display: "flex", gap: "0.75rem", borderBottom: "1.5px solid var(--color-border, #e2eceb)", paddingBottom: "0.75rem", marginBottom: "1.75rem", overflowX: "auto" }}>
         <button
           onClick={() => setActiveTab("orders")}
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "0.5rem",
-            padding: "0.6rem 1.25rem",
-            borderRadius: "8px",
-            border: "none",
-            background: activeTab === "orders" ? "var(--teal-600, #0d9488)" : "transparent",
-            color: activeTab === "orders" ? "#fff" : "var(--text-secondary, #94a3b8)",
+            padding: "0.65rem 1.25rem",
+            borderRadius: "10px",
+            border: activeTab === "orders" ? "none" : "1px solid var(--color-border, #e2eceb)",
+            background: activeTab === "orders" ? "var(--color-primary, #0d7c6e)" : "var(--color-surface-2, #f0f5f4)",
+            color: activeTab === "orders" ? "#ffffff" : "var(--color-text-secondary, #2f4847)",
             fontWeight: 700,
-            fontSize: "0.95rem",
-            cursor: "pointer"
+            fontSize: "0.92rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "orders" ? "0 2px 8px rgba(13, 124, 110, 0.25)" : "none",
+            transition: "all 0.15s ease"
           }}
         >
           <ShoppingBag size={18} /> Incoming Orders ({orders.length})
@@ -400,14 +403,16 @@ export default function PharmacyOwnerDashboard() {
             display: "inline-flex",
             alignItems: "center",
             gap: "0.5rem",
-            padding: "0.6rem 1.25rem",
-            borderRadius: "8px",
-            border: "none",
-            background: activeTab === "inventory" ? "var(--teal-600, #0d9488)" : "transparent",
-            color: activeTab === "inventory" ? "#fff" : "var(--text-secondary, #94a3b8)",
+            padding: "0.65rem 1.25rem",
+            borderRadius: "10px",
+            border: activeTab === "inventory" ? "none" : "1px solid var(--color-border, #e2eceb)",
+            background: activeTab === "inventory" ? "var(--color-primary, #0d7c6e)" : "var(--color-surface-2, #f0f5f4)",
+            color: activeTab === "inventory" ? "#ffffff" : "var(--color-text-secondary, #2f4847)",
             fontWeight: 700,
-            fontSize: "0.95rem",
-            cursor: "pointer"
+            fontSize: "0.92rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "inventory" ? "0 2px 8px rgba(13, 124, 110, 0.25)" : "none",
+            transition: "all 0.15s ease"
           }}
         >
           <Package size={18} /> Inventory Management ({inventory.length})
@@ -419,14 +424,16 @@ export default function PharmacyOwnerDashboard() {
             display: "inline-flex",
             alignItems: "center",
             gap: "0.5rem",
-            padding: "0.6rem 1.25rem",
-            borderRadius: "8px",
-            border: "none",
-            background: activeTab === "ai_forecast" ? "var(--teal-600, #0d9488)" : "transparent",
-            color: activeTab === "ai_forecast" ? "#fff" : "var(--text-secondary, #94a3b8)",
+            padding: "0.65rem 1.25rem",
+            borderRadius: "10px",
+            border: activeTab === "ai_forecast" ? "none" : "1px solid var(--color-border, #e2eceb)",
+            background: activeTab === "ai_forecast" ? "var(--color-primary, #0d7c6e)" : "var(--color-surface-2, #f0f5f4)",
+            color: activeTab === "ai_forecast" ? "#ffffff" : "var(--color-text-secondary, #2f4847)",
             fontWeight: 700,
-            fontSize: "0.95rem",
-            cursor: "pointer"
+            fontSize: "0.92rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "ai_forecast" ? "0 2px 8px rgba(13, 124, 110, 0.25)" : "none",
+            transition: "all 0.15s ease"
           }}
         >
           <Sparkles size={18} /> AI Demand Surge Forecasting
@@ -452,59 +459,59 @@ export default function PharmacyOwnerDashboard() {
       )}
 
       {activeTab === "ai_forecast" && (
-        <div style={{ background: "var(--card-bg, #1e293b)", border: "1px solid var(--border-color, #334155)", borderRadius: "14px", padding: "1.75rem" }}>
+        <div style={{ background: "#ffffff", border: "1px solid var(--color-border, #e2eceb)", borderRadius: "16px", padding: "1.75rem", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            <Sparkles size={20} color="var(--teal-400, #2dd4bf)" />
-            <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-primary, #f8fafc)" }}>
+            <Sparkles size={20} color="var(--color-primary, #0d7c6e)" />
+            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 800, color: "var(--color-text, #142422)" }}>
               Rajshahi Epidemiological Medicine Demand Alerts
             </h3>
           </div>
-          <p style={{ color: "var(--text-secondary, #94a3b8)", lineHeight: 1.6, margin: "0 0 1.5rem" }}>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", lineHeight: 1.6, margin: "0 0 1.5rem", fontSize: "0.95rem" }}>
             Our Clinical AI engine monitors outpatient trends from RMCH, local Rajshahi clinic footfalls, and weather humidity data to forecast upcoming prescription surges before supply run-outs occur.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem" }}>
-            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "12px", padding: "1.25rem" }}>
+            <div style={{ background: "rgba(201, 28, 28, 0.06)", border: "1.5px solid rgba(201, 28, 28, 0.25)", borderRadius: "12px", padding: "1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <strong style={{ color: "#f87171" }}>Napa Extra / Paracetamol</strong>
-                <span style={{ fontSize: "0.75rem", background: "rgba(239,68,68,0.2)", color: "#f87171", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: 700 }}>
+                <strong style={{ color: "#c91c1c", fontSize: "1rem" }}>Napa Extra / Paracetamol</strong>
+                <span style={{ fontSize: "0.75rem", background: "rgba(201, 28, 28, 0.12)", color: "#c91c1c", padding: "0.2rem 0.55rem", borderRadius: "4px", fontWeight: 700, border: "1px solid rgba(201, 28, 28, 0.25)" }}>
                   +45% SURGE
                 </span>
               </div>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.5rem" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.5rem", lineHeight: 1.45 }}>
                 Seasonal monsoon viral fever spike detected in Laxmipur and Shaheb Bazar catchment areas.
               </p>
-              <div style={{ fontSize: "0.8rem", color: "#f87171", fontWeight: 600 }}>
+              <div style={{ fontSize: "0.82rem", color: "#c91c1c", fontWeight: 700 }}>
                 Recommendation: Reorder at least 300 additional strips within 48 hours.
               </div>
             </div>
 
-            <div style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: "12px", padding: "1.25rem" }}>
+            <div style={{ background: "rgba(194, 94, 0, 0.06)", border: "1.5px solid rgba(194, 94, 0, 0.25)", borderRadius: "12px", padding: "1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <strong style={{ color: "#fb923c" }}>ORSaline-N (WHO Formula)</strong>
-                <span style={{ fontSize: "0.75rem", background: "rgba(249,115,22,0.2)", color: "#fb923c", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: 700 }}>
+                <strong style={{ color: "#c25e00", fontSize: "1rem" }}>ORSaline-N (WHO Formula)</strong>
+                <span style={{ fontSize: "0.75rem", background: "rgba(194, 94, 0, 0.12)", color: "#c25e00", padding: "0.2rem 0.55rem", borderRadius: "4px", fontWeight: 700, border: "1px solid rgba(194, 94, 0, 0.25)" }}>
                   +30% DEMAND
                 </span>
               </div>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.5rem" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.5rem", lineHeight: 1.45 }}>
                 Heatwave advisory with midday temperatures exceeding 38°C in Barendra tract.
               </p>
-              <div style={{ fontSize: "0.8rem", color: "#fb923c", fontWeight: 600 }}>
+              <div style={{ fontSize: "0.82rem", color: "#c25e00", fontWeight: 700 }}>
                 Recommendation: Ensure minimum 500 sachets ready at front counter.
               </div>
             </div>
 
-            <div style={{ background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "12px", padding: "1.25rem" }}>
+            <div style={{ background: "rgba(13, 124, 110, 0.06)", border: "1.5px solid rgba(13, 124, 110, 0.25)", borderRadius: "12px", padding: "1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <strong style={{ color: "#38bdf8" }}>Zithrin 500 / Azithromycin</strong>
-                <span style={{ fontSize: "0.75rem", background: "rgba(56,189,248,0.2)", color: "#38bdf8", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: 700 }}>
+                <strong style={{ color: "var(--color-primary, #0d7c6e)", fontSize: "1rem" }}>Zithrin 500 / Azithromycin</strong>
+                <span style={{ fontSize: "0.75rem", background: "rgba(13, 124, 110, 0.12)", color: "var(--color-primary, #0d7c6e)", padding: "0.2rem 0.55rem", borderRadius: "4px", fontWeight: 700, border: "1px solid rgba(13, 124, 110, 0.25)" }}>
                   CRITICAL BUFFER
                 </span>
               </div>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.5rem" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.5rem", lineHeight: 1.45 }}>
                 Post-operative and lower respiratory infections steady at RMCH chest ward.
               </p>
-              <div style={{ fontSize: "0.8rem", color: "#38bdf8", fontWeight: 600 }}>
+              <div style={{ fontSize: "0.82rem", color: "var(--color-primary, #0d7c6e)", fontWeight: 700 }}>
                 Recommendation: Verify batch expiry dates on all blister packs.
               </div>
             </div>

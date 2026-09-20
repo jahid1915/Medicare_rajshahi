@@ -217,8 +217,8 @@ export default function PharmacyDirectory() {
       {/* Header Banner */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(13, 148, 136, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%)",
-          border: "1px solid rgba(13, 148, 136, 0.25)",
+          background: "linear-gradient(135deg, rgba(13, 124, 110, 0.08) 0%, rgba(52, 197, 181, 0.06) 100%)",
+          border: "1px solid var(--color-border, #e2eceb)",
           borderRadius: "16px",
           padding: "2rem",
           marginBottom: "2rem",
@@ -228,13 +228,13 @@ export default function PharmacyDirectory() {
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(13, 148, 136, 0.2)", padding: "0.25rem 0.75rem", borderRadius: "999px", color: "var(--teal-400, #2dd4bf)", fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(13, 124, 110, 0.12)", border: "1px solid rgba(13, 124, 110, 0.2)", padding: "0.3rem 0.85rem", borderRadius: "999px", color: "var(--color-primary, #0d7c6e)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.75rem" }}>
               <Sparkles size={14} /> Rajshahi Verified Pharmacy Network
             </div>
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--text-primary, #f8fafc)" }}>
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
               Rajshahi Pharmacy Ecosystem
             </h1>
-            <p style={{ color: "var(--text-secondary, #94a3b8)", margin: 0, maxWidth: "650px", lineHeight: 1.5 }}>
+            <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0, maxWidth: "650px", lineHeight: 1.5, fontSize: "0.95rem" }}>
               Connect with verified community pharmacies, 24/7 emergency drug stores, and ICU dispensing units across Rajshahi City. Compare medicine prices and get doorstep delivery.
             </p>
           </div>
@@ -242,37 +242,37 @@ export default function PharmacyDirectory() {
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
             <Link
               to="/medicines"
-              className="btn btn-secondary"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.5rem",
                 padding: "0.65rem 1.25rem",
                 borderRadius: "10px",
-                background: "rgba(255, 255, 255, 0.08)",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                color: "var(--text-primary, #fff)",
+                background: "#ffffff",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                color: "var(--color-text, #142422)",
                 textDecoration: "none",
-                fontWeight: 600,
-                fontSize: "0.9rem"
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
               }}
             >
               <Search size={16} /> Search Medicines
             </Link>
             <Link
               to="/pharmacy-portal"
-              className="btn btn-primary"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.5rem",
                 padding: "0.65rem 1.25rem",
                 borderRadius: "10px",
-                background: "var(--teal-500, #0d9488)",
+                background: "var(--color-primary, #0d7c6e)",
                 color: "#fff",
                 textDecoration: "none",
-                fontWeight: 600,
-                fontSize: "0.9rem"
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                boxShadow: "0 4px 12px rgba(13, 124, 110, 0.25)"
               }}
             >
               <Store size={16} /> Pharmacy Portal
@@ -284,11 +284,12 @@ export default function PharmacyDirectory() {
       {/* Search & Filter Bar */}
       <div
         style={{
-          background: "var(--card-bg, #1e293b)",
-          border: "1px solid var(--border-color, #334155)",
-          borderRadius: "14px",
+          background: "#ffffff",
+          border: "1px solid var(--color-border, #e2eceb)",
+          borderRadius: "16px",
           padding: "1.25rem",
-          marginBottom: "1.75rem"
+          marginBottom: "1.75rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
         }}
       >
         <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -300,7 +301,7 @@ export default function PharmacyDirectory() {
                 left: "1rem",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "var(--text-muted, #64748b)"
+                color: "var(--color-text-muted, #47615f)"
               }}
             />
             <input
@@ -312,9 +313,9 @@ export default function PharmacyDirectory() {
                 width: "100%",
                 padding: "0.75rem 1rem 0.75rem 2.75rem",
                 borderRadius: "10px",
-                border: "1px solid var(--border-color, #334155)",
-                background: "var(--input-bg, #0f172a)",
-                color: "var(--text-primary, #f8fafc)",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                background: "#ffffff",
+                color: "var(--color-text, #142422)",
                 fontSize: "0.95rem"
               }}
             />
@@ -324,11 +325,12 @@ export default function PharmacyDirectory() {
             style={{
               padding: "0.75rem 1.5rem",
               borderRadius: "10px",
-              background: "var(--teal-500, #0d9488)",
+              background: "var(--color-primary, #0d7c6e)",
               border: "none",
               color: "#fff",
-              fontWeight: 600,
-              cursor: "pointer"
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(13, 124, 110, 0.2)"
             }}
           >
             Search
@@ -344,23 +346,24 @@ export default function PharmacyDirectory() {
                 key={area}
                 onClick={() => setSelectedArea(area)}
                 style={{
-                  padding: "0.4rem 0.85rem",
+                  padding: "0.45rem 0.95rem",
                   borderRadius: "999px",
-                  fontSize: "0.85rem",
-                  fontWeight: 500,
+                  fontSize: "0.82rem",
+                  fontWeight: selectedArea === area ? 700 : 500,
                   cursor: "pointer",
                   border:
                     selectedArea === area
-                      ? "1px solid var(--teal-500, #0d9488)"
-                      : "1px solid var(--border-color, #334155)",
+                      ? "1.5px solid var(--color-primary, #0d7c6e)"
+                      : "1px solid var(--color-border, #e2eceb)",
                   background:
                     selectedArea === area
-                      ? "rgba(13, 148, 136, 0.2)"
-                      : "transparent",
+                      ? "var(--color-primary-light, #eaf6f4)"
+                      : "#ffffff",
                   color:
                     selectedArea === area
-                      ? "var(--teal-400, #2dd4bf)"
-                      : "var(--text-secondary, #94a3b8)"
+                      ? "var(--color-primary-dark, #09594f)"
+                      : "var(--color-text-secondary, #2f4847)",
+                  transition: "all 0.15s ease"
                 }}
               >
                 {area}
@@ -370,7 +373,7 @@ export default function PharmacyDirectory() {
 
           {/* Quick Toggles */}
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.88rem", color: "var(--text-secondary, #94a3b8)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.88rem", fontWeight: 600, color: "var(--color-text-secondary, #2f4847)" }}>
               <input
                 type="checkbox"
                 checked={filter247}
@@ -378,7 +381,7 @@ export default function PharmacyDirectory() {
               />
               24/7 Open
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.88rem", color: "var(--text-secondary, #94a3b8)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.88rem", fontWeight: 600, color: "var(--color-text-secondary, #2f4847)" }}>
               <input
                 type="checkbox"
                 checked={filterDelivery}
@@ -394,13 +397,13 @@ export default function PharmacyDirectory() {
       {loading ? (
         <div style={{ textAlign: "center", padding: "4rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p style={{ color: "var(--text-secondary, #94a3b8)" }}>Loading Rajshahi pharmacies...</p>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)" }}>Loading Rajshahi pharmacies...</p>
         </div>
       ) : pharmacies.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "4rem", background: "var(--card-bg, #1e293b)", borderRadius: "14px" }}>
-          <AlertCircle size={40} style={{ color: "var(--text-muted, #64748b)", margin: "0 auto 1rem" }} />
-          <h3 style={{ color: "var(--text-primary, #f8fafc)", margin: "0 0 0.5rem" }}>No pharmacies found</h3>
-          <p style={{ color: "var(--text-secondary, #94a3b8)", margin: 0 }}>Try clearing search or choosing another Rajshahi area.</p>
+        <div style={{ textAlign: "center", padding: "4rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)" }}>
+          <AlertCircle size={40} style={{ color: "var(--color-text-muted, #47615f)", margin: "0 auto 1rem" }} />
+          <h3 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>No pharmacies found</h3>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0 }}>Try clearing search or choosing another Rajshahi area.</p>
         </div>
       ) : (
         <div
@@ -414,15 +417,15 @@ export default function PharmacyDirectory() {
             <div
               key={pharmacy._id || pharmacy.id}
               style={{
-                background: "var(--card-bg, #1e293b)",
-                border: "1px solid var(--border-color, #334155)",
-                borderRadius: "14px",
+                background: "#ffffff",
+                border: "1px solid var(--color-border, #e2eceb)",
+                borderRadius: "16px",
                 padding: "1.5rem",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                transition: "transform 0.2s ease, border-color 0.2s ease"
+                boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease"
               }}
             >
               <div>
@@ -435,8 +438,9 @@ export default function PharmacyDirectory() {
                         fontWeight: 700,
                         padding: "0.2rem 0.6rem",
                         borderRadius: "6px",
-                        background: "rgba(13, 148, 136, 0.2)",
-                        color: "var(--teal-400, #2dd4bf)",
+                        background: "rgba(13, 124, 110, 0.1)",
+                        color: "var(--color-primary, #0d7c6e)",
+                        border: "1px solid rgba(13, 124, 110, 0.2)",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "0.3rem"
@@ -452,8 +456,9 @@ export default function PharmacyDirectory() {
                           fontWeight: 700,
                           padding: "0.2rem 0.6rem",
                           borderRadius: "6px",
-                          background: "rgba(239, 68, 68, 0.2)",
-                          color: "#f87171"
+                          background: "rgba(201, 28, 28, 0.1)",
+                          color: "#c91c1c",
+                          border: "1px solid rgba(201, 28, 28, 0.25)"
                         }}
                       >
                         ⚡ 24/7 Open
@@ -467,8 +472,9 @@ export default function PharmacyDirectory() {
                           fontWeight: 700,
                           padding: "0.2rem 0.6rem",
                           borderRadius: "6px",
-                          background: "rgba(14, 165, 233, 0.2)",
-                          color: "#38bdf8",
+                          background: "rgba(13, 124, 110, 0.08)",
+                          color: "var(--color-primary, #0d7c6e)",
+                          border: "1px solid rgba(13, 124, 110, 0.2)",
                           display: "inline-flex",
                           alignItems: "center",
                           gap: "0.3rem"
@@ -479,30 +485,30 @@ export default function PharmacyDirectory() {
                     )}
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#fbbf24", fontWeight: 700, fontSize: "0.9rem" }}>
-                    <Star size={15} fill="#fbbf24" /> {pharmacy.rating || 4.8}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#c25e00", fontWeight: 800, fontSize: "0.9rem" }}>
+                    <Star size={15} fill="#c25e00" /> {pharmacy.rating || 4.8}
                   </div>
                 </div>
 
                 {/* Pharmacy Name */}
-                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "var(--text-primary, #f8fafc)" }}>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--color-text, #142422)" }}>
                   {pharmacy.name}
                 </h3>
 
                 {/* Address */}
-                <p style={{ fontSize: "0.88rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.75rem 0", display: "flex", alignItems: "flex-start", gap: "0.4rem" }}>
-                  <MapPin size={16} style={{ flexShrink: 0, marginTop: "2px", color: "var(--text-muted, #64748b)" }} />
+                <p style={{ fontSize: "0.88rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.75rem 0", display: "flex", alignItems: "flex-start", gap: "0.4rem" }}>
+                  <MapPin size={16} style={{ flexShrink: 0, marginTop: "2px", color: "var(--color-primary, #0d7c6e)" }} />
                   {pharmacy.address}
                 </p>
 
                 {/* Operating hours & phone */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.82rem", color: "var(--text-muted, #94a3b8)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <Clock size={14} />
+                    <Clock size={14} color="var(--color-primary, #0d7c6e)" />
                     {pharmacy.is_24_7 ? "Always Open" : `${pharmacy.opening_hours?.open || "08:00 AM"} - ${pharmacy.opening_hours?.close || "11:00 PM"}`}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <Phone size={14} />
+                    <Phone size={14} color="var(--color-primary, #0d7c6e)" />
                     <a href={`tel:${pharmacy.phone}`} style={{ color: "inherit", textDecoration: "none" }}>
                       {pharmacy.phone}
                     </a>
@@ -513,12 +519,14 @@ export default function PharmacyDirectory() {
                 {pharmacy.featured_notice && (
                   <div
                     style={{
-                      background: "rgba(255, 255, 255, 0.04)",
-                      borderLeft: "3px solid var(--teal-500, #0d9488)",
-                      padding: "0.5rem 0.75rem",
-                      borderRadius: "0 6px 6px 0",
-                      fontSize: "0.8rem",
-                      color: "var(--text-secondary, #94a3b8)",
+                      background: "var(--color-surface-2, #f8fafb)",
+                      borderLeft: "3px solid var(--color-primary, #0d7c6e)",
+                      border: "1px solid var(--color-border, #e2eceb)",
+                      borderLeftWidth: "3px",
+                      padding: "0.6rem 0.85rem",
+                      borderRadius: "0 8px 8px 0",
+                      fontSize: "0.82rem",
+                      color: "var(--color-text-secondary, #2f4847)",
                       marginBottom: "1rem"
                     }}
                   >
@@ -528,7 +536,7 @@ export default function PharmacyDirectory() {
               </div>
 
               {/* Actions Footer */}
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-color, #334155)" }}>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--color-border, #e2eceb)" }}>
                 <Link
                   to={`/pharmacies/${pharmacy._id || pharmacy.id}`}
                   style={{
@@ -538,12 +546,13 @@ export default function PharmacyDirectory() {
                     justifyContent: "center",
                     gap: "0.4rem",
                     padding: "0.65rem 1rem",
-                    borderRadius: "8px",
-                    background: "var(--teal-600, #0d9488)",
+                    borderRadius: "10px",
+                    background: "var(--color-primary, #0d7c6e)",
                     color: "#fff",
                     textDecoration: "none",
-                    fontWeight: 600,
-                    fontSize: "0.88rem"
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                    boxShadow: "0 2px 8px rgba(13, 124, 110, 0.2)"
                   }}
                 >
                   <Store size={15} /> Browse Medicines <ChevronRight size={14} />
@@ -556,10 +565,10 @@ export default function PharmacyDirectory() {
                     alignItems: "center",
                     justifyContent: "center",
                     padding: "0.65rem 0.9rem",
-                    borderRadius: "8px",
-                    background: "rgba(255, 255, 255, 0.08)",
-                    border: "1px solid var(--border-color, #334155)",
-                    color: "var(--text-primary, #f8fafc)",
+                    borderRadius: "10px",
+                    background: "var(--color-surface-2, #f0f5f4)",
+                    border: "1px solid var(--color-border, #e2eceb)",
+                    color: "var(--color-text, #142422)",
                     textDecoration: "none"
                   }}
                   title="Call Pharmacy"

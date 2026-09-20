@@ -273,10 +273,10 @@ export default function PharmacyDetail() {
             display: "inline-flex",
             alignItems: "center",
             gap: "0.4rem",
-            color: "var(--teal-400, #2dd4bf)",
+            color: "var(--color-primary, #0d7c6e)",
             textDecoration: "none",
             fontSize: "0.9rem",
-            fontWeight: 600
+            fontWeight: 700
           }}
         >
           <ArrowLeft size={16} /> Back to Pharmacy Directory
@@ -288,13 +288,14 @@ export default function PharmacyDetail() {
             display: "inline-flex",
             alignItems: "center",
             gap: "0.5rem",
-            padding: "0.6rem 1.25rem",
+            padding: "0.65rem 1.25rem",
             borderRadius: "10px",
-            background: "var(--teal-600, #0d9488)",
+            background: "var(--color-primary, #0d7c6e)",
             color: "#fff",
             textDecoration: "none",
             fontWeight: 700,
-            fontSize: "0.9rem"
+            fontSize: "0.9rem",
+            boxShadow: "0 4px 12px rgba(13, 124, 110, 0.25)"
           }}
         >
           <ShoppingCart size={18} /> View Cart ({totalItemsCount})
@@ -304,11 +305,12 @@ export default function PharmacyDetail() {
       {/* Pharmacy Header Card */}
       <div
         style={{
-          background: "var(--card-bg, #1e293b)",
-          border: "1px solid var(--border-color, #334155)",
+          background: "#ffffff",
+          border: "1px solid var(--color-border, #e2eceb)",
           borderRadius: "16px",
           padding: "2rem",
-          marginBottom: "2rem"
+          marginBottom: "2rem",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.03)"
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "1.5rem" }}>
@@ -316,49 +318,50 @@ export default function PharmacyDetail() {
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
               <span
                 style={{
-                  background: "rgba(13, 148, 136, 0.2)",
-                  color: "var(--teal-400, #2dd4bf)",
+                  background: "rgba(13, 124, 110, 0.1)",
+                  color: "var(--color-primary, #0d7c6e)",
                   fontSize: "0.75rem",
                   fontWeight: 700,
                   padding: "0.2rem 0.6rem",
-                  borderRadius: "6px"
+                  borderRadius: "6px",
+                  border: "1px solid rgba(13, 124, 110, 0.2)"
                 }}
               >
                 {pharmacy.area}, Rajshahi
               </span>
               {pharmacy.is_24_7 && (
-                <span style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", fontSize: "0.75rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: "6px" }}>
+                <span style={{ background: "rgba(201, 28, 28, 0.1)", color: "#c91c1c", fontSize: "0.75rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: "6px", border: "1px solid rgba(201, 28, 28, 0.25)" }}>
                   ⚡ 24/7 Dispensing
                 </span>
               )}
             </div>
 
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--text-primary, #f8fafc)" }}>
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
               {pharmacy.name}
             </h1>
 
-            <p style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.75rem 0" }}>
-              <MapPin size={16} color="var(--teal-500, #0d9488)" /> {pharmacy.address}
+            <p style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.75rem 0" }}>
+              <MapPin size={16} color="var(--color-primary, #0d7c6e)" /> {pharmacy.address}
             </p>
 
-            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", fontSize: "0.88rem", color: "var(--text-secondary, #94a3b8)" }}>
+            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", fontSize: "0.88rem", color: "var(--color-text-secondary, #2f4847)" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <Clock size={15} /> {pharmacy.is_24_7 ? "Open 24 Hours" : `${pharmacy.opening_hours?.open} - ${pharmacy.opening_hours?.close}`}
+                <Clock size={15} color="var(--color-primary, #0d7c6e)" /> {pharmacy.is_24_7 ? "Open 24 Hours" : `${pharmacy.opening_hours?.open} - ${pharmacy.opening_hours?.close}`}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <Phone size={15} /> <a href={`tel:${pharmacy.phone}`} style={{ color: "inherit" }}>{pharmacy.phone}</a>
+                <Phone size={15} color="var(--color-primary, #0d7c6e)" /> <a href={`tel:${pharmacy.phone}`} style={{ color: "inherit", textDecoration: "none" }}>{pharmacy.phone}</a>
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                <Truck size={15} /> Delivery: ৳{pharmacy.delivery_fee || 35} (Free above ৳{pharmacy.free_delivery_above || 500})
+                <Truck size={15} color="var(--color-primary, #0d7c6e)" /> Delivery: ৳{pharmacy.delivery_fee || 35} (Free above ৳{pharmacy.free_delivery_above || 500})
               </span>
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "rgba(251, 191, 36, 0.15)", padding: "0.5rem 1rem", borderRadius: "10px", color: "#fbbf24", fontWeight: 800, fontSize: "1.1rem" }}>
-              <Star size={18} fill="#fbbf24" /> {pharmacy.rating || 4.8} / 5.0
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "rgba(194, 94, 0, 0.1)", padding: "0.5rem 1rem", borderRadius: "10px", color: "#c25e00", fontWeight: 800, fontSize: "1.1rem", border: "1px solid rgba(194, 94, 0, 0.25)" }}>
+              <Star size={18} fill="#c25e00" /> {pharmacy.rating || 4.8} / 5.0
             </div>
-            <span style={{ fontSize: "0.8rem", color: "var(--text-muted, #64748b)", marginTop: "0.25rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #47615f)", marginTop: "0.25rem" }}>
               {pharmacy.review_count || 120}+ patient reviews
             </span>
           </div>
@@ -368,16 +371,17 @@ export default function PharmacyDetail() {
       {/* Inventory Search & Filters */}
       <div
         style={{
-          background: "var(--card-bg, #1e293b)",
-          border: "1px solid var(--border-color, #334155)",
-          borderRadius: "14px",
+          background: "#ffffff",
+          border: "1px solid var(--color-border, #e2eceb)",
+          borderRadius: "16px",
           padding: "1.25rem",
-          marginBottom: "1.75rem"
+          marginBottom: "1.75rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
         }}
       >
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
           <div style={{ flex: "1 1 300px", position: "relative" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted, #64748b)" }} />
+            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted, #47615f)" }} />
             <input
               type="text"
               placeholder="Search medicines in this store (e.g. Napa, Seclo, Ceevit)..."
@@ -385,11 +389,11 @@ export default function PharmacyDetail() {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 width: "100%",
-                padding: "0.7rem 1rem 0.7rem 2.75rem",
+                padding: "0.75rem 1rem 0.75rem 2.75rem",
                 borderRadius: "10px",
-                border: "1px solid var(--border-color, #334155)",
-                background: "var(--input-bg, #0f172a)",
-                color: "var(--text-primary, #f8fafc)",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                background: "#ffffff",
+                color: "var(--color-text, #142422)",
                 fontSize: "0.95rem"
               }}
             />
@@ -397,21 +401,22 @@ export default function PharmacyDetail() {
         </div>
 
         {/* Category tabs */}
-        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.35rem" }}>
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               style={{
-                padding: "0.4rem 0.85rem",
+                padding: "0.45rem 0.95rem",
                 borderRadius: "999px",
                 fontSize: "0.82rem",
-                fontWeight: 500,
+                fontWeight: selectedCategory === cat ? 700 : 500,
                 whiteSpace: "nowrap",
                 cursor: "pointer",
-                border: selectedCategory === cat ? "1px solid var(--teal-500, #0d9488)" : "1px solid var(--border-color, #334155)",
-                background: selectedCategory === cat ? "rgba(13, 148, 136, 0.2)" : "transparent",
-                color: selectedCategory === cat ? "var(--teal-400, #2dd4bf)" : "var(--text-secondary, #94a3b8)"
+                border: selectedCategory === cat ? "1.5px solid var(--color-primary, #0d7c6e)" : "1px solid var(--color-border, #e2eceb)",
+                background: selectedCategory === cat ? "var(--color-primary-light, #eaf6f4)" : "#ffffff",
+                color: selectedCategory === cat ? "var(--color-primary-dark, #09594f)" : "var(--color-text-secondary, #2f4847)",
+                transition: "all 0.15s ease"
               }}
             >
               {cat}
@@ -421,13 +426,13 @@ export default function PharmacyDetail() {
       </div>
 
       {/* Medicines Inventory Grid */}
-      <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0 0 1rem 0", color: "var(--text-primary, #f8fafc)" }}>
+      <h2 style={{ fontSize: "1.25rem", fontWeight: 800, margin: "0 0 1rem 0", color: "var(--color-text, #142422)" }}>
         Available Stock ({filteredInventory.length} items)
       </h2>
 
       {filteredInventory.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem", background: "var(--card-bg, #1e293b)", borderRadius: "14px" }}>
-          <p style={{ color: "var(--text-secondary, #94a3b8)" }}>No medicines found matching your search.</p>
+        <div style={{ textAlign: "center", padding: "3rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)" }}>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)" }}>No medicines found matching your search.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.25rem" }}>
@@ -439,49 +444,49 @@ export default function PharmacyDetail() {
               <div
                 key={item._id}
                 style={{
-                  background: "var(--card-bg, #1e293b)",
-                  border: "1px solid var(--border-color, #334155)",
-                  borderRadius: "12px",
+                  background: "#ffffff",
+                  border: "1px solid var(--color-border, #e2eceb)",
+                  borderRadius: "14px",
                   padding: "1.25rem",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
                 }}
               >
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                    <span style={{ fontSize: "0.75rem", padding: "0.15rem 0.5rem", borderRadius: "4px", background: "rgba(255,255,255,0.06)", color: "var(--text-muted, #94a3b8)" }}>
+                    <span style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem", borderRadius: "6px", background: "var(--color-surface-2, #f0f5f4)", color: "var(--color-text-secondary, #2f4847)", border: "1px solid var(--color-border, #e2eceb)", fontWeight: 600 }}>
                       {med.dosage_form} • {med.strength}
                     </span>
 
                     {med.requires_prescription ? (
-                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#f87171", background: "rgba(239,68,68,0.15)", padding: "0.15rem 0.4rem", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c91c1c", background: "rgba(201, 28, 28, 0.1)", border: "1px solid rgba(201, 28, 28, 0.25)", padding: "0.15rem 0.45rem", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}>
                         <ShieldAlert size={12} /> Rx Required
                       </span>
                     ) : (
-                      <span style={{ fontSize: "0.72rem", color: "#4ade80", background: "rgba(74,222,128,0.15)", padding: "0.15rem 0.4rem", borderRadius: "4px" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#0f8a3c", background: "rgba(15, 138, 60, 0.1)", border: "1px solid rgba(15, 138, 60, 0.25)", padding: "0.15rem 0.45rem", borderRadius: "4px" }}>
                         OTC
                       </span>
                     )}
                   </div>
 
-                  <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.25rem 0", color: "var(--text-primary, #f8fafc)" }}>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: 800, margin: "0 0 0.25rem 0", color: "var(--color-text, #142422)" }}>
                     {med.brand_name}
                   </h3>
 
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", margin: "0 0 0.5rem 0", fontStyle: "italic" }}>
+                  <p style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.5rem 0" }}>
                     {med.generic_name}
                   </p>
 
-                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted, #64748b)", marginBottom: "0.75rem" }}>
+                  <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #47615f)", marginBottom: "0.75rem" }}>
                     {med.unit || "strip of 10"} • Stock: {item.stock_quantity} available
                   </div>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "0.75rem", borderTop: "1px solid var(--border-color, #334155)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "0.75rem", borderTop: "1px solid var(--color-border, #e2eceb)" }}>
                   <div>
-                    <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--teal-400, #2dd4bf)" }}>
+                    <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)" }}>
                       ৳{item.unit_price}
                     </div>
                   </div>
@@ -496,11 +501,12 @@ export default function PharmacyDetail() {
                       padding: "0.55rem 1rem",
                       borderRadius: "8px",
                       border: "none",
-                      background: isAdded ? "#16a34a" : "var(--teal-600, #0d9488)",
+                      background: isAdded ? "#0f8a3c" : "var(--color-primary, #0d7c6e)",
                       color: "#fff",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       fontSize: "0.85rem",
                       cursor: "pointer",
+                      boxShadow: "0 2px 6px rgba(13, 124, 110, 0.2)",
                       transition: "background 0.2s ease"
                     }}
                   >

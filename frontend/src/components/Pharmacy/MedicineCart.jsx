@@ -163,21 +163,21 @@ export default function MedicineCart() {
               display: "inline-flex",
               alignItems: "center",
               gap: "0.4rem",
-              color: "var(--teal-400, #2dd4bf)",
+              color: "var(--color-primary, #0d7c6e)",
               textDecoration: "none",
               fontSize: "0.9rem",
-              fontWeight: 600,
+              fontWeight: 700,
               marginBottom: "0.5rem"
             }}
           >
             <ArrowLeft size={16} /> Continue Shopping
           </Link>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "var(--text-primary, #f8fafc)" }}>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
             Medicine Cart & Checkout
           </h1>
         </div>
 
-        <span style={{ fontSize: "1rem", color: "var(--text-secondary, #94a3b8)", fontWeight: 600 }}>
+        <span style={{ fontSize: "1rem", color: "var(--color-text-secondary, #2f4847)", fontWeight: 700, background: "var(--color-surface-2, #f0f5f4)", padding: "0.35rem 0.85rem", borderRadius: "999px", border: "1px solid var(--color-border, #e2eceb)" }}>
           {totalItemsCount} item{totalItemsCount !== 1 ? "s" : ""}
         </span>
       </div>
@@ -186,22 +186,22 @@ export default function MedicineCart() {
       {completedOrders.length > 0 && (
         <div
           style={{
-            background: "rgba(16, 185, 129, 0.15)",
-            border: "1px solid #10b981",
-            borderRadius: "14px",
+            background: "rgba(15, 138, 60, 0.08)",
+            border: "1.5px solid #0f8a3c",
+            borderRadius: "16px",
             padding: "1.5rem",
             marginBottom: "2rem"
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-            <CheckCircle2 size={24} color="#10b981" />
-            <h3 style={{ margin: 0, color: "#10b981", fontSize: "1.2rem", fontWeight: 700 }}>
+            <CheckCircle2 size={24} color="#0f8a3c" />
+            <h3 style={{ margin: 0, color: "#0f8a3c", fontSize: "1.2rem", fontWeight: 800 }}>
               Order Placed Successfully!
             </h3>
           </div>
           {completedOrders.map((ord, idx) => (
-            <div key={idx} style={{ fontSize: "0.92rem", color: "var(--text-primary, #f8fafc)", lineHeight: 1.6 }}>
-              Order Reference: <strong>{ord.order_number}</strong> • Total: <strong>৳{ord.total_amount}</strong> • Status: <span style={{ color: "#fbbf24" }}>Pending Confirmation</span>
+            <div key={idx} style={{ fontSize: "0.92rem", color: "var(--color-text, #142422)", lineHeight: 1.6 }}>
+              Order Reference: <strong>{ord.order_number}</strong> • Total: <strong>৳{ord.total_amount}</strong> • Status: <span style={{ color: "#c25e00", fontWeight: 700 }}>Pending Confirmation</span>
               <br />
               The pharmacy is reviewing your order. If prescription medicines are included, a registered A-Grade pharmacist will verify the prescription before dispatch.
             </div>
@@ -211,11 +211,11 @@ export default function MedicineCart() {
               to="/dashboard/pharmacy-orders"
               style={{
                 display: "inline-block",
-                padding: "0.5rem 1rem",
+                padding: "0.6rem 1.25rem",
                 borderRadius: "8px",
-                background: "#10b981",
+                background: "#0f8a3c",
                 color: "#fff",
-                fontWeight: 600,
+                fontWeight: 700,
                 textDecoration: "none",
                 fontSize: "0.88rem"
               }}
@@ -228,10 +228,10 @@ export default function MedicineCart() {
 
       {/* Empty State */}
       {pharmacyKeys.length === 0 && completedOrders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "5rem 2rem", background: "var(--card-bg, #1e293b)", borderRadius: "16px" }}>
-          <ShoppingCart size={48} style={{ color: "var(--text-muted, #64748b)", margin: "0 auto 1rem" }} />
-          <h2 style={{ color: "var(--text-primary, #f8fafc)", margin: "0 0 0.5rem" }}>Your cart is empty</h2>
-          <p style={{ color: "var(--text-secondary, #94a3b8)", margin: "0 0 1.5rem" }}>
+        <div style={{ textAlign: "center", padding: "5rem 2rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+          <ShoppingCart size={48} style={{ color: "var(--color-text-muted, #47615f)", margin: "0 auto 1rem" }} />
+          <h2 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>Your cart is empty</h2>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: "0 0 1.5rem", fontSize: "0.95rem" }}>
             Browse Rajshahi pharmacies or search medicines to add items to your cart.
           </p>
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
@@ -240,10 +240,11 @@ export default function MedicineCart() {
               style={{
                 padding: "0.75rem 1.5rem",
                 borderRadius: "10px",
-                background: "var(--teal-600, #0d9488)",
+                background: "var(--color-primary, #0d7c6e)",
                 color: "#fff",
                 textDecoration: "none",
-                fontWeight: 600
+                fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(13, 124, 110, 0.25)"
               }}
             >
               Search Medicines
@@ -253,10 +254,11 @@ export default function MedicineCart() {
               style={{
                 padding: "0.75rem 1.5rem",
                 borderRadius: "10px",
-                background: "rgba(255, 255, 255, 0.08)",
-                color: "var(--text-primary, #f8fafc)",
+                background: "var(--color-surface-2, #f0f5f4)",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                color: "var(--color-text, #142422)",
                 textDecoration: "none",
-                fontWeight: 600
+                fontWeight: 700
               }}
             >
               Browse Pharmacies
@@ -284,22 +286,22 @@ export default function MedicineCart() {
             <div
               key={pId}
               style={{
-                background: "var(--card-bg, #1e293b)",
-                border: "1px solid var(--border-color, #334155)",
+                background: "#ffffff",
+                border: "1px solid var(--color-border, #e2eceb)",
                 borderRadius: "16px",
                 padding: "1.75rem",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.15)"
+                boxShadow: "0 4px 16px rgba(0,0,0,0.04)"
               }}
             >
               {/* Pharmacy Title */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color, #334155)", paddingBottom: "1rem", marginBottom: "1.25rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                  <Store size={22} color="var(--teal-400, #2dd4bf)" />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--color-border, #e2eceb)", paddingBottom: "1rem", marginBottom: "1.25rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <Store size={22} color="var(--color-primary, #0d7c6e)" />
                   <div>
-                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "var(--text-primary, #f8fafc)" }}>
+                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: "var(--color-text, #142422)" }}>
                       {group.pharmacyName}
                     </h3>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted, #94a3b8)" }}>
+                    <span style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)" }}>
                       {group.pharmacyArea}, Rajshahi
                     </span>
                   </div>
@@ -310,16 +312,17 @@ export default function MedicineCart() {
                   style={{
                     background: "transparent",
                     border: "none",
-                    color: "var(--text-muted, #64748b)",
+                    color: "var(--color-text-muted, #47615f)",
                     cursor: "pointer",
-                    fontSize: "0.82rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
                     display: "flex",
                     alignItems: "center",
                     gap: "0.3rem"
                   }}
                   title="Remove all items from this pharmacy"
                 >
-                  <Trash2 size={14} /> Clear Store Cart
+                  <Trash2 size={15} /> Clear Store Cart
                 </button>
               </div>
 
@@ -332,57 +335,58 @@ export default function MedicineCart() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      padding: "0.75rem 1rem",
-                      background: "rgba(15, 23, 42, 0.5)",
-                      borderRadius: "10px",
+                      padding: "0.9rem 1.15rem",
+                      background: "var(--color-surface-2, #f8fafb)",
+                      border: "1px solid var(--color-border, #e2eceb)",
+                      borderRadius: "12px",
                       flexWrap: "wrap",
                       gap: "0.75rem"
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary, #f8fafc)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <div style={{ fontWeight: 800, fontSize: "1rem", color: "var(--color-text, #142422)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         {item.brandName}
                         {item.requiresPrescription && (
-                          <span style={{ fontSize: "0.7rem", color: "#f87171", background: "rgba(239, 68, 68, 0.15)", padding: "0.1rem 0.35rem", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "0.72rem", color: "#c91c1c", background: "rgba(201, 28, 28, 0.1)", border: "1px solid rgba(201, 28, 28, 0.25)", padding: "0.15rem 0.45rem", borderRadius: "4px", fontWeight: 700 }}>
                             Rx
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted, #94a3b8)" }}>
+                      <div style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", marginTop: "0.15rem" }}>
                         {item.genericName} • {item.dosageForm} ({item.strength})
                       </div>
-                      <div style={{ fontSize: "0.82rem", color: "var(--teal-400, #2dd4bf)", fontWeight: 600, marginTop: "0.2rem" }}>
+                      <div style={{ fontSize: "0.85rem", color: "var(--color-primary, #0d7c6e)", fontWeight: 700, marginTop: "0.25rem" }}>
                         ৳{item.unitPrice} each
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
                       {/* Quantity selector */}
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "var(--card-bg, #1e293b)", padding: "0.25rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#ffffff", padding: "0.3rem 0.5rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)" }}>
                         <button
                           onClick={() => updateQuantity(item.medicineId, pId, item.quantity - 1)}
-                          style={{ background: "transparent", border: "none", color: "var(--text-primary, #fff)", cursor: "pointer", padding: "0.2rem" }}
+                          style={{ background: "transparent", border: "none", color: "var(--color-text, #142422)", cursor: "pointer", padding: "0.2rem", display: "flex", alignItems: "center" }}
                         >
                           <Minus size={14} />
                         </button>
-                        <span style={{ minWidth: "24px", textAlign: "center", fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary, #f8fafc)" }}>
+                        <span style={{ minWidth: "24px", textAlign: "center", fontWeight: 800, fontSize: "0.92rem", color: "var(--color-text, #142422)" }}>
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.medicineId, pId, item.quantity + 1)}
-                          style={{ background: "transparent", border: "none", color: "var(--text-primary, #fff)", cursor: "pointer", padding: "0.2rem" }}
+                          style={{ background: "transparent", border: "none", color: "var(--color-text, #142422)", cursor: "pointer", padding: "0.2rem", display: "flex", alignItems: "center" }}
                         >
                           <Plus size={14} />
                         </button>
                       </div>
 
-                      <div style={{ minWidth: "70px", textAlign: "right", fontWeight: 800, color: "var(--text-primary, #f8fafc)" }}>
+                      <div style={{ minWidth: "70px", textAlign: "right", fontWeight: 800, fontSize: "1.05rem", color: "var(--color-text, #142422)" }}>
                         ৳{item.unitPrice * item.quantity}
                       </div>
 
                       <button
                         onClick={() => removeFromCart(item.medicineId, pId)}
-                        style={{ background: "transparent", border: "none", color: "var(--text-muted, #64748b)", cursor: "pointer" }}
+                        style={{ background: "transparent", border: "none", color: "var(--color-text-muted, #47615f)", cursor: "pointer", padding: "0.3rem" }}
                         title="Remove item"
                       >
                         <Trash2 size={16} />
@@ -396,34 +400,34 @@ export default function MedicineCart() {
               {group.requiresPrescription && (
                 <div
                   style={{
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    borderRadius: "10px",
-                    padding: "1rem",
+                    background: "rgba(201, 28, 28, 0.06)",
+                    border: "1.5px solid rgba(201, 28, 28, 0.25)",
+                    borderRadius: "12px",
+                    padding: "1.15rem",
                     marginBottom: "1.5rem"
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#f87171", fontWeight: 700, fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#c91c1c", fontWeight: 800, fontSize: "0.95rem", marginBottom: "0.4rem" }}>
                     <ShieldAlert size={18} /> Prescription Required for One or More Items
                   </div>
-                  <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)" }}>
+                  <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary, #2f4847)", lineHeight: 1.45 }}>
                     Please upload a clear photo of your doctor's prescription. Our pharmacist will verify this before dispensing.
                   </p>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                     <label
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "0.5rem",
-                        padding: "0.5rem 1rem",
+                        padding: "0.55rem 1.15rem",
                         borderRadius: "8px",
-                        background: "rgba(239, 68, 68, 0.2)",
-                        color: "#f87171",
+                        background: "rgba(201, 28, 28, 0.1)",
+                        color: "#c91c1c",
                         fontSize: "0.85rem",
-                        fontWeight: 600,
+                        fontWeight: 700,
                         cursor: "pointer",
-                        border: "1px dashed #f87171"
+                        border: "1.5px dashed #c91c1c"
                       }}
                     >
                       <Upload size={15} /> Upload Prescription File
@@ -436,7 +440,7 @@ export default function MedicineCart() {
                     </label>
 
                     {form.prescription_name && (
-                      <span style={{ fontSize: "0.85rem", color: "#4ade80", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                      <span style={{ fontSize: "0.85rem", color: "#0f8a3c", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
                         <FileText size={15} /> {form.prescription_name}
                       </span>
                     )}
@@ -445,9 +449,9 @@ export default function MedicineCart() {
               )}
 
               {/* Checkout Form & Delivery Config */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem", background: "rgba(15, 23, 42, 0.4)", padding: "1.25rem", borderRadius: "12px", marginBottom: "1.5rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem", background: "var(--color-surface-2, #f8fafb)", border: "1px solid var(--color-border, #e2eceb)", padding: "1.35rem", borderRadius: "14px", marginBottom: "1.5rem" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary, #94a3b8)", marginBottom: "0.4rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.4rem" }}>
                     Recipient Full Name
                   </label>
                   <input
@@ -455,12 +459,12 @@ export default function MedicineCart() {
                     value={form.recipient_name}
                     onChange={(e) => updateFormState(pId, { recipient_name: e.target.value })}
                     placeholder="Recipient's Name"
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "var(--input-bg, #0f172a)", color: "#fff", fontSize: "0.88rem" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary, #94a3b8)", marginBottom: "0.4rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.4rem" }}>
                     Contact Mobile (+880)
                   </label>
                   <input
@@ -468,12 +472,12 @@ export default function MedicineCart() {
                     value={form.phone}
                     onChange={(e) => updateFormState(pId, { phone: e.target.value })}
                     placeholder="017XXXXXXXX"
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "var(--input-bg, #0f172a)", color: "#fff", fontSize: "0.88rem" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
 
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary, #94a3b8)", marginBottom: "0.4rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.4rem" }}>
                     Delivery Street Address / Floor / Flat
                   </label>
                   <input
@@ -481,19 +485,19 @@ export default function MedicineCart() {
                     value={form.street}
                     onChange={(e) => updateFormState(pId, { street: e.target.value })}
                     placeholder="e.g., House 24, Road 3, Laxmipur, Rajshahi"
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "var(--input-bg, #0f172a)", color: "#fff", fontSize: "0.88rem" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
 
                 {/* Delivery Type & Payment Method */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary, #94a3b8)", marginBottom: "0.4rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.4rem" }}>
                     Fulfillment Method
                   </label>
                   <select
                     value={form.delivery_type}
                     onChange={(e) => updateFormState(pId, { delivery_type: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "var(--input-bg, #0f172a)", color: "#fff", fontSize: "0.88rem" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   >
                     <option value="home_delivery">Home Delivery (Doorstep)</option>
                     <option value="pickup">Store Pickup (Collect at Pharmacy)</option>
@@ -501,13 +505,13 @@ export default function MedicineCart() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary, #94a3b8)", marginBottom: "0.4rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.4rem" }}>
                     Payment Method
                   </label>
                   <select
                     value={form.payment_method}
                     onChange={(e) => updateFormState(pId, { payment_method: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "var(--input-bg, #0f172a)", color: "#fff", fontSize: "0.88rem" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   >
                     <option value="cash_on_delivery">Cash on Delivery (COD)</option>
                     <option value="bkash">bKash Mobile Banking</option>
@@ -519,24 +523,24 @@ export default function MedicineCart() {
 
               {/* Price Breakdown & Place Order CTA */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                <div style={{ fontSize: "0.9rem", color: "var(--text-secondary, #94a3b8)", lineHeight: 1.6 }}>
+                <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary, #2f4847)", lineHeight: 1.6 }}>
                   <div>
-                    Medicines Subtotal: <strong style={{ color: "#fff" }}>৳{group.subtotal}</strong>
+                    Medicines Subtotal: <strong style={{ color: "var(--color-text, #142422)" }}>৳{group.subtotal}</strong>
                   </div>
                   <div>
                     Delivery Fee:{" "}
-                    <strong style={{ color: "#fff" }}>
+                    <strong style={{ color: "var(--color-text, #142422)" }}>
                       {effectiveDeliveryFee === 0 ? "FREE" : `৳${effectiveDeliveryFee}`}
                     </strong>
                   </div>
-                  <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--teal-400, #2dd4bf)", marginTop: "0.25rem" }}>
+                  <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)", marginTop: "0.25rem" }}>
                     Total to Pay: ৳{finalTotal}
                   </div>
                 </div>
 
                 <div>
                   {errorMsg && (
-                    <div style={{ color: "#f87171", fontSize: "0.85rem", marginBottom: "0.5rem", maxWidth: "350px", textAlign: "right" }}>
+                    <div style={{ color: "#c91c1c", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.5rem", maxWidth: "350px", textAlign: "right" }}>
                       {errorMsg}
                     </div>
                   )}
@@ -548,12 +552,12 @@ export default function MedicineCart() {
                       padding: "0.85rem 2rem",
                       borderRadius: "10px",
                       border: "none",
-                      background: "var(--teal-600, #0d9488)",
+                      background: "var(--color-primary, #0d7c6e)",
                       color: "#fff",
                       fontSize: "1rem",
                       fontWeight: 700,
                       cursor: "pointer",
-                      boxShadow: "0 4px 12px rgba(13,148,136,0.3)"
+                      boxShadow: "0 4px 14px rgba(13, 124, 110, 0.3)"
                     }}
                   >
                     {isPlacing ? "Placing Order..." : `Place Order for ${group.pharmacyName}`}

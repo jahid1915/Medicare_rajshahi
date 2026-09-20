@@ -88,7 +88,7 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", gap: "0.75rem", flex: "1 1 300px" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={16} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted, #64748b)" }} />
+            <Search size={16} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted, #47615f)" }} />
             <input
               type="text"
               placeholder="Filter inventory by medicine or generic..."
@@ -96,11 +96,11 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 width: "100%",
-                padding: "0.6rem 0.75rem 0.6rem 2.4rem",
-                borderRadius: "8px",
-                border: "1px solid var(--border-color, #334155)",
-                background: "var(--input-bg, #0f172a)",
-                color: "#fff",
+                padding: "0.65rem 0.75rem 0.65rem 2.4rem",
+                borderRadius: "10px",
+                border: "1.5px solid var(--color-border, #e2eceb)",
+                background: "#ffffff",
+                color: "var(--color-text, #142422)",
                 fontSize: "0.88rem"
               }}
             />
@@ -110,12 +110,13 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
             value={filterRisk}
             onChange={(e) => setFilterRisk(e.target.value)}
             style={{
-              padding: "0.6rem 0.85rem",
-              borderRadius: "8px",
-              border: "1px solid var(--border-color, #334155)",
-              background: "var(--input-bg, #0f172a)",
-              color: "#fff",
-              fontSize: "0.85rem"
+              padding: "0.65rem 0.85rem",
+              borderRadius: "10px",
+              border: "1.5px solid var(--color-border, #e2eceb)",
+              background: "#ffffff",
+              color: "var(--color-text, #142422)",
+              fontSize: "0.85rem",
+              fontWeight: 600
             }}
           >
             <option value="all">All Inventory</option>
@@ -131,13 +132,14 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
             alignItems: "center",
             gap: "0.4rem",
             padding: "0.65rem 1.25rem",
-            borderRadius: "8px",
-            background: "var(--teal-600, #0d9488)",
+            borderRadius: "10px",
+            background: "var(--color-primary, #0d7c6e)",
             color: "#fff",
             border: "none",
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: "0.88rem",
-            cursor: "pointer"
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(13, 124, 110, 0.2)"
           }}
         >
           <Plus size={16} /> Add Medicine Stock
@@ -145,16 +147,16 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
       </div>
 
       {/* Inventory Table */}
-      <div style={{ overflowX: "auto", background: "var(--card-bg, #1e293b)", borderRadius: "12px", border: "1px solid var(--border-color, #334155)" }}>
+      <div style={{ overflowX: "auto", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.88rem" }}>
           <thead>
-            <tr style={{ background: "rgba(15, 23, 42, 0.6)", color: "var(--text-muted, #94a3b8)", borderBottom: "1px solid var(--border-color, #334155)" }}>
-              <th style={{ padding: "0.85rem 1rem" }}>Medicine Name & Generic</th>
-              <th style={{ padding: "0.85rem 1rem" }}>Category / Form</th>
-              <th style={{ padding: "0.85rem 1rem" }}>Unit Price (৳)</th>
-              <th style={{ padding: "0.85rem 1rem" }}>Stock Level</th>
-              <th style={{ padding: "0.85rem 1rem" }}>AI Demand Trend</th>
-              <th style={{ padding: "0.85rem 1rem", textAlign: "right" }}>Actions</th>
+            <tr style={{ background: "var(--color-surface-2, #f0f5f4)", color: "var(--color-text-secondary, #2f4847)", borderBottom: "1.5px solid var(--color-border, #e2eceb)", fontWeight: 700 }}>
+              <th style={{ padding: "0.95rem 1.1rem" }}>Medicine Name & Generic</th>
+              <th style={{ padding: "0.95rem 1.1rem" }}>Category / Form</th>
+              <th style={{ padding: "0.95rem 1.1rem" }}>Unit Price (৳)</th>
+              <th style={{ padding: "0.95rem 1.1rem" }}>Stock Level</th>
+              <th style={{ padding: "0.95rem 1.1rem" }}>AI Demand Trend</th>
+              <th style={{ padding: "0.95rem 1.1rem", textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -167,120 +169,124 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                 <tr
                   key={item._id}
                   style={{
-                    borderBottom: "1px solid var(--border-color, #334155)",
+                    borderBottom: "1px solid var(--color-border, #e2eceb)",
                     transition: "background 0.15s ease"
                   }}
                 >
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    <div style={{ fontWeight: 700, color: "var(--text-primary, #f8fafc)" }}>
+                  <td style={{ padding: "0.95rem 1.1rem" }}>
+                    <div style={{ fontWeight: 800, color: "var(--color-text, #142422)" }}>
                       {med.brand_name || "Unknown Medicine"}
                     </div>
-                    <div style={{ fontSize: "0.78rem", color: "var(--text-muted, #94a3b8)" }}>
+                    <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary, #2f4847)", marginTop: "0.15rem" }}>
                       {med.generic_name} ({med.strength})
                     </div>
                   </td>
 
-                  <td style={{ padding: "0.85rem 1rem", color: "var(--text-secondary, #94a3b8)" }}>
-                    {med.category || "General"}
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>
+                  <td style={{ padding: "0.95rem 1.1rem", color: "var(--color-text-secondary, #2f4847)" }}>
+                    <span style={{ fontWeight: 600 }}>{med.category || "General"}</span>
+                    <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #47615f)" }}>
                       {med.dosage_form}
                     </div>
                   </td>
 
-                  <td style={{ padding: "0.85rem 1rem" }}>
+                  <td style={{ padding: "0.95rem 1.1rem" }}>
                     {isEditing ? (
                       <input
                         type="number"
                         value={editPrice}
                         onChange={(e) => setEditPrice(e.target.value)}
-                        style={{ width: "70px", padding: "0.3rem", borderRadius: "4px", border: "1px solid #38bdf8", background: "#0f172a", color: "#fff" }}
+                        style={{ width: "70px", padding: "0.35rem", borderRadius: "6px", border: "1.5px solid var(--color-primary, #0d7c6e)", background: "#ffffff", color: "var(--color-text, #142422)", fontWeight: 700 }}
                       />
                     ) : (
-                      <span style={{ fontWeight: 700, color: "var(--teal-400, #2dd4bf)" }}>
+                      <span style={{ fontWeight: 800, color: "var(--color-primary, #0d7c6e)", fontSize: "0.95rem" }}>
                         ৳{item.unit_price}
                       </span>
                     )}
                   </td>
 
-                  <td style={{ padding: "0.85rem 1rem" }}>
+                  <td style={{ padding: "0.95rem 1.1rem" }}>
                     {isEditing ? (
                       <input
                         type="number"
                         value={editStock}
                         onChange={(e) => setEditStock(e.target.value)}
-                        style={{ width: "70px", padding: "0.3rem", borderRadius: "4px", border: "1px solid #38bdf8", background: "#0f172a", color: "#fff" }}
+                        style={{ width: "70px", padding: "0.35rem", borderRadius: "6px", border: "1.5px solid var(--color-primary, #0d7c6e)", background: "#ffffff", color: "var(--color-text, #142422)", fontWeight: 700 }}
                       />
                     ) : (
                       <span
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: "0.3rem",
+                          gap: "0.35rem",
                           fontWeight: 700,
-                          color: isLowStock ? "#f87171" : "#4ade80"
+                          color: isLowStock ? "#c91c1c" : "#0f8a3c"
                         }}
                       >
-                        {isLowStock && <AlertTriangle size={14} />}
+                        {isLowStock && <AlertTriangle size={15} />}
                         {item.stock_quantity} units
                       </span>
                     )}
                   </td>
 
-                  <td style={{ padding: "0.85rem 1rem" }}>
+                  <td style={{ padding: "0.95rem 1.1rem" }}>
                     <span
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "0.25rem",
-                        fontSize: "0.75rem",
-                        padding: "0.2rem 0.5rem",
-                        borderRadius: "4px",
+                        gap: "0.3rem",
+                        fontSize: "0.78rem",
+                        padding: "0.25rem 0.65rem",
+                        borderRadius: "6px",
                         background:
                           item.demand_trend === "Surging"
-                            ? "rgba(239,68,68,0.15)"
-                            : "rgba(14,165,233,0.15)",
+                            ? "rgba(201, 28, 28, 0.1)"
+                            : "rgba(13, 124, 110, 0.1)",
                         color:
                           item.demand_trend === "Surging"
-                            ? "#f87171"
-                            : "#38bdf8",
-                        fontWeight: 600
+                            ? "#c91c1c"
+                            : "#0d7c6e",
+                        border:
+                          item.demand_trend === "Surging"
+                            ? "1px solid rgba(201, 28, 28, 0.25)"
+                            : "1px solid rgba(13, 124, 110, 0.25)",
+                        fontWeight: 700
                       }}
                     >
-                      <Sparkles size={12} /> {item.demand_trend || "Stable"}
+                      <Sparkles size={13} /> {item.demand_trend || "Stable"}
                     </span>
                   </td>
 
-                  <td style={{ padding: "0.85rem 1rem", textAlign: "right" }}>
+                  <td style={{ padding: "0.95rem 1.1rem", textAlign: "right" }}>
                     {isEditing ? (
                       <div style={{ display: "inline-flex", gap: "0.4rem" }}>
                         <button
                           onClick={() => handleSaveEdit(item)}
-                          style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: "4px", padding: "0.3rem 0.5rem", cursor: "pointer" }}
+                          style={{ background: "#0f8a3c", color: "#fff", border: "none", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer" }}
                         >
-                          <Check size={14} />
+                          <Check size={15} />
                         </button>
                         <button
                           onClick={() => setEditingItemId(null)}
-                          style={{ background: "#64748b", color: "#fff", border: "none", borderRadius: "4px", padding: "0.3rem 0.5rem", cursor: "pointer" }}
+                          style={{ background: "var(--color-surface-2, #f0f5f4)", color: "var(--color-text-secondary, #2f4847)", border: "1px solid var(--color-border, #e2eceb)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer" }}
                         >
-                          <X size={14} />
+                          <X size={15} />
                         </button>
                       </div>
                     ) : (
                       <div style={{ display: "inline-flex", gap: "0.4rem" }}>
                         <button
                           onClick={() => handleStartEdit(item)}
-                          style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-secondary, #94a3b8)", border: "none", borderRadius: "4px", padding: "0.35rem 0.55rem", cursor: "pointer" }}
+                          style={{ background: "var(--color-surface-2, #f0f5f4)", color: "var(--color-text-secondary, #2f4847)", border: "1px solid var(--color-border, #e2eceb)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer" }}
                           title="Edit Price/Stock"
                         >
-                          <Edit2 size={14} />
+                          <Edit2 size={15} />
                         </button>
                         <button
                           onClick={() => onDeleteItem(item._id)}
-                          style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "none", borderRadius: "4px", padding: "0.35rem 0.55rem", cursor: "pointer" }}
+                          style={{ background: "rgba(201, 28, 28, 0.08)", color: "#c91c1c", border: "1px solid rgba(201, 28, 28, 0.2)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer" }}
                           title="Remove from inventory"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     )}
@@ -298,7 +304,7 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.75)",
+            background: "rgba(15, 23, 42, 0.65)",
             backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
@@ -309,23 +315,24 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
         >
           <div
             style={{
-              background: "var(--card-bg, #1e293b)",
-              border: "1px solid var(--border-color, #334155)",
+              background: "#ffffff",
+              border: "1px solid var(--color-border, #e2eceb)",
               borderRadius: "16px",
               padding: "2rem",
               width: "100%",
               maxWidth: "540px",
               maxHeight: "90vh",
-              overflowY: "auto"
+              overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-primary, #f8fafc)" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 800, color: "var(--color-text, #142422)" }}>
                 Add Medicine to Inventory
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "var(--color-text-muted, #47615f)", cursor: "pointer", padding: "0.2rem" }}
               >
                 <X size={20} />
               </button>
@@ -333,7 +340,7 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
 
             <form onSubmit={handleCreateNew} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                   Brand Name *
                 </label>
                 <input
@@ -342,12 +349,12 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                   placeholder="e.g. Napa Extra, Seclo 20"
                   value={newItem.brand_name}
                   onChange={(e) => setNewItem({ ...newItem, brand_name: e.target.value })}
-                  style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                  style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                 />
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                   Generic Name
                 </label>
                 <input
@@ -355,19 +362,19 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                   placeholder="e.g. Paracetamol + Caffeine"
                   value={newItem.generic_name}
                   onChange={(e) => setNewItem({ ...newItem, generic_name: e.target.value })}
-                  style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                  style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                 />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                     Category
                   </label>
                   <select
                     value={newItem.category}
                     onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   >
                     <option>Analgesic & Antipyretic</option>
                     <option>Gastrointestinal</option>
@@ -381,7 +388,7 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                     Strength
                   </label>
                   <input
@@ -389,14 +396,14 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                     placeholder="e.g. 500mg"
                     value={newItem.strength}
                     onChange={(e) => setNewItem({ ...newItem, strength: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                     Unit Price (৳) *
                   </label>
                   <input
@@ -406,12 +413,12 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                     placeholder="30"
                     value={newItem.unit_price}
                     onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", marginBottom: "0.3rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-secondary, #2f4847)", marginBottom: "0.35rem" }}>
                     Initial Stock Qty *
                   </label>
                   <input
@@ -421,7 +428,7 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                     placeholder="100"
                     value={newItem.stock_quantity}
                     onChange={(e) => setNewItem({ ...newItem, stock_quantity: e.target.value })}
-                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border-color, #334155)", background: "#0f172a", color: "#fff" }}
+                    style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid var(--color-border, #e2eceb)", background: "#ffffff", color: "var(--color-text, #142422)", fontSize: "0.9rem" }}
                   />
                 </div>
               </div>
@@ -430,13 +437,13 @@ export default function InventoryManager({ inventory = [], onUpdateItem, onAddIt
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  style={{ padding: "0.6rem 1.25rem", borderRadius: "8px", background: "transparent", border: "1px solid #334155", color: "#94a3b8", cursor: "pointer" }}
+                  style={{ padding: "0.65rem 1.25rem", borderRadius: "8px", background: "var(--color-surface-2, #f0f5f4)", border: "1px solid var(--color-border, #e2eceb)", color: "var(--color-text-secondary, #2f4847)", fontWeight: 600, cursor: "pointer" }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: "0.6rem 1.5rem", borderRadius: "8px", background: "var(--teal-600, #0d9488)", border: "none", color: "#fff", fontWeight: 600, cursor: "pointer" }}
+                  style={{ padding: "0.65rem 1.5rem", borderRadius: "8px", background: "var(--color-primary, #0d7c6e)", border: "none", color: "#fff", fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(13, 124, 110, 0.25)" }}
                 >
                   Save to Inventory
                 </button>
