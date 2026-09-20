@@ -40,12 +40,59 @@ app.use(express.urlencoded({ extended: true }));
 // Rate Limiting
 app.use("/api/", generalLimiter);
 
-// Health Check
-app.get("/health", (req, res) => {
+// Root Welcome & Status
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Medicare API is running",
-    environment: process.env.NODE_ENV,
+    service: "Niramoy / Medicare Rajshahi Healthcare API",
+    status: "Operational",
+    version: "1.0.0",
+    message: "Welcome to Medicare Rajshahi Backend API. All microservices are active.",
+    health: "/health",
+    docs: "/api",
+    endpoints: {
+      auth: "/api/auth",
+      doctors: "/api/doctors",
+      hospitals: "/api/hospitals",
+      pharmacies: "/api/pharmacies",
+      medicines: "/api/medicines",
+      appointments: "/api/appointments",
+      orders: "/api/pharmacy-orders",
+      prescriptions: "/api/prescriptions",
+      payments: "/api/payments"
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// API Overview
+app.get("/api", (req, res) => {
+  res.json({
+    success: true,
+    message: "Medicare Rajshahi API v1.0",
+    version: "1.0.0",
+    status: "Active",
+    availableRoutes: [
+      "/api/auth",
+      "/api/doctors",
+      "/api/hospitals",
+      "/api/pharmacies",
+      "/api/medicines",
+      "/api/appointments",
+      "/api/pharmacy-orders",
+      "/api/prescriptions",
+      "/api/payments"
+    ]
+  });
+});
+
+// Health Check
+app.get(["/health", "/api/health"], (req, res) => {
+  res.json({
+    success: true,
+    message: "Medicare API is running healthy",
+    environment: process.env.NODE_ENV || "production",
+    status: "UP",
     timestamp: new Date().toISOString()
   });
 });
