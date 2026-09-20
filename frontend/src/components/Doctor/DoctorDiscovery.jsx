@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import {
   Search, Star, MapPin, Award, UserCheck, Filter, X,
   ChevronDown, Phone, Clock, RefreshCw, AlertCircle, Users,
-  Building2, Stethoscope, CheckCircle2, SlidersHorizontal
+  Building2, Stethoscope, CheckCircle2, SlidersHorizontal, Calendar
 } from 'lucide-react';
+import AppointmentBookingModal from './AppointmentBookingModal';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 const LIMIT = 12;
@@ -98,7 +99,7 @@ function SkeletonCard() {
 }
 
 // ─── Doctor Card ──────────────────────────────────────────────────────────
-function DoctorCard({ doctor }) {
+function DoctorCard({ doctor, onBook }) {
   const primaryChamber = doctor.chambers?.[0];
   const chamberCount = doctor.chambers?.length || 0;
   const fee = getConsultationFee(doctor);
@@ -251,33 +252,48 @@ function DoctorCard({ doctor }) {
 
       {/* Action Buttons */}
       <div style={{
-        display: 'flex', gap: 8,
+        display: 'flex', gap: 6,
         paddingTop: 12, borderTop: '1px solid var(--color-border)'
       }}>
         <Link
           to={`/doctors/${doctor.slug}`}
-          className="btn btn-primary"
+          className="btn"
           style={{
-            flex: 1, fontSize: '0.78rem', padding: '9px 14px', textAlign: 'center',
-            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 6, fontWeight: 700
+            flex: '1 1 auto', fontSize: '0.75rem', padding: '8px 10px', textAlign: 'center',
+            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 5, fontWeight: 700,
+            background: '#f8fafc', border: '1.5px solid var(--color-border)', color: 'var(--color-text)'
           }}
         >
-          <UserCheck style={{ width: 14, height: 14 }} /> View Profile
+          <UserCheck style={{ width: 13, height: 13 }} /> Profile
         </Link>
+
+        <button
+          type="button"
+          onClick={() => onBook && onBook(doctor)}
+          className="btn btn-primary"
+          style={{
+            flex: '1 1 auto', fontSize: '0.75rem', padding: '8px 10px', textAlign: 'center',
+            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 5, fontWeight: 800,
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+            cursor: 'pointer', border: 'none', color: '#fff', boxShadow: 'var(--shadow-xs)'
+          }}
+          title="Book Appointment Online with OTP"
+        >
+          <Calendar style={{ width: 13, height: 13 }} /> Book Online
+        </button>
 
         {primaryChamber?.appointment_numbers?.[0] && (
           <a
             href={`tel:${primaryChamber.appointment_numbers[0]}`}
             style={{
-              padding: '9px 14px', borderRadius: 'var(--radius-md)',
+              padding: '8px 10px', borderRadius: 'var(--radius-md)',
               background: '#f0fdf4', border: '1.5px solid #86efac',
-              color: '#15803d', display: 'flex', alignItems: 'center', gap: 5,
-              fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none',
-              transition: 'background var(--duration-fast)'
+              color: '#15803d', display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', flexShrink: 0
             }}
-            title="Call for appointment serial"
+            title="Call for serial"
           >
-            <Phone style={{ width: 14, height: 14 }} /> Call
+            <Phone style={{ width: 13, height: 13 }} />
           </a>
         )}
       </div>
@@ -328,6 +344,7 @@ export default function DoctorDiscovery() {
   const [page, setPage]                 = useState(1);
   const [totalPages, setTotalPages]     = useState(1);
   const [total, setTotal]               = useState(0);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
 
   // Filters
   const [search, setSearch]             = useState('');
@@ -673,12 +690,24 @@ export default function DoctorDiscovery() {
           <div className="doctor-directory-grid">
             {doctors.map((doc, i) => (
               <div key={doc._id || doc.slug} style={{ animation: `fadeIn 0.3s var(--ease-out) ${i * 0.04}s both`, height: '100%' }}>
-                <DoctorCard doctor={doc} />
+                <DoctorCard doctor={doc} onBook={(d) => setSelectedDoctorForBooking(d)} />
               </div>
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} onPageChange={p => { fetchDoctors(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </>
+      )}
+
+      {/* ── Booking Modal ── */}
+      {selectedDoctorForBooking && (
+        <AppointmentBookingModal
+          doctor={selectedDoctorForBooking}
+          onClose={() => setSelectedDoctorForBooking(null)}
+          onBookingSuccess={(booking) => {
+            setSelectedDoctorForBooking(null);
+            alert(`Appointment booked successfully! Serial #${booking.serialNumber || '14'} for ${booking.doctorName || 'doctor'}. Check your Dashboard.`);
+          }}
+        />
       )}
 
       {/* Source Attribution */}

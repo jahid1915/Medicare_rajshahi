@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { RAJSHAHI_HOSPITALS, RAJSHAHI_AREAS } from "../../data/rajshahiHospitals";
+import HospitalResourceDashboard from "../HospitalResource/HospitalResourceDashboard";
 import { Search, Filter, MapPin, Phone, ShieldCheck, ChevronRight, Building2, Ambulance, AlertTriangle } from "lucide-react";
 
 const TYPE_OPTIONS = ["All Types", "government", "private"];
@@ -14,7 +15,7 @@ function HospitalCard({ hospital, onView }) {
     }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)"; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-default)"; e.currentTarget.style.boxShadow = "none"; }}
-    onClick={() => onView(hospital.id)}
+    onClick={() => onView && onView(hospital.id)}
     >
       {/* Top Row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
@@ -87,7 +88,8 @@ function HospitalCard({ hospital, onView }) {
 
       {/* View Resources Button */}
       <button
-        onClick={e => { e.stopPropagation(); onView(hospital.id); }}
+        type="button"
+        onClick={e => { e.stopPropagation(); onView && onView(hospital.id); }}
         style={{
           padding: "8px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 700,
           background: "var(--primary)", color: "white", border: "none", cursor: "pointer",
@@ -97,19 +99,37 @@ function HospitalCard({ hospital, onView }) {
         onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
         onMouseLeave={e => e.currentTarget.style.opacity = "1"}
       >
-        <Building2 size={14} /> View Resources
+        <Building2 size={14} /> View Resources & Bed Availability
       </button>
     </div>
   );
 }
 
 export default function HospitalSearchPage({ onViewHospital }) {
+  const [activeHospitalId, setActiveHospitalId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArea, setSelectedArea] = useState("All Areas");
   const [selectedType, setSelectedType] = useState("All Types");
   const [filterICU, setFilterICU] = useState(false);
   const [filterEmergency, setFilterEmergency] = useState(false);
   const [filterVerified, setFilterVerified] = useState(false);
+
+  const handleHospitalSelect = (id) => {
+    if (onViewHospital) {
+      onViewHospital(id);
+    } else {
+      setActiveHospitalId(id);
+    }
+  };
+
+  if (activeHospitalId) {
+    return (
+      <HospitalResourceDashboard
+        hospitalId={activeHospitalId}
+        onBack={() => setActiveHospitalId(null)}
+      />
+    );
+  }
 
   const filtered = useMemo(() => {
     return RAJSHAHI_HOSPITALS.filter(h => {
@@ -264,7 +284,7 @@ export default function HospitalSearchPage({ onViewHospital }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
           {filtered.map(h => (
-            <HospitalCard key={h.id} hospital={h} onView={onViewHospital} />
+            <HospitalCard key={h.id} hospital={h} onView={handleHospitalSelect} />
           ))}
         </div>
       )}

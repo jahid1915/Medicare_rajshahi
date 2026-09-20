@@ -62,15 +62,46 @@ export function AuthProvider({ children }) {
     return data.data;
   }, [saveSession]);
 
-  const login = useCallback(async ({ email, password }) => {
+  const login = useCallback(async ({ email, phone, identifier, password }) => {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, phone, identifier, password })
     });
     const data = await res.json();
     if (!res.ok) {
       const err = new Error(data.message || 'Login failed');
+      err.code = data.code;
+      throw err;
+    }
+    saveSession(data.data.user, data.data.token);
+    return data.data;
+  }, [saveSession]);
+
+  const sendOtp = useCallback(async ({ phone, email, purpose }) => {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, email, purpose })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'Failed to send OTP');
+      err.code = data.code;
+      throw err;
+    }
+    return data.data;
+  }, []);
+
+  const verifyPatientCheckout = useCallback(async ({ name, phone, email, password, otp }) => {
+    const res = await fetch(`${API_BASE}/auth/verify-patient-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, email, password, otp })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'OTP verification failed');
       err.code = data.code;
       throw err;
     }
@@ -107,6 +138,8 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user && !!token,
     register,
     login,
+    sendOtp,
+    verifyPatientCheckout,
     logout,
     fetchMe
   };

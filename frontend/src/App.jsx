@@ -88,14 +88,14 @@ export default function App() {
             <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route path="dashboard" element={<PatientDashboard />} />
               <Route path="dashboard/ai-assistant" element={<AIVoiceChatContainer />} />
-              <Route path="dashboard/appointments" element={<ComingSoon title="My Appointments" />} />
-              <Route path="dashboard/prescriptions" element={<ComingSoon title="My Prescriptions" />} />
+              <Route path="dashboard/appointments" element={<PatientDashboard initialTab="appointments" />} />
+              <Route path="dashboard/prescriptions" element={<PatientDashboard initialTab="prescriptions" />} />
               <Route path="dashboard/medical-memory" element={<MedicalMemoryTimeline />} />
               <Route path="dashboard/doctors" element={<DoctorDiscovery />} />
               <Route path="dashboard/pharmacy" element={<PharmacyDirectory />} />
               <Route path="dashboard/medicines" element={<MedicineSearch />} />
               <Route path="dashboard/cart" element={<MedicineCart />} />
-              <Route path="dashboard/pharmacy-orders" element={<MedicineCart />} />
+              <Route path="dashboard/pharmacy-orders" element={<PatientDashboard initialTab="pharmacy" />} />
               <Route path="dashboard/hospitals" element={<HospitalSearchPage />} />
               <Route path="dashboard/hospital-resources/:hospitalId" element={<HospitalResourceDashboard />} />
               <Route path="dashboard/diagnostics" element={<DiagnosticCenterView />} />

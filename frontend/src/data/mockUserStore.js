@@ -87,13 +87,29 @@ const defaultState = {
   pharmacyOrders: [
     {
       id: 'ord-301',
-      pharmacyName: 'MediBridge Care Pharmacy - Dhanmondi',
+      pharmacyName: 'MediBridge Care Pharmacy - Laxmipur',
       date: '2026-08-04',
       items: ['Napa Extra (1 strip)', 'Sumatriptan 50mg (1 pack)'],
       totalAmount: 250,
       currency: '৳',
       status: 'Delivered',
-      deliveryAddress: 'House 14, Road 5, Dhanmondi, Dhaka'
+      deliveryAddress: 'Laxmipur Moor, Rajshahi'
+    }
+  ],
+  hospitalBookings: [
+    {
+      id: 'bed-bk-201',
+      hospitalId: 'hosp-1',
+      hospitalName: 'Rajshahi Medical College Hospital (RMCH)',
+      bedType: 'VIP Cabin (Air Conditioned)',
+      category: 'Cabins',
+      admissionDate: '2026-08-15',
+      patientName: 'Tanvir Hossain',
+      phone: '01711223344',
+      status: 'Confirmed',
+      referenceId: 'RMCH-BED-88219',
+      estimatedDailyFee: 1500,
+      notes: 'Post-operative observation requested'
     }
   ],
   privacyPermissions: {
@@ -114,7 +130,13 @@ const defaultState = {
 export function getStoredState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.hospitalBookings) parsed.hospitalBookings = defaultState.hospitalBookings;
+      if (!parsed.pharmacyOrders) parsed.pharmacyOrders = defaultState.pharmacyOrders;
+      if (!parsed.appointments) parsed.appointments = defaultState.appointments;
+      return parsed;
+    }
   } catch (e) {
     console.error('Failed to parse state from localStorage', e);
   }

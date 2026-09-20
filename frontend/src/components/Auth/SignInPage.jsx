@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import NiramoyLogo from '../Common/NiramoyLogo';
 import {
   Mail, Lock, Eye, EyeOff, AlertCircle, Loader2,
-  CheckCircle2, Stethoscope, Shield, Users, ArrowRight
+  CheckCircle2, Stethoscope, Shield, Users, ArrowRight,
+  Phone, Smartphone, Building2, Pill, UserCheck
 } from 'lucide-react';
 
 const FEATURES = [
@@ -21,12 +22,21 @@ function getDashboardForRole(role) {
   return '/dashboard';
 }
 
+const ROLE_TABS = [
+  { id: 'patient', label: '🧑‍⚕️ Patient (রোগী)', roleName: 'Patient' },
+  { id: 'doctor', label: '🩺 Doctor (ডাক্তার)', roleName: 'Doctor' },
+  { id: 'hospital_admin', label: '🏥 Hospital (হাসপাতাল)', roleName: 'Hospital Authority' },
+  { id: 'pharmacy_owner', label: '💊 Pharmacy (ফার্মেসি)', roleName: 'Pharmacy Owner' },
+  { id: 'super_admin', label: '👑 Admin (অ্যাডমিন)', roleName: 'Admin' }
+];
+
 const DEMO_ACCOUNTS = [
-  { label: '👑 Super Admin', email: 'admin@niramoy.health', password: 'Admin@123456', role: 'super_admin' },
-  { label: '🏥 Hospital Authority', email: 'hospital.admin@niramoy.health', password: 'Hospital@123456', role: 'hospital_admin' },
-  { label: '💊 Pharmacy Owner', email: 'pharmacy.owner@niramoy.health', password: 'Pharmacy@123456', role: 'pharmacy_owner' },
-  { label: '🩺 Doctor', email: 'doctor@niramoy.health', password: 'Doctor@123456', role: 'doctor' },
-  { label: '🧑‍⚕️ Patient', email: 'patient@niramoy.health', password: 'Patient@123456', role: 'patient' },
+  { roleKey: 'patient', label: '🧑‍⚕️ Patient (Rahim)', identifier: '01711223344', password: 'Pass@123456', role: 'patient' },
+  { roleKey: 'patient', label: '🧑‍⚕️ Patient (Email)', identifier: 'patient@niramoy.health', password: 'Patient@123456', role: 'patient' },
+  { roleKey: 'doctor', label: '🩺 Doctor', identifier: 'doctor@niramoy.health', password: 'Doctor@123456', role: 'doctor' },
+  { roleKey: 'hospital_admin', label: '🏥 Hospital Authority', identifier: 'hospital.admin@niramoy.health', password: 'Hospital@123456', role: 'hospital_admin' },
+  { roleKey: 'pharmacy_owner', label: '💊 Pharmacy Owner', identifier: 'pharmacy.owner@niramoy.health', password: 'Pharmacy@123456', role: 'pharmacy_owner' },
+  { roleKey: 'super_admin', label: '👑 Super Admin', identifier: 'admin@niramoy.health', password: 'Admin@123456', role: 'super_admin' },
 ];
 
 export default function SignInPage() {
@@ -35,7 +45,8 @@ export default function SignInPage() {
   const location = useLocation();
   const from = location.state?.from || null;
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [activeTab, setActiveTab] = useState('patient');
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,20 +62,30 @@ export default function SignInPage() {
   }
 
   const fillDemo = (demo) => {
-    setForm({ email: demo.email, password: demo.password });
+    setActiveTab(demo.roleKey);
+    setForm({ identifier: demo.identifier, password: demo.password });
     setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!form.email || !form.password) {
-      setError('Please enter both email and password.');
+    if (!form.identifier || !form.password) {
+      setError(
+        activeTab === 'patient' 
+          ? 'Please enter your mobile number (or email) and password.' 
+          : 'Please enter your email/phone and password.'
+      );
       return;
     }
     setLoading(true);
     try {
-      const data = await login({ email: form.email, password: form.password });
+      const data = await login({ 
+        identifier: form.identifier.trim(), 
+        email: form.identifier.trim(), 
+        phone: form.identifier.trim(), 
+        password: form.password 
+      });
       navigate(from || getDashboardForRole(data.user.role), { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
@@ -104,21 +125,67 @@ export default function SignInPage() {
 
       {/* Right Form Panel */}
       <div className="auth-form-side">
-        <div className="auth-form-card" style={{ maxWidth: 480 }}>
-          <Link to="/" style={{ textDecoration: 'none', marginBottom: 20, display: 'inline-block' }}>
+        <div className="auth-form-card" style={{ maxWidth: 500, width: '100%' }}>
+          <Link to="/" style={{ textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
             <NiramoyLogo size="md" />
           </Link>
 
-          <h1 className="auth-form-card__title">Sign In</h1>
-          <p className="auth-form-card__subtitle">
+          <h1 className="auth-form-card__title" style={{ marginBottom: '6px' }}>Sign In to Niramoy</h1>
+          <p className="auth-form-card__subtitle" style={{ marginBottom: '16px' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Create an account</Link>
+            <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+              Create an account / সাইন আপ করুন
+            </Link>
           </p>
 
+          {/* Role Tabs */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '18px', padding: '4px', background: 'var(--color-surface, #f8fafc)', borderRadius: '12px', border: '1px solid var(--color-border, #e2eceb)' }}>
+            {ROLE_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setError('');
+                }}
+                style={{
+                  flex: '1 1 auto',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: activeTab === tab.id ? 'var(--color-primary, #0d7c6e)' : 'transparent',
+                  color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary, #2f4847)',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Role specific info box */}
+          {activeTab === 'patient' ? (
+            <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '16px', fontSize: '0.78rem', color: 'var(--color-text-primary)' }}>
+              <strong>Patient Sign-in (রোগী লগইন):</strong> Enter your <strong>Mobile Number</strong> (e.g. 01711223344) and <strong>Password</strong> to access your dashboard and service history.
+            </div>
+          ) : (
+            <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(2,132,199,0.08)', border: '1px solid rgba(2,132,199,0.2)', marginBottom: '16px', fontSize: '0.78rem', color: '#0369a1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <strong>Professional Sign-in:</strong> Doctors, Hospitals, and Pharmacies require verified registration.
+              </div>
+              <Link to={`/register?role=${activeTab}`} style={{ color: '#0284c7', fontWeight: 800, textDecoration: 'underline', flexShrink: 0, marginLeft: '8px' }}>
+                Sign Up →
+              </Link>
+            </div>
+          )}
+
           {/* Quick Demo Logins Bar */}
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 20 }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              ⚡ Fast Test Credentials (One-Click)
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '10px 12px', marginBottom: 18 }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              ⚡ One-Click Demo Credentials:
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {DEMO_ACCOUNTS.map((d, idx) => (
@@ -127,10 +194,10 @@ export default function SignInPage() {
                   type="button"
                   onClick={() => fillDemo(d)}
                   style={{
-                    padding: '4px 9px', borderRadius: 99,
-                    border: form.email === d.email ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
-                    background: form.email === d.email ? 'rgba(13,124,110,0.1)' : 'white',
-                    color: form.email === d.email ? 'var(--color-primary)' : 'var(--color-text-primary)',
+                    padding: '3px 8px', borderRadius: 99,
+                    border: form.identifier === d.identifier ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    background: form.identifier === d.identifier ? 'rgba(13,124,110,0.1)' : 'white',
+                    color: form.identifier === d.identifier ? 'var(--color-primary)' : 'var(--color-text-primary)',
                     fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -156,24 +223,36 @@ export default function SignInPage() {
 
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="auth-field">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="identifier">
+                {activeTab === 'patient' 
+                  ? 'Mobile Number or Email (মোবাইল নম্বর বা ইমেইল)' 
+                  : 'Email Address or Phone'}
+              </label>
               <div className="auth-input-wrap">
-                <Mail style={{ width: 16, height: 16 }} />
+                {activeTab === 'patient' ? (
+                  <Phone style={{ width: 16, height: 16 }} />
+                ) : (
+                  <Mail style={{ width: 16, height: 16 }} />
+                )}
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  autoComplete="email"
+                  id="identifier"
+                  type="text"
+                  placeholder={
+                    activeTab === 'patient'
+                      ? "e.g., 01711223344 or patient@gmail.com"
+                      : "you@example.com or phone"
+                  }
+                  value={form.identifier}
+                  onChange={e => setForm({ ...form, identifier: e.target.value })}
+                  autoComplete="username"
                   required
-                  aria-label="Email address"
+                  aria-label="Mobile Number or Email"
                 />
               </div>
             </div>
 
             <div className="auth-field">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Password (পাসওয়ার্ড)</label>
               <div className="auth-input-wrap">
                 <Lock style={{ width: 16, height: 16 }} />
                 <input
@@ -201,18 +280,30 @@ export default function SignInPage() {
               id="sign-in-submit"
               type="submit"
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '13px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
+              style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
               disabled={loading}
             >
               {loading ? (
                 <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Signing in…</>
               ) : (
-                <>Sign In to Portal <ArrowRight style={{ width: 16, height: 16 }} /></>
+                <>
+                  Sign In as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
+                  <ArrowRight style={{ width: 16, height: 16 }} />
+                </>
               )}
             </button>
           </form>
 
-          <p className="auth-footer">
+          {activeTab !== 'patient' && (
+            <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+              Are you a new doctor, pharmacy owner, or hospital authority?{' '}
+              <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+                Register your facility / সাইন আপ করুন →
+              </Link>
+            </div>
+          )}
+
+          <p className="auth-footer" style={{ marginTop: '16px' }}>
             By continuing, you agree to Niramoy's{' '}
             <span style={{ color: 'var(--color-primary)', cursor: 'default' }}>Terms of Service</span>{' '}
             and{' '}

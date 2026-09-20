@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
 import { 
-  Calendar, Clock, CreditCard, ShieldCheck, CheckCircle2, 
-  Mail, User, Download, AlertTriangle, Phone, Lock, KeyRound, 
-  ArrowRight, Loader2, RefreshCw, Smartphone
+  Building2, Calendar, Clock, CreditCard, ShieldCheck, 
+  CheckCircle2, Mail, User, Phone, Lock, KeyRound, 
+  ArrowRight, Loader2, Smartphone, AlertTriangle, BedDouble, HeartPulse
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { addAuditLog, getStoredState, saveStoredState } from '../../data/mockUserStore';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AppointmentBookingModal({ doctor, onClose, onBookingSuccess }) {
-  const { user, sendOtp, verifyPatientCheckout } = useAuth();
-  const state = getStoredState();
+const BED_TYPES = [
+  { id: 'vip_cabin', name: 'VIP Cabin (AC & Attendant Bed)', fee: 1800, category: 'Cabins', desc: 'Private suite, air conditioning, attached bath & attendant sofa' },
+  { id: 'single_cabin', name: 'Single Cabin (AC)', fee: 1200, category: 'Cabins', desc: 'Individual room with dedicated patient monitoring' },
+  { id: 'general_bed', name: 'General Ward Male/Female Bed', fee: 350, category: 'Beds', desc: 'Standard inpatient bed with 24/7 on-duty nurse supervision' },
+  { id: 'icu_bed', name: 'ICU Critical Care Bed', fee: 4500, category: 'Critical Care', desc: 'Dedicated mechanical ventilator and multi-parameter vital monitor' },
+  { id: 'ccu_bed', name: 'CCU Coronary Care Unit', fee: 4000, category: 'Critical Care', desc: 'Specialized cardiac telemetry & resuscitation capability' }
+];
 
-  // Steps: 'slot' | 'patient_auth' | 'otp_verify' | 'payment' | 'confirmed'
-  const [step, setStep] = useState('slot');
-  const [selectedDay, setSelectedDay] = useState('today');
-  const [selectedSlot, setSelectedSlot] = useState(
-    doctor?.availableToday && doctor?.slotsToday?.length > 0 
-      ? doctor.slotsToday[0] 
-      : doctor?.slotsTomorrow?.[0] || '07:00 PM'
+export default function BedBookingModal({ hospital, initialResource, onClose, onBookingSuccess }) {
+  const { user, sendOtp, verifyPatientCheckout } = useAuth();
+
+  // Steps: 'select' | 'patient_auth' | 'otp_verify' | 'payment' | 'confirmed'
+  const [step, setStep] = useState('select');
+  const [selectedBedType, setSelectedBedType] = useState(
+    BED_TYPES.find(b => initialResource && initialResource.resource_name?.toLowerCase().includes(b.category.toLowerCase())) || BED_TYPES[0]
   );
-  const [selectedFamilyMember, setSelectedFamilyMember] = useState(state.familyMembers[0]);
+  const [admissionDate, setAdmissionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [patientCondition, setPatientCondition] = useState('General Admission / Surgery Observation');
 
   // Guest Patient Auth Details
   const [patientForm, setPatientForm] = useState({
@@ -33,18 +38,15 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
   const [simulatedOtp, setSimulatedOtp] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState('bkash');
   const [mobileNumber, setMobileNumber] = useState(user?.phone || '01711223344');
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
 
-  if (!doctor) return null;
+  if (!hospital) return null;
 
-  // Handle proceeding from Slot selection
-  const handleProceedFromSlot = () => {
+  const handleProceedFromSelect = () => {
     if (user) {
       setMobileNumber(user.phone || '01711223344');
       setStep('payment');
@@ -53,25 +55,24 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
     }
   };
 
-  // Trigger Send OTP
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     setAuthError('');
 
     if (!patientForm.name.trim()) {
-      setAuthError('Please enter your full name (আপনার নাম লিখুন)।');
+      setAuthError('Please enter the patient or guardian full name.');
       return;
     }
     if (!patientForm.phone.trim() || patientForm.phone.trim().length < 11) {
-      setAuthError('Please enter a valid 11-digit mobile number (১১ ডিজিটের মোবাইল নম্বর দিন)।');
+      setAuthError('Please enter a valid 11-digit mobile number.');
       return;
     }
     if (!patientForm.email.trim() || !patientForm.email.includes('@')) {
-      setAuthError('Please enter a valid email address (e.g., patient@gmail.com)।');
+      setAuthError('Please enter a valid email address (e.g., patient@gmail.com).');
       return;
     }
     if (!patientForm.password || patientForm.password.length < 6) {
-      setAuthError('Password must be at least 6 characters (পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে)।');
+      setAuthError('Password must be at least 6 characters.');
       return;
     }
 
@@ -80,13 +81,11 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
       const res = await sendOtp({
         phone: patientForm.phone.trim(),
         email: patientForm.email.trim(),
-        purpose: 'Doctor Appointment Verification'
+        purpose: 'Hospital Bed Booking Verification'
       });
-      setSimulatedOtp(res?.otp || '415815');
+      setSimulatedOtp(res?.otp || '592814');
       setStep('otp_verify');
-      setCountdown(60);
     } catch (err) {
-      // Fallback for seamless demo
       const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
       setSimulatedOtp(fallbackOtp);
       setStep('otp_verify');
@@ -95,13 +94,12 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
     }
   };
 
-  // Handle OTP submission and automatic login
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
     setAuthError('');
 
     if (!otpCode.trim() || otpCode.trim().length !== 6) {
-      setAuthError('Please enter the 6-digit OTP code (৬ ডিজিটের ওটিপি লিখুন)।');
+      setAuthError('Please enter the 6-digit OTP code.');
       return;
     }
 
@@ -119,75 +117,67 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
       setStep('payment');
     } catch (err) {
       if (otpCode.trim() === simulatedOtp || otpCode.trim() === '123456') {
-        // Safe bypass in dev if backend network hiccup
         setMobileNumber(patientForm.phone.trim());
         setStep('payment');
       } else {
-        setAuthError(err.message || 'Invalid OTP code. Please check and try again.');
+        setAuthError(err.message || 'Invalid OTP code. Please try again.');
       }
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Finalize Payment & Confirm Appointment
-  const handleConfirmPayment = () => {
+  const handleConfirmReservation = () => {
     const txnId = `TXN-${paymentMethod.toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const appointmentDate = selectedDay === 'today' ? '2026-08-11' : '2026-08-12';
-    const patientDisplayName = user?.name || patientForm.name || selectedFamilyMember.name;
-    const patientPhone = user?.phone || patientForm.phone || mobileNumber;
+    const refId = `${(hospital.short_name || 'HOSP').toUpperCase()}-BED-${Math.floor(10000 + Math.random() * 90000)}`;
+    const patientDisplayName = user?.name || patientForm.name;
+    const contactPhone = user?.phone || patientForm.phone || mobileNumber;
 
-    const newAppointment = {
-      id: `apt-${Date.now()}`,
-      doctorId: doctor.id,
-      doctorName: doctor.name,
-      specialty: doctor.specialtyName,
-      date: appointmentDate,
-      time: selectedSlot,
-      consultationType: 'Chamber / HD Video Consultation',
-      fee: doctor.fee,
-      currency: doctor.currency || '৳',
-      status: 'Confirmed',
-      paymentTxnId: txnId,
+    const newBooking = {
+      id: `bed-bk-${Date.now()}`,
+      hospitalId: hospital.id,
+      hospitalName: hospital.name,
+      bedType: selectedBedType.name,
+      category: selectedBedType.category,
+      admissionDate: admissionDate,
       patientName: patientDisplayName,
-      patientPhone: patientPhone,
-      familyMemberId: selectedFamilyMember.id,
-      doctorAvatar: doctor.avatar,
-      hospital: doctor.hospital,
-      paymentMethod: paymentMethod.toUpperCase(),
+      phone: contactPhone,
+      status: 'Confirmed',
+      referenceId: refId,
+      estimatedDailyFee: selectedBedType.fee,
+      advancePaid: selectedBedType.fee,
+      paymentTxnId: txnId,
+      notes: patientCondition,
       createdAt: new Date().toISOString()
     };
 
-    // Save to stored state
     const currentState = getStoredState();
-    currentState.appointments = [newAppointment, ...(currentState.appointments || [])];
+    currentState.hospitalBookings = [newBooking, ...(currentState.hospitalBookings || [])];
     currentState.timeline = [
       {
         id: `tl-${Date.now()}`,
-        date: appointmentDate,
-        time: selectedSlot,
-        type: 'DOCTOR_VISIT',
-        title: `Appointment Booked with ${doctor.name}`,
-        description: `Specialty: ${doctor.specialtyName}. Fee: ${doctor.currency || '৳'}${doctor.fee}. Payment Txn: ${txnId}`,
-        badgeColor: 'primary',
-        familyMemberId: selectedFamilyMember.id
+        date: admissionDate,
+        time: '10:00 AM',
+        type: 'HOSPITAL_ADMISSION',
+        title: `Bed Reserved at ${hospital.name}`,
+        description: `Reserved ${selectedBedType.name}. Ref: ${refId}. Advance Txn: ${txnId}`,
+        badgeColor: 'success'
       },
       ...(currentState.timeline || [])
     ];
 
     saveStoredState(currentState);
 
-    addAuditLog('BOOKING_ENGINE', 'APPOINTMENT_CONFIRMED', `Booked ${doctor.name} for ${patientDisplayName}. Txn: ${txnId}`);
+    addAuditLog('HOSPITAL_RESOURCE_ENGINE', 'BED_RESERVED', `Bed booked at ${hospital.name} for ${patientDisplayName}. Ref: ${refId}`);
 
-    setBookingResult(newAppointment);
+    setBookingResult(newBooking);
     setStep('confirmed');
 
-    // Confetti celebration
     try {
-      confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
     } catch (e) {}
 
-    if (onBookingSuccess) onBookingSuccess(newAppointment);
+    if (onBookingSuccess) onBookingSuccess(newBooking);
   };
 
   return (
@@ -196,38 +186,37 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid var(--border-default)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img 
-              src={doctor.avatar} 
-              alt={doctor.name} 
-              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
-            />
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(13,124,110,0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={24} />
+            </div>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{doctor.name}</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, margin: '2px 0 0 0' }}>
-                {doctor.title} • {doctor.specialtyName}
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                {hospital.name}
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                {hospital.address || `${hospital.area}, Rajshahi`} • {hospital.type === 'government' ? 'Government Hospital' : 'Private Healthcare Facility'}
               </p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '24px', cursor: 'pointer', fontWeight: 'bold' }}>&times;</button>
         </div>
 
-        {/* Breadcrumb Steps */}
+        {/* Step Indicator */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 0', borderBottom: '1px solid var(--border-default)', fontSize: '0.72rem', fontWeight: 700 }}>
-          <span style={{ color: step === 'slot' ? 'var(--primary)' : 'var(--text-muted)' }}>1. Slot Selection</span>
+          <span style={{ color: step === 'select' ? 'var(--primary)' : 'var(--text-muted)' }}>1. Bed Selection</span>
           <span style={{ color: 'var(--text-muted)' }}>→</span>
           <span style={{ color: (step === 'patient_auth' || step === 'otp_verify') ? 'var(--primary)' : 'var(--text-muted)' }}>
             2. Patient & OTP
           </span>
           <span style={{ color: 'var(--text-muted)' }}>→</span>
-          <span style={{ color: step === 'payment' ? 'var(--primary)' : 'var(--text-muted)' }}>3. Payment</span>
+          <span style={{ color: step === 'payment' ? 'var(--primary)' : 'var(--text-muted)' }}>3. Advance Deposit</span>
           <span style={{ color: 'var(--text-muted)' }}>→</span>
           <span style={{ color: step === 'confirmed' ? 'var(--primary)' : 'var(--text-muted)' }}>4. Confirmed</span>
         </div>
 
-        {/* STEP 1: SLOT SELECTOR */}
-        {step === 'slot' && (
-          <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* Patient profile selection if logged in */}
+        {/* STEP 1: BED SELECTION */}
+        {step === 'select' && (
+          <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {user ? (
               <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -238,95 +227,76 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                   </div>
                 </div>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: 'rgba(34,197,94,0.15)', color: '#16a34a' }}>
-                  ✓ Verified Patient
+                  ✓ Verified Account
                 </span>
               </div>
             ) : (
               <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Smartphone size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
                 <div style={{ fontSize: '0.78rem', color: '#1d4ed8', lineHeight: 1.4 }}>
-                  <strong>New or Guest Patient?</strong> You don't need a pre-existing account! You will provide your Name, Phone Number, Gmail & Password with instant OTP verification in the next step.
+                  <strong>Guest Bed Reservation:</strong> No prior login needed! Enter patient details + OTP verification in the next step to confirm your bed immediately.
                 </div>
               </div>
             )}
 
-            {/* Date Selection */}
             <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>Select Date:</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDay('today');
-                    if (doctor.slotsToday?.length > 0) setSelectedSlot(doctor.slotsToday[0]);
-                  }}
-                  disabled={!doctor.availableToday || doctor.slotsToday?.length === 0}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer',
-                    border: selectedDay === 'today' ? '2px solid var(--primary)' : '1px solid var(--border-default)',
-                    background: selectedDay === 'today' ? 'rgba(13,124,110,0.1)' : 'var(--bg-card)',
-                    color: selectedDay === 'today' ? 'var(--primary)' : 'var(--text-primary)',
-                    fontWeight: 700, fontSize: '0.82rem', opacity: (!doctor.availableToday || doctor.slotsToday?.length === 0) ? 0.4 : 1
-                  }}
-                >
-                  🟢 Today (Aug 11)
-                  <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 500, opacity: 0.8, marginTop: '2px' }}>
-                    {doctor.availableToday ? `${doctor.slotsToday?.length} slots open` : 'Fully Booked'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDay('tomorrow');
-                    if (doctor.slotsTomorrow?.length > 0) setSelectedSlot(doctor.slotsTomorrow[0]);
-                  }}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer',
-                    border: selectedDay === 'tomorrow' ? '2px solid var(--primary)' : '1px solid var(--border-default)',
-                    background: selectedDay === 'tomorrow' ? 'rgba(13,124,110,0.1)' : 'var(--bg-card)',
-                    color: selectedDay === 'tomorrow' ? 'var(--primary)' : 'var(--text-primary)',
-                    fontWeight: 700, fontSize: '0.82rem'
-                  }}
-                >
-                  📅 Tomorrow (Aug 12)
-                  <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 500, opacity: 0.8, marginTop: '2px' }}>
-                    {doctor.slotsTomorrow?.length || 4} slots open
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Slots List */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>Available Time Slots:</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {(selectedDay === 'today' ? doctor.slotsToday : doctor.slotsTomorrow)?.map((slot, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                Select Bed or Cabin Type:
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {BED_TYPES.map((b) => (
+                  <div
+                    key={b.id}
+                    onClick={() => setSelectedBedType(b)}
                     style={{
-                      padding: '8px 14px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                      border: selectedSlot === slot ? '1.5px solid var(--primary)' : '1px solid var(--border-default)',
-                      background: selectedSlot === slot ? 'var(--primary)' : 'var(--bg-card)',
-                      color: selectedSlot === slot ? '#ffffff' : 'var(--text-primary)'
+                      padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
+                      border: selectedBedType.id === b.id ? '2px solid var(--primary)' : '1px solid var(--border-default)',
+                      background: selectedBedType.id === b.id ? 'rgba(13,124,110,0.08)' : 'var(--bg-card)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    <Clock size={13} style={{ display: 'inline', marginRight: '5px' }} />
-                    {slot}
-                  </button>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>{b.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{b.desc}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--primary)' }}>৳{b.fee}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>per day approx.</div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Fee summary */}
-            <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'var(--bg-badge)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Consultation Fee:</span>
-              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)' }}>
-                {doctor.currency || '৳'}{doctor.fee}
-              </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '5px' }}>
+                  Expected Admission Date:
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Calendar size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="date"
+                    value={admissionDate}
+                    onChange={e => setAdmissionDate(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid var(--border-default)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '5px' }}>
+                  Patient Condition / Diagnosis:
+                </label>
+                <input
+                  type="text"
+                  value={patientCondition}
+                  onChange={e => setPatientCondition(e.target.value)}
+                  placeholder="e.g. Post surgery, high fever, etc."
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px' }}>
@@ -335,25 +305,25 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               </button>
               <button 
                 type="button" 
-                onClick={handleProceedFromSlot} 
+                onClick={handleProceedFromSelect} 
                 className="btn btn-primary" 
                 style={{ padding: '9px 22px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                {user ? 'Proceed to Payment' : 'Next: Patient & OTP Verification'} <ArrowRight size={15} />
+                {user ? 'Proceed to Confirmation' : 'Next: Patient & OTP Verification'} <ArrowRight size={15} />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2A: PATIENT REGISTRATION DATA (Name + Phone + Gmail + Password) */}
+        {/* STEP 2A: PATIENT REGISTRATION DATA */}
         {step === 'patient_auth' && (
           <form onSubmit={handleSendOtp} style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.25)' }}>
               <h4 style={{ margin: '0 0 4px 0', fontSize: '0.88rem', fontWeight: 800, color: 'var(--primary)' }}>
-                Patient Account Details (রোগীর তথ্যাদি)
+                Patient Details for Hospital Admission (রোগীর বিবরণ)
               </h4>
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Please provide your Name, Phone Number, Gmail and Password. We will send an instant SMS OTP to verify your account.
+                Please provide your Name, Phone Number, Gmail and Password. We will send an instant SMS OTP to verify your bed booking.
               </p>
             </div>
 
@@ -366,14 +336,14 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '5px' }}>
-                  Full Name (সম্পূর্ণ নাম) *
+                  Patient Full Name *
                 </label>
                 <div style={{ position: 'relative' }}>
                   <User size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
                     type="text"
                     required
-                    placeholder="e.g., Rahim Uddin"
+                    placeholder="e.g., Tanvir Hossain"
                     value={patientForm.name}
                     onChange={e => setPatientForm({ ...patientForm, name: e.target.value })}
                     style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid var(--border-default)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.8rem', boxSizing: 'border-box' }}
@@ -436,8 +406,8 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
-              <button type="button" onClick={() => setStep('slot')} className="btn btn-secondary" style={{ padding: '9px 18px', fontSize: '0.8rem' }}>
-                Back to Slots
+              <button type="button" onClick={() => setStep('select')} className="btn btn-secondary" style={{ padding: '9px 18px', fontSize: '0.8rem' }}>
+                Back
               </button>
               <button 
                 type="submit" 
@@ -460,10 +430,10 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                 <KeyRound size={24} />
               </div>
               <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                Enter OTP Verification Code
+                Verify Mobile Number
               </h4>
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                We sent a 6-digit verification code to <strong style={{ color: 'var(--text-primary)' }}>{patientForm.phone}</strong> & <strong style={{ color: 'var(--text-primary)' }}>{patientForm.email}</strong>.
+                We sent a 6-digit OTP code to <strong style={{ color: 'var(--text-primary)' }}>{patientForm.phone}</strong> & <strong style={{ color: 'var(--text-primary)' }}>{patientForm.email}</strong>.
               </p>
             </div>
 
@@ -472,10 +442,10 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'rgba(34,197,94,0.08)', border: '1.5px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span>📩 Niramoy Tele-SMS Gateway (Test Mode)</span>
+                    <span>📩 Niramoy Hospital Tele-SMS Gateway</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    Your verification code is: <span style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--primary)' }}>{simulatedOtp}</span>
+                    Your bed reservation code is: <span style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--primary)' }}>{simulatedOtp}</span>
                   </div>
                 </div>
                 <button
@@ -496,7 +466,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px', textAlign: 'center' }}>
-                Type 6-digit Code (৬ সংখ্যার কোড দিন):
+                Type 6-digit Code:
               </label>
               <input
                 type="text"
@@ -514,17 +484,6 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               />
             </div>
 
-            <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Didn't receive code?{' '}
-              <button 
-                type="button" 
-                onClick={() => handleSendOtp()} 
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-              >
-                Resend OTP
-              </button>
-            </div>
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
               <button type="button" onClick={() => setStep('patient_auth')} className="btn btn-secondary" style={{ padding: '9px 18px', fontSize: '0.8rem' }}>
                 Change Number
@@ -536,32 +495,32 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                 style={{ padding: '9px 24px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 {authLoading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                Verify & Proceed to Payment
+                Verify & Continue
               </button>
             </div>
           </form>
         )}
 
-        {/* STEP 3: PAYMENT GATEWAY */}
+        {/* STEP 3: ADVANCE DEPOSIT / PAYMENT */}
         {step === 'payment' && (
           <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(13,124,110,0.1)', border: '1px solid rgba(13,124,110,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Booking Summary:</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Reservation Summary:</span>
                 <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {doctor.name} • {selectedDay === 'today' ? 'Today' : 'Tomorrow'} at {selectedSlot}
+                  {hospital.name} • {selectedBedType.name}
                 </span>
                 <div style={{ fontSize: '0.72rem', color: 'var(--primary)', marginTop: '2px' }}>
-                  Patient: {user?.name || patientForm.name} ({user?.phone || patientForm.phone})
+                  Admission: {admissionDate} | Patient: {user?.name || patientForm.name}
                 </div>
               </div>
               <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary)' }}>
-                {doctor.currency || '৳'}{doctor.fee}
+                ৳{selectedBedType.fee}
               </span>
             </div>
 
             <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block' }}>
-              Select Payment Method (Sandbox / Test Checkout):
+              Select Advance Deposit Method (Sandbox):
             </label>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -608,7 +567,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
             <div>
               <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Account / Mobile Wallet Number:
+                Account / Mobile Wallet:
               </label>
               <input
                 type="text"
@@ -618,28 +577,23 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               />
             </div>
 
-            <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(34,197,94,0.1)', color: '#16a34a', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={16} style={{ flexShrink: 0 }} />
-              <span>Compliant sandbox payment mode active. Instant digital receipt generated.</span>
-            </div>
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
-              <button type="button" onClick={() => setStep('slot')} className="btn btn-secondary" style={{ padding: '9px 18px', fontSize: '0.8rem' }}>
+              <button type="button" onClick={() => setStep('select')} className="btn btn-secondary" style={{ padding: '9px 18px', fontSize: '0.8rem' }}>
                 Back
               </button>
               <button 
                 type="button" 
-                onClick={handleConfirmPayment} 
+                onClick={handleConfirmReservation} 
                 className="btn btn-primary" 
                 style={{ padding: '10px 24px', fontSize: '0.85rem', fontWeight: 800 }}
               >
-                Confirm & Pay {doctor.currency || '৳'}{doctor.fee}
+                Confirm Bed Reservation ৳{selectedBedType.fee}
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 4: CONFIRMED RECEIPT & DETAILS */}
+        {/* STEP 4: CONFIRMED */}
         {step === 'confirmed' && bookingResult && (
           <div style={{ margin: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(34,197,94,0.15)', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
@@ -648,100 +602,45 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
-                Appointment Confirmed!
+                Bed Reserved Successfully!
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                A confirmation SMS & calendar notification have been scheduled.
+                Hospital admission authorization reference has been issued.
               </p>
             </div>
 
             <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--bg-badge)', border: '1px solid var(--border-default)', textAlign: 'left', maxWidth: '440px', margin: '0 auto', width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Doctor:</span>
-                <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bookingResult.doctorName}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Hospital:</span>
+                <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bookingResult.hospitalName}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Specialty:</span>
-                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{bookingResult.specialty}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Bed / Room:</span>
+                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{bookingResult.bedType}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Date & Time:</span>
-                <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bookingResult.date} at {bookingResult.time}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Admission Date:</span>
+                <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bookingResult.admissionDate}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Patient Name:</span>
                 <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{bookingResult.patientName}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Contact Number:</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{bookingResult.patientPhone}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Payment Txn ID:</span>
-                <span style={{ fontFamily: 'monospace', color: '#16a34a', fontWeight: 800 }}>{bookingResult.paymentTxnId}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Booking Reference ID:</span>
+                <span style={{ fontFamily: 'monospace', color: '#16a34a', fontWeight: 800 }}>{bookingResult.referenceId}</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', paddingTop: '6px' }}>
               <button
                 type="button"
-                onClick={() => setShowEmailPreview(true)}
-                className="btn btn-secondary"
-                style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}
-              >
-                <Mail size={14} style={{ color: 'var(--primary)' }} /> View Confirmation Slip
-              </button>
-
-              <button
-                type="button"
                 onClick={onClose}
                 className="btn btn-primary"
                 style={{ fontSize: '0.78rem', padding: '8px 24px', fontWeight: 700 }}
               >
-                Done
+                Close & View Dashboard
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* EMAIL PREVIEW MODAL */}
-        {showEmailPreview && (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '500px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-default)' }}>
-                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Mail size={16} style={{ color: 'var(--primary)' }} /> Niramoy Digital Receipt & Slip
-                </h4>
-                <button onClick={() => setShowEmailPreview(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
-              </div>
-
-              <div style={{ margin: '16px 0', padding: '16px', borderRadius: '10px', background: 'var(--bg-badge)', border: '1px solid var(--border-default)', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>
-                  <div><strong>From:</strong> appointments@niramoy.health</div>
-                  <div><strong>To:</strong> {bookingResult?.patientPhone} / {user?.email || patientForm.email}</div>
-                  <div><strong>Subject:</strong> Confirmed Consultation with {bookingResult?.doctorName}</div>
-                </div>
-
-                <p style={{ margin: 0 }}>Dear {bookingResult?.patientName},</p>
-                <p style={{ margin: 0 }}>Your consultation has been successfully booked and recorded in Niramoy Healthcare Network.</p>
-                
-                <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(13,124,110,0.1)', border: '1px solid rgba(13,124,110,0.25)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div><strong>Doctor:</strong> {bookingResult?.doctorName} ({bookingResult?.specialty})</div>
-                  <div><strong>Date & Time:</strong> {bookingResult?.date} @ {bookingResult?.time}</div>
-                  <div><strong>Chamber / Facility:</strong> {bookingResult?.hospital || 'Rajshahi Chamber'}</div>
-                  <div><strong>Status:</strong> Confirmed</div>
-                </div>
-
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  🔔 Reminder notifications scheduled 24h & 1h prior to appointment.
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowEmailPreview(false)} className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '0.78rem' }}>
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         )}

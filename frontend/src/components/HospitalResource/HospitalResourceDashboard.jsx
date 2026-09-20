@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ResourceCard from "./ResourceCard";
 import ResourceStatusBadge from "./ResourceStatusBadge";
+import BedBookingModal from "../Hospitals/BedBookingModal";
 import { RAJSHAHI_HOSPITALS, MOCK_RESOURCES, RESOURCE_TYPE_CONFIG } from "../../data/rajshahiHospitals";
-import { ArrowLeft, Phone, MapPin, Shield, ShieldCheck, RefreshCw, AlertTriangle, Building2 } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, Shield, ShieldCheck, RefreshCw, AlertTriangle, Building2, BedDouble } from "lucide-react";
 
 const CATEGORIES = ["All", "Beds", "Cabins", "Critical Care", "Emergency", "OT", "Other"];
 
@@ -11,6 +12,8 @@ export default function HospitalResourceDashboard({ hospitalId, onBack }) {
   const [hospital, setHospital] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showBedModal, setShowBedModal] = useState(false);
+  const [selectedResourceForBooking, setSelectedResourceForBooking] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -110,6 +113,21 @@ export default function HospitalResourceDashboard({ hospitalId, onBack }) {
               )}
             </div>
           </div>
+
+          <div>
+            <button
+              onClick={() => { setSelectedResourceForBooking(null); setShowBedModal(true); }}
+              className="btn btn-primary"
+              style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "10px 18px", fontSize: "0.82rem", fontWeight: 800,
+                background: "var(--primary)", color: "white", borderRadius: "10px",
+                cursor: "pointer", border: "none", boxShadow: "0 4px 14px rgba(13,124,110,0.25)"
+              }}
+            >
+              <BedDouble size={18} /> Book Bed / Cabin (বেড বুকিং করুন)
+            </button>
+          </div>
         </div>
 
         {/* Service Tags */}
@@ -203,10 +221,25 @@ export default function HospitalResourceDashboard({ hospitalId, onBack }) {
             <ResourceCard
               key={resource.id}
               resource={resource}
-              onViewDetails={(r) => console.log("View details:", r)}
+              onViewDetails={(r) => {
+                setSelectedResourceForBooking(r);
+                setShowBedModal(true);
+              }}
             />
           ))}
         </div>
+      )}
+
+      {/* Bed & Cabin Booking Modal */}
+      {showBedModal && (
+        <BedBookingModal
+          hospital={hospital}
+          initialResource={selectedResourceForBooking}
+          onClose={() => setShowBedModal(false)}
+          onBookingSuccess={(b) => {
+            console.log("Bed booking completed:", b);
+          }}
+        />
       )}
     </div>
   );

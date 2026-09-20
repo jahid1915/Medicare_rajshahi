@@ -6,6 +6,7 @@ import {
   ExternalLink, BadgeCheck, User, Share2, Copy, Check,
   Calendar, ShieldCheck, HeartPulse, Info
 } from 'lucide-react';
+import AppointmentBookingModal from './AppointmentBookingModal';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -193,6 +194,8 @@ export default function DoctorProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(null);
 
   useEffect(() => {
     async function fetchDoctor() {
@@ -262,6 +265,33 @@ export default function DoctorProfile() {
     <div style={{ maxWidth: 1140, margin: '0 auto', padding: 'var(--sp-6) var(--sp-4)', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* ── Top Bar / Breadcrumb Card ── */}
+      {bookingSuccess && (
+        <div style={{
+          padding: '16px 20px', borderRadius: 'var(--radius-lg)',
+          background: '#f0fdf4', border: '1.5px solid #86efac',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 style={{ width: 22, height: 22, color: '#16a34a' }} />
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#15803d' }}>
+                Appointment Confirmed! Serial #{bookingSuccess.serialNumber || '14'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#166534' }}>
+                Doctor: {doctor.name} • Time: {bookingSuccess.slot || 'Evening Slot'}
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/dashboard"
+            className="btn btn-primary"
+            style={{ fontSize: '0.78rem', padding: '8px 16px', background: '#16a34a', border: 'none' }}
+          >
+            View in Dashboard
+          </Link>
+        </div>
+      )}
+
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
         padding: '12px 18px', background: '#fff', borderRadius: 'var(--radius-lg)',
@@ -667,18 +697,36 @@ export default function DoctorProfile() {
               </div>
             </div>
 
+            {/* Book Online Button */}
+            <button
+              type="button"
+              onClick={() => setBookingModalOpen(true)}
+              className="btn btn-primary"
+              style={{
+                width: '100%', justifyContent: 'center', padding: '14px 20px',
+                fontSize: '0.95rem', fontWeight: 800, gap: 10,
+                boxShadow: 'var(--shadow-primary)', marginBottom: 12,
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+                cursor: 'pointer'
+              }}
+            >
+              <Calendar style={{ width: 18, height: 18 }} />
+              Book Serial Online (অনলাইন সিরিয়াল)
+            </button>
+
             {primaryPhone ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
                 <a
                   href={`tel:${primaryPhone}`}
-                  className="btn btn-primary"
+                  className="btn"
                   style={{
-                    width: '100%', justifyContent: 'center', padding: '14px 20px',
-                    fontSize: '0.95rem', fontWeight: 800, gap: 10,
-                    boxShadow: 'var(--shadow-primary)'
+                    width: '100%', justifyContent: 'center', padding: '12px 20px',
+                    fontSize: '0.9rem', fontWeight: 700, gap: 10,
+                    background: '#f8fafc', border: '1.5px solid var(--color-border)',
+                    color: 'var(--color-text)', textDecoration: 'none'
                   }}
                 >
-                  <Phone style={{ width: 18, height: 18 }} />
+                  <Phone style={{ width: 16, height: 16, color: 'var(--color-primary)' }} />
                   Call {primaryPhone}
                 </a>
 
@@ -794,6 +842,18 @@ export default function DoctorProfile() {
         </div>
 
       </div>
+
+      {/* ── Booking Modal ── */}
+      {bookingModalOpen && (
+        <AppointmentBookingModal
+          doctor={doctor}
+          onClose={() => setBookingModalOpen(false)}
+          onBookingSuccess={(booking) => {
+            setBookingModalOpen(false);
+            setBookingSuccess(booking);
+          }}
+        />
+      )}
 
     </div>
   );
