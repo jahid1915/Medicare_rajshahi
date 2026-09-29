@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   name:     { type: String, required: true, trim: true },
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone:    { type: String, trim: true },
-  password: { type: String, required: true, select: false },
+  password: { type: String, select: false, default: null },
   role: {
     type: String,
     enum: [
@@ -29,30 +29,33 @@ const userSchema = new mongoose.Schema({
   },
 
   // Patient profile fields
-  date_of_birth: { type: Date },
-  gender:        { type: String, enum: ["male", "female", "other"] },
-  address:       { type: String, trim: true },
-  blood_group:   { type: String },
+  date_of_birth:     { type: Date },
+  gender:            { type: String, enum: ["male", "female", "other"] },
+  address:           { type: String, trim: true },
+  emergency_contact: { type: String, trim: true },
+  blood_group:       { type: String },
 
   // Organization references — restricts access to their own entity
   hospital_id:  { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
   pharmacy_id:  { type: mongoose.Schema.Types.ObjectId, ref: "Pharmacy" },
 
-  is_active:       { type: Boolean, default: true },
-  is_verified:     { type: Boolean, default: false },
-  last_login:      { type: Date },
-  profile_picture: { type: String }
+  is_active:         { type: Boolean, default: true },
+  is_verified:       { type: Boolean, default: false },
+  is_email_verified: { type: Boolean, default: false },
+  last_login:        { type: Date },
+  profile_picture:   { type: String }
 }, { timestamps: true });
 
 // Hash password before save
 userSchema.pre("save", async function(next) {
-  if (!this.isModified("password")) return next();
+  if (!this.password || !this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

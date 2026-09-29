@@ -9,38 +9,38 @@ import PublicLayout from './components/Layout/PublicLayout';
 import DashboardLayout from './components/Layout/DashboardLayout';
 
 // Public Pages
-import PublicLandingPage from './components/Public/PublicLandingPage';
-import SignInPage from './components/Auth/SignInPage';
-import RegisterPage from './components/Auth/RegisterPage';
+const PublicLandingPage = React.lazy(() => import('./components/Public/PublicLandingPage'));
+const SignInPage = React.lazy(() => import('./components/Auth/SignInPage'));
+const RegisterPage = React.lazy(() => import('./components/Auth/RegisterPage'));
 
 // Pharmacy Ecosystem Components
-import PharmacyDirectory from './components/Pharmacy/PharmacyDirectory';
-import PharmacyDetail from './components/Pharmacy/PharmacyDetail';
-import MedicineSearch from './components/Pharmacy/MedicineSearch';
-import MedicineCart from './components/Pharmacy/MedicineCart';
-import PharmacyOwnerDashboard from './components/Pharmacy/PharmacyOwnerDashboard';
+const PharmacyDirectory = React.lazy(() => import('./components/Pharmacy/PharmacyDirectory'));
+const PharmacyDetail = React.lazy(() => import('./components/Pharmacy/PharmacyDetail'));
+const MedicineSearch = React.lazy(() => import('./components/Pharmacy/MedicineSearch'));
+const MedicineCart = React.lazy(() => import('./components/Pharmacy/MedicineCart'));
+const PharmacyOwnerDashboard = React.lazy(() => import('./components/Pharmacy/PharmacyOwnerDashboard'));
 
 // Existing Components (re-used as route targets)
-import PatientDashboard from './components/Dashboard/PatientDashboard';
-import AIVoiceChatContainer from './components/AI/AIVoiceChatContainer';
-import AIReportExplainer from './components/AI/AIReportExplainer';
-import DoctorDiscovery from './components/Doctor/DoctorDiscovery';
-import DoctorProfile from './components/Doctor/DoctorProfile';
-import TeleconsultationRoom from './components/Doctor/TeleconsultationRoom';
-import PharmacyStore from './components/Pharmacy/PharmacyStore';
-import DiagnosticCenterView from './components/Diagnostic/DiagnosticCenterView';
-import PrivacyConsentCenter from './components/Privacy/PrivacyConsentCenter';
-import AdminDashboard from './components/Admin/AdminDashboard';
-import AdminTransactions from './components/Admin/AdminTransactions';
-import WhatIfSimulator from './components/Simulation/WhatIfSimulator';
-import EarlyWarningCenter from './components/Admin/EarlyWarningCenter';
-import SpecialistWorkspaces from './components/Doctor/SpecialistWorkspaces';
-import MedicalMemoryTimeline from './components/Patient/MedicalMemoryTimeline';
-import DocumentComparisonView from './components/Diagnostic/DocumentComparisonView';
-import ResearchSuiteView from './components/Research/ResearchSuiteView';
-import IotTelemetryDashboard from './components/IoT/IotTelemetryDashboard';
-import HospitalResourceDashboard from './components/HospitalResource/HospitalResourceDashboard';
-import HospitalSearchPage from './components/Hospitals/HospitalSearchPage';
+const PatientDashboard = React.lazy(() => import('./components/Dashboard/PatientDashboard'));
+const AIVoiceChatContainer = React.lazy(() => import('./components/AI/AIVoiceChatContainer'));
+const AIReportExplainer = React.lazy(() => import('./components/AI/AIReportExplainer'));
+const DoctorDiscovery = React.lazy(() => import('./components/Doctor/DoctorDiscovery'));
+const DoctorProfile = React.lazy(() => import('./components/Doctor/DoctorProfile'));
+const TeleconsultationRoom = React.lazy(() => import('./components/Doctor/TeleconsultationRoom'));
+const PharmacyStore = React.lazy(() => import('./components/Pharmacy/PharmacyStore'));
+const DiagnosticCenterView = React.lazy(() => import('./components/Diagnostic/DiagnosticCenterView'));
+const PrivacyConsentCenter = React.lazy(() => import('./components/Privacy/PrivacyConsentCenter'));
+const AdminDashboard = React.lazy(() => import('./components/Admin/AdminDashboard'));
+const AdminTransactions = React.lazy(() => import('./components/Admin/AdminTransactions'));
+const WhatIfSimulator = React.lazy(() => import('./components/Simulation/WhatIfSimulator'));
+const EarlyWarningCenter = React.lazy(() => import('./components/Admin/EarlyWarningCenter'));
+const SpecialistWorkspaces = React.lazy(() => import('./components/Doctor/SpecialistWorkspaces'));
+const MedicalMemoryTimeline = React.lazy(() => import('./components/Patient/MedicalMemoryTimeline'));
+const DocumentComparisonView = React.lazy(() => import('./components/Diagnostic/DocumentComparisonView'));
+const ResearchSuiteView = React.lazy(() => import('./components/Research/ResearchSuiteView'));
+const IotTelemetryDashboard = React.lazy(() => import('./components/IoT/IotTelemetryDashboard'));
+const HospitalResourceDashboard = React.lazy(() => import('./components/HospitalResource/HospitalResourceDashboard'));
+const HospitalSearchPage = React.lazy(() => import('./components/Hospitals/HospitalSearchPage'));
 
 // Placeholder components for routes not yet fully built
 function ComingSoon({ title }) {
@@ -66,6 +66,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
+          <React.Suspense fallback={<div style={{padding: 40, textAlign: "center"}}>Loading module...</div>}>
           <Routes>
             {/* ═══ PUBLIC ROUTES (No auth required) ═══ */}
             <Route element={<PublicLayout />}>
@@ -172,6 +173,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </React.Suspense>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -82,6 +82,7 @@ app.use("/api/doctors",         require("./routes/doctors"));
 app.use("/api/appointments",    require("./routes/appointments"));
 app.use("/api/payments",        require("./routes/payments"));
 app.use("/api/pharmacies",      require("./routes/pharmacies"));
+app.use("/api/pharmacy",        require("./routes/pharmacies"));
 app.use("/api/medicines",       require("./routes/medicines"));
 app.use("/api/pharmacy-orders", require("./routes/pharmacyOrders"));
 app.use("/api/prescriptions",   require("./routes/prescriptions"));
@@ -141,4 +142,5 @@ const server = app.listen(PORT, () => {
   `);
 });
 
-module.exports = server;
+module.exports = app;
+module.exports.server = server;

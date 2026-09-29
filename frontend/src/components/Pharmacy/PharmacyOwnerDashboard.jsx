@@ -455,6 +455,7 @@ export default function PharmacyOwnerDashboard() {
           onUpdateItem={handleUpdateInventoryItem}
           onAddItem={handleAddInventoryItem}
           onDeleteItem={handleDeleteInventoryItem}
+          onRefresh={fetchDashboardData}
         />
       )}
 

@@ -3,6 +3,14 @@ const router = express.Router();
 const Doctor = require("../models/Doctor");
 const { successResponse, paginatedResponse, errorResponse } = require("../utils/responseHelper");
 
+const metaCache = {
+  stats: { data: null, expires: 0 },
+  specialties: { data: null, expires: 0 },
+  workplaces: { data: null, expires: 0 },
+  chambers: { data: null, expires: 0 }
+};
+const CACHE_TTL = 3600000; // 1 hour
+
 // ─── Meta Endpoints (must come BEFORE /:slug) ────────────────────────────
 
 /**
@@ -11,6 +19,9 @@ const { successResponse, paginatedResponse, errorResponse } = require("../utils/
  */
 router.get("/meta/stats", async (req, res, next) => {
   try {
+    if (metaCache.stats.data && metaCache.stats.expires > Date.now()) {
+      return successResponse(res, metaCache.stats.data, "Stats fetched from cache");
+    }
     const [total, verified, specialties, chambers] = await Promise.all([
       Doctor.countDocuments({ is_active: true }),
       Doctor.countDocuments({ is_active: true, verified: true }),
@@ -22,13 +33,16 @@ router.get("/meta/stats", async (req, res, next) => {
         { $count: "total" }
       ])
     ]);
-    return successResponse(res, {
+    const data = {
       total,
       verified,
       specialties: specialties.filter(Boolean).length,
       chambers: chambers[0]?.total || 0,
       city: "Rajshahi"
-    }, "Stats fetched");
+    };
+    metaCache.stats.data = data;
+    metaCache.stats.expires = Date.now() + CACHE_TTL;
+    return successResponse(res, data, "Stats fetched");
   } catch (err) { next(err); }
 });
 
@@ -38,12 +52,17 @@ router.get("/meta/stats", async (req, res, next) => {
  */
 router.get("/meta/specialties", async (req, res, next) => {
   try {
+    if (metaCache.specialties.data && metaCache.specialties.expires > Date.now()) {
+      return successResponse(res, metaCache.specialties.data, "Specialties fetched from cache");
+    }
     const result = await Doctor.aggregate([
       { $match: { is_active: true, specialty: { $nin: [null, "", "Skip to content"] } } },
       { $group: { _id: "$specialty", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $project: { _id: 0, specialty: "$_id", count: 1 } }
     ]);
+    metaCache.specialties.data = result;
+    metaCache.specialties.expires = Date.now() + CACHE_TTL;
     return successResponse(res, result, "Specialties fetched");
   } catch (err) { next(err); }
 });
@@ -54,6 +73,9 @@ router.get("/meta/specialties", async (req, res, next) => {
  */
 router.get("/meta/workplaces", async (req, res, next) => {
   try {
+    if (metaCache.workplaces.data && metaCache.workplaces.expires > Date.now()) {
+      return successResponse(res, metaCache.workplaces.data, "Workplaces fetched from cache");
+    }
     const result = await Doctor.aggregate([
       { $match: { is_active: true, workplace: { $nin: [null, ""] } } },
       { $group: { _id: "$workplace", count: { $sum: 1 } } },
@@ -61,6 +83,8 @@ router.get("/meta/workplaces", async (req, res, next) => {
       { $limit: 50 },
       { $project: { _id: 0, workplace: "$_id", count: 1 } }
     ]);
+    metaCache.workplaces.data = result;
+    metaCache.workplaces.expires = Date.now() + CACHE_TTL;
     return successResponse(res, result, "Workplaces fetched");
   } catch (err) { next(err); }
 });
@@ -71,6 +95,9 @@ router.get("/meta/workplaces", async (req, res, next) => {
  */
 router.get("/meta/chambers", async (req, res, next) => {
   try {
+    if (metaCache.chambers.data && metaCache.chambers.expires > Date.now()) {
+      return successResponse(res, metaCache.chambers.data, "Chambers fetched from cache");
+    }
     const result = await Doctor.aggregate([
       { $match: { is_active: true } },
       { $unwind: "$chambers" },
@@ -80,6 +107,8 @@ router.get("/meta/chambers", async (req, res, next) => {
       { $limit: 60 },
       { $project: { _id: 0, chamber: "$_id", count: 1 } }
     ]);
+    metaCache.chambers.data = result;
+    metaCache.chambers.expires = Date.now() + CACHE_TTL;
     return successResponse(res, result, "Chambers fetched");
   } catch (err) { next(err); }
 });
@@ -108,15 +137,7 @@ router.get("/", async (req, res, next) => {
 
     // Text search
     if (q && q.trim()) {
-      filter.$or = [
-        { name:          new RegExp(q.trim(), "i") },
-        { specialty:     new RegExp(q.trim(), "i") },
-        { qualifications:new RegExp(q.trim(), "i") },
-        { designation:   new RegExp(q.trim(), "i") },
-        { workplace:     new RegExp(q.trim(), "i") },
-        { "chambers.name":    new RegExp(q.trim(), "i") },
-        { "chambers.address": new RegExp(q.trim(), "i") }
-      ];
+      filter.$text = { $search: q.trim() };
     }
 
     // Filters
@@ -163,6 +184,17 @@ router.get("/", async (req, res, next) => {
     return paginatedResponse(res, doctors, total, pageNum, limitNum, "Doctors fetched");
   } catch (err) { next(err); }
 });
+
+const {
+  getDoctorBranches,
+  getBranchSchedules,
+  getAvailableSlots
+} = require("../controllers/doctorScheduleController");
+
+// ─── Doctor Branches & Schedule Slots ─────────────────────────────────────
+router.get("/:id/branches", getDoctorBranches);
+router.get("/:id/branches/:branchId/schedules", getBranchSchedules);
+router.get("/:id/branches/:branchId/slots", getAvailableSlots);
 
 // ─── Doctor Profile by Slug ───────────────────────────────────────────────
 

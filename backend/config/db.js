@@ -15,7 +15,12 @@ const connectDB = async () => {
       process.exit(1);
     }
 
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(uri, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host} (${conn.connection.name})`);
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);

@@ -45,7 +45,8 @@ exports.getMedicines = async (req, res, next) => {
       .select("-__v")
       .sort({ brand_name: 1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     return paginatedResponse(res, medicines, total, page, limit, "Medicines retrieved successfully");
   } catch (err) {
@@ -56,7 +57,7 @@ exports.getMedicines = async (req, res, next) => {
 // GET /api/medicines/:id
 exports.getMedicineById = async (req, res, next) => {
   try {
-    const medicine = await Medicine.findById(req.params.id).select("-__v");
+    const medicine = await Medicine.findById(req.params.id).select("-__v").lean();
     if (!medicine) return errorResponse(res, "Medicine not found", 404, "NOT_FOUND");
 
     // Also find all pharmacies in Rajshahi stocking this medicine
@@ -66,7 +67,9 @@ exports.getMedicineById = async (req, res, next) => {
       in_stock: true
     })
       .populate("pharmacy_id", "name address area city phone rating is_24_7 delivery_available delivery_fee delivery_eta_mins")
-      .sort({ unit_price: 1 });
+      .sort({ unit_price: 1 })
+      .limit(10)
+      .lean();
 
     return successResponse(res, { medicine, availablePharmacies }, "Medicine details with pharmacy availability");
   } catch (err) {

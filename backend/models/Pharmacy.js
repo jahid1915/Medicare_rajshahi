@@ -5,6 +5,8 @@ const pharmacySchema = new mongoose.Schema({
   slug: { type: String, trim: true, lowercase: true },
   license_number: { type: String, trim: true },
   owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  owner_user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  ownerUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   phone: { type: String, required: true },
   email: { type: String, trim: true, lowercase: true },
   address: { type: String, required: true },
@@ -17,6 +19,7 @@ const pharmacySchema = new mongoose.Schema({
   review_count: { type: Number, default: 0 },
   is_verified: { type: Boolean, default: true },
   is_active: { type: Boolean, default: true },
+  active: { type: Boolean, default: true },
   is_24_7: { type: Boolean, default: false },
   opening_hours: {
     open: { type: String, default: "08:00 AM" },

@@ -1,11 +1,23 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
-const { createAppointment, getAppointment, getMyAppointments } = require("../controllers/appointmentController");
+const {
+  createAppointment,
+  getAppointment,
+  getMyAppointments,
+  getAppointmentPdf,
+  resendConfirmationEmail,
+  cancelAppointment
+} = require("../controllers/appointmentController");
 const { protect } = require("../middleware/auth");
 
-router.use(protect); // All appointment routes require auth
-router.get("/",    getMyAppointments);
-router.post("/",   createAppointment);
-router.get("/:id", getAppointment);
+router.use(protect); // All appointment endpoints require authentication
+
+router.get("/",                     getMyAppointments);
+router.get("/my",                  getMyAppointments);
+router.post("/",                    createAppointment);
+router.get("/:id",                  getAppointment);
+router.get("/:id/pdf",              getAppointmentPdf);
+router.post("/:id/resend-email",    resendConfirmationEmail);
+router.post("/:id/cancel",          cancelAppointment);
 
 module.exports = router;

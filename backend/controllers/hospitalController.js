@@ -1,4 +1,4 @@
-﻿const Hospital = require("../models/Hospital");
+const Hospital = require("../models/Hospital");
 const HospitalResource = require("../models/HospitalResource");
 const AuditLog = require("../models/AuditLog");
 const { successResponse, errorResponse, paginatedResponse } = require("../utils/responseHelper");
@@ -24,7 +24,8 @@ exports.getHospitals = async (req, res, next) => {
       .select("-__v")
       .sort({ is_verified: -1, name: 1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     return paginatedResponse(res, hospitals, total, page, limit, "Hospitals fetched successfully");
   } catch (err) {
@@ -35,7 +36,7 @@ exports.getHospitals = async (req, res, next) => {
 // GET /api/hospitals/:id
 exports.getHospitalById = async (req, res, next) => {
   try {
-    const hospital = await Hospital.findById(req.params.id).select("-__v");
+    const hospital = await Hospital.findById(req.params.id).select("-__v").lean();
     if (!hospital) return errorResponse(res, "Hospital not found", 404, "NOT_FOUND");
     return successResponse(res, hospital, "Hospital fetched");
   } catch (err) {
@@ -46,7 +47,7 @@ exports.getHospitalById = async (req, res, next) => {
 // GET /api/hospitals/:hospitalId/resources
 exports.getHospitalResources = async (req, res, next) => {
   try {
-    const resources = await HospitalResource.find({ hospital_id: req.params.hospitalId }).select("-__v");
+    const resources = await HospitalResource.find({ hospital_id: req.params.hospitalId }).select("-__v").lean();
     return successResponse(res, resources, "Resources fetched");
   } catch (err) {
     next(err);

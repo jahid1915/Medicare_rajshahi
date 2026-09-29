@@ -1,27 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Calendar, Clock, CreditCard, ShieldCheck, CheckCircle2, 
-  Mail, User, Download, AlertTriangle, Phone, Lock, KeyRound, 
+import {
+  Calendar, Clock, CreditCard, ShieldCheck, CheckCircle2,
+  Mail, User, Download, AlertTriangle, Phone, Lock, KeyRound,
   ArrowRight, Loader2, RefreshCw, Smartphone, MapPin, Building2,
-  Check, ExternalLink, Sparkles
+  Check, ExternalLink, Sparkles, X, ChevronRight, Video, Stethoscope
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { addAuditLog, getStoredState, saveStoredState } from '../../data/mockUserStore';
 import { useAuth } from '../../context/AuthContext';
-
-// ─── Fee Calculation Helper ────────────────────────────────────────────────
-function getConsultationFee(doctor) {
-  if (!doctor) return 600;
-  if (doctor.consultation_fee) return doctor.consultation_fee;
-  if (doctor.fee) return doctor.fee;
-  const des = (doctor.designation || '').toLowerCase();
-  const qual = (doctor.qualifications || '').toLowerCase();
-  if (des.includes('professor') || des.includes('head')) return 1000;
-  if (des.includes('associate professor') || qual.includes('fcps') || qual.includes('ms') || qual.includes('md')) return 800;
-  if (des.includes('assistant professor') || des.includes('consultant')) return 700;
-  return 600;
-}
+import { doctorsAPI, appointmentsAPI, paymentsAPI } from '../../services/api';
 
 // ─── Avatar Fallback ────────────────────────────────────────────────────────
 function DoctorAvatarThumb({ src, name }) {
@@ -37,10 +24,10 @@ function DoctorAvatarThumb({ src, name }) {
   if (!src || failed) {
     return (
       <div style={{
-        width: 52, height: 52, borderRadius: '50%',
+        width: 56, height: 56, borderRadius: '14px',
         background: 'linear-gradient(135deg, var(--color-primary, #0d7c6e) 0%, #064e3b 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontSize: '1.1rem', fontWeight: 800, flexShrink: 0,
+        color: '#fff', fontSize: '1.2rem', fontWeight: 800, flexShrink: 0,
         boxShadow: '0 4px 12px rgba(13, 124, 110, 0.25)', border: '2px solid #fff'
       }}>
         {initials}
@@ -54,7 +41,7 @@ function DoctorAvatarThumb({ src, name }) {
       alt={name}
       onError={() => setFailed(true)}
       style={{
-        width: 52, height: 52, borderRadius: '50%',
+        width: 56, height: 56, borderRadius: '14px',
         objectFit: 'cover', flexShrink: 0,
         border: '2px solid var(--color-primary, #0d7c6e)',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
@@ -65,951 +52,1048 @@ function DoctorAvatarThumb({ src, name }) {
 
 export default function AppointmentBookingModal({ doctor, onClose, onBookingSuccess }) {
   const navigate = useNavigate();
-  const { user, sendOtp, verifyPatientCheckout } = useAuth();
-  const state = getStoredState();
+  const { user, requestPatientOtp, verifyPatientOtp, resendPatientOtp } = useAuth();
 
   // Doctor Details
-  const doctorName = doctor?.name || 'Specialist Doctor';
+  const doctorId = doctor?._id || doctor?.id || doctor?.slug;
+  const doctorName = doctor?.name || 'Specialist Physician';
   const doctorSpecialty = doctor?.specialty || doctor?.specialtyName || 'Specialist Doctor';
   const doctorSubtitle = doctor?.designation || doctor?.qualifications || doctor?.workplace || 'Chamber Specialist';
-  const fee = getConsultationFee(doctor);
   const doctorImg = doctor?.imageUrl || doctor?.avatar;
 
-  // Chambers
-  const chambers = (doctor?.chambers && doctor.chambers.length > 0)
-    ? doctor.chambers
-    : [{
-        name: doctor?.workplace || 'Primary Chamber, Rajshahi',
-        address: 'Medical College Road, Rajshahi',
-        visiting_hours: '05:00 PM - 09:00 PM'
-      }];
+  // Step state: 'branch_schedule' | 'patient_info' | 'otp_verify' | 'summary' | 'payment_processing' | 'confirmed'
+  const [step, setStep] = useState('branch_schedule');
 
-  const [selectedChamberIndex, setSelectedChamberIndex] = useState(0);
-  const selectedChamber = chambers[selectedChamberIndex] || chambers[0];
+  // Branch states (dynamically loaded from backend)
+  const [branches, setBranches] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [loadingBranches, setLoadingBranches] = useState(true);
 
-  // Dynamic Dates
+  // Date states
   const now = new Date();
-  const dateOptions = [
-    {
-      id: 'today',
-      label: 'Today (আজ)',
-      displayDate: now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-      isoDate: now.toISOString().split('T')[0]
-    },
-    {
-      id: 'tomorrow',
-      label: 'Tomorrow (আগামীকাল)',
-      displayDate: new Date(Date.now() + 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-      isoDate: new Date(Date.now() + 86400000).toISOString().split('T')[0]
-    },
-    {
-      id: 'day_after',
-      label: 'Day After (পরশু)',
-      displayDate: new Date(Date.now() + 172800000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-      isoDate: new Date(Date.now() + 172800000).toISOString().split('T')[0]
-    }
-  ];
+  const [selectedDate, setSelectedDate] = useState(now.toISOString().split('T')[0]);
 
-  const [selectedDateObj, setSelectedDateObj] = useState(dateOptions[0]);
+  // Dynamic slot availability states
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [consultationType, setConsultationType] = useState('Online Consultation'); // 'Online Consultation' | 'In-person Consultation'
 
-  // Slots List
-  const availableSlots = [
-    '04:30 PM (Serial #1 - #5)',
-    '05:15 PM (Serial #6 - #10)',
-    '06:00 PM (Serial #11 - #15)',
-    '06:45 PM (Serial #16 - #20)',
-    '07:30 PM (Serial #21 - #25)',
-    '08:15 PM (Serial #26 - #30)',
-    '09:00 PM (Serial #31 - #35)'
-  ];
-
-  const [selectedSlot, setSelectedSlot] = useState(availableSlots[0]);
-
-  // Steps: 'slot' | 'patient_auth' | 'otp_verify' | 'payment' | 'confirmed'
-  const [step, setStep] = useState('slot');
-
-  // Guest Patient Auth Details
+  // Patient Info Form
   const [patientForm, setPatientForm] = useState({
     name: user?.name || '',
-    phone: user?.phone || user?.mobile || '',
     email: user?.email || '',
-    password: ''
+    phone: user?.phone || '',
+    gender: user?.gender || 'male',
+    age: '',
+    address: user?.address || 'Rajshahi, Bangladesh',
+    emergencyContact: user?.emergency_contact || '',
+    bloodGroup: user?.blood_group || '',
+    consultationReason: ''
   });
+
+  // OTP states
   const [otpCode, setOtpCode] = useState('');
   const [simulatedOtp, setSimulatedOtp] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
-  // Payment
-  const [paymentMethod, setPaymentMethod] = useState('bkash');
-  const [mobileNumber, setMobileNumber] = useState(user?.phone || '01711223344');
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
-  const [bookingResult, setBookingResult] = useState(null);
+  // Booking and Payment results
+  const [pendingAppointment, setPendingAppointment] = useState(null);
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [emailResent, setEmailResent] = useState(false);
 
-  if (!doctor) return null;
+  // Fee calculation (derived from branch or doctor)
+  const fee = selectedBranch?.consultationFee || doctor?.consultation_fee || 800;
 
-  // Handle proceeding from Slot selection
-  const handleProceedFromSlot = () => {
-    if (user) {
-      setMobileNumber(user.phone || '01711223344');
-      setStep('payment');
-    } else {
-      setStep('patient_auth');
+  // 1. Fetch Dynamic Branches on Modal Open
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchBranches() {
+      if (!doctorId) return;
+      setLoadingBranches(true);
+      try {
+        const res = await doctorsAPI.getBranches(doctorId);
+        if (isMounted) {
+          const list = res?.data?.branches || [];
+          setBranches(list);
+          if (list.length > 0) {
+            setSelectedBranch(list[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching branches:', err);
+        // Fallback from doctor object if API is loading
+        if (isMounted) {
+          const fallbackBranch = {
+            _id: 'default-branch',
+            name: doctor?.workplace || 'Rajshahi Medical Chamber',
+            address: 'Medical College Road, Laxmipur, Rajshahi',
+            phone: '01711223344',
+            consultationFee: doctor?.consultation_fee || 800
+          };
+          setBranches([fallbackBranch]);
+          setSelectedBranch(fallbackBranch);
+        }
+      } finally {
+        if (isMounted) setLoadingBranches(false);
+      }
     }
+    fetchBranches();
+    return () => { isMounted = false; };
+  }, [doctorId]);
+
+  // 2. Fetch Dynamic Slots when Branch or Date changes
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchSlots() {
+      if (!doctorId || !selectedBranch?._id || !selectedDate) return;
+      setLoadingSlots(true);
+      try {
+        const res = await doctorsAPI.getAvailableSlots(doctorId, selectedBranch._id, selectedDate);
+        if (isMounted) {
+          const slotList = res?.data?.slots || [];
+          setSlots(slotList);
+          const firstAvailable = slotList.find(s => s.available);
+          if (firstAvailable) {
+            setSelectedSlot(firstAvailable.time);
+          } else {
+            setSelectedSlot('');
+          }
+        }
+      } catch (err) {
+        console.warn('Slot query fallback:', err);
+        if (isMounted) {
+          const defaultSlots = [
+            { time: '05:00 PM', available: true },
+            { time: '05:20 PM', available: true },
+            { time: '05:40 PM', available: true },
+            { time: '06:00 PM', available: true },
+            { time: '06:20 PM', available: true },
+            { time: '06:40 PM', available: true },
+            { time: '07:00 PM', available: true },
+            { time: '07:20 PM', available: true }
+          ];
+          setSlots(defaultSlots);
+          setSelectedSlot(defaultSlots[0].time);
+        }
+      } finally {
+        if (isMounted) setLoadingSlots(false);
+      }
+    }
+    fetchSlots();
+    return () => { isMounted = false; };
+  }, [doctorId, selectedBranch, selectedDate]);
+
+  // 3. Countdown timer for OTP
+  useEffect(() => {
+    let timer;
+    if (step === 'otp_verify' && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [step, countdown]);
+
+  // Auto-sync user if logged in
+  useEffect(() => {
+    if (user) {
+      setPatientForm(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        address: user.address || prev.address
+      }));
+    }
+  }, [user]);
+
+  // ─── Step 1 Proceed -> Step 2 (Patient Info) ───
+  const handleProceedFromSchedule = () => {
+    if (!selectedSlot) {
+      alert('Please select an available appointment time slot.');
+      return;
+    }
+    setStep('patient_info');
   };
 
-  // Trigger Send OTP
-  const handleSendOtp = async (e) => {
+  // ─── Step 2 Proceed -> Step 3 (OTP or Summary) ───
+  const handleProceedFromPatientInfo = async (e) => {
     if (e) e.preventDefault();
     setAuthError('');
 
     if (!patientForm.name.trim()) {
-      setAuthError('Please enter your full name (আপনার নাম লিখুন)।');
-      return;
-    }
-    if (!patientForm.phone.trim() || patientForm.phone.trim().length < 11) {
-      setAuthError('Please enter a valid 11-digit mobile number (১১ ডিজিটের মোবাইল নম্বর দিন)।');
+      setAuthError('Please enter your full name.');
       return;
     }
     if (!patientForm.email.trim() || !patientForm.email.includes('@')) {
-      setAuthError('Please enter a valid email address (e.g., patient@gmail.com)।');
+      setAuthError('Please enter a valid email address.');
       return;
     }
-    if (!patientForm.password || patientForm.password.length < 6) {
-      setAuthError('Password must be at least 6 characters (পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে)।');
+    if (!patientForm.phone.trim() || patientForm.phone.trim().length < 11) {
+      setAuthError('Please enter a valid 11-digit mobile phone number.');
+      return;
+    }
+    if (!patientForm.emergencyContact.trim()) {
+      setAuthError('Please enter an emergency contact number.');
       return;
     }
 
+    // If user is already authenticated with the same email, go straight to summary
+    if (user && user.email.toLowerCase() === patientForm.email.trim().toLowerCase()) {
+      setStep('summary');
+      return;
+    }
+
+    // Otherwise, dispatch email OTP
     setAuthLoading(true);
     try {
-      const res = await sendOtp({
-        phone: patientForm.phone.trim(),
+      const res = await requestPatientOtp({
         email: patientForm.email.trim(),
-        purpose: 'Doctor Appointment Verification'
+        phone: patientForm.phone.trim(),
+        name: patientForm.name.trim(),
+        purpose: 'PATIENT_SIGNUP'
       });
-      const generatedOtp = res?.otp || '415815';
+      const generatedOtp = res?.simulatedOtp || res?.otp || '';
       setSimulatedOtp(generatedOtp);
-      setOtpCode(generatedOtp); // Convenient auto-fill
-      setStep('otp_verify');
+      if (generatedOtp) setOtpCode(generatedOtp); // Convenient auto-fill for sandbox testability
       setCountdown(60);
-    } catch (err) {
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setSimulatedOtp(fallbackOtp);
-      setOtpCode(fallbackOtp);
+      setCanResend(false);
       setStep('otp_verify');
+    } catch (err) {
+      setAuthError(err.message || 'Failed to dispatch verification code. Please try again.');
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Handle OTP submission and automatic login
+  // ─── Step 3: Verify OTP ───
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
     setAuthError('');
 
     if (!otpCode.trim() || otpCode.trim().length !== 6) {
-      setAuthError('Please enter the 6-digit OTP code (৬ ডিজিটের ওটিপি লিখুন)।');
+      setAuthError('Please enter the 6-digit OTP code.');
       return;
     }
 
     setAuthLoading(true);
     try {
-      await verifyPatientCheckout({
+      await verifyPatientOtp({
+        email: patientForm.email.trim(),
+        otp: otpCode.trim(),
         name: patientForm.name.trim(),
         phone: patientForm.phone.trim(),
-        email: patientForm.email.trim(),
-        password: patientForm.password,
-        otp: otpCode.trim()
+        gender: patientForm.gender,
+        date_of_birth: patientForm.age ? undefined : undefined,
+        address: patientForm.address,
+        emergency_contact: patientForm.emergencyContact,
+        blood_group: patientForm.bloodGroup
       });
 
-      setMobileNumber(patientForm.phone.trim());
-      setStep('payment');
+      // Auto-logged in! Transition immediately to Appointment Summary
+      setStep('summary');
     } catch (err) {
-      if (otpCode.trim() === simulatedOtp || otpCode.trim() === '123456') {
-        setMobileNumber(patientForm.phone.trim());
-        setStep('payment');
-      } else {
-        setAuthError(err.message || 'Invalid OTP code. Please check and try again.');
-      }
+      setAuthError(err.message || 'Invalid or expired verification code.');
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Finalize Payment & Confirm Appointment
-  const handleConfirmPayment = () => {
-    const txnId = `TXN-${paymentMethod.toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const serialNum = Math.floor(1 + Math.random() * 25);
-    const appointmentDate = selectedDateObj.isoDate;
-    const patientDisplayName = user?.name || patientForm.name || 'Registered Patient';
-    const patientPhone = user?.phone || patientForm.phone || mobileNumber;
-
-    const newAppointment = {
-      id: `APT-${Date.now().toString(36).toUpperCase()}`,
-      serialNumber: serialNum,
-      doctorId: doctor._id || doctor.id || doctor.slug,
-      doctorName: doctorName,
-      specialty: doctorSpecialty,
-      qualifications: doctor.qualifications || '',
-      designation: doctor.designation || '',
-      chamberName: selectedChamber.name || 'Primary Chamber',
-      chamberAddress: selectedChamber.address || 'Rajshahi, Bangladesh',
-      date: appointmentDate,
-      dateDisplay: selectedDateObj.displayDate,
-      time: selectedSlot,
-      fee: fee,
-      currency: '৳',
-      status: 'Confirmed',
-      paymentStatus: 'Paid',
-      paymentTxnId: txnId,
-      patientName: patientDisplayName,
-      patientPhone: patientPhone,
-      patientEmail: patientForm.email || user?.email || '',
-      doctorAvatar: doctorImg,
-      paymentMethod: paymentMethod.toUpperCase(),
-      createdAt: new Date().toISOString()
-    };
-
-    // Save to stored state
-    const currentState = getStoredState();
-    currentState.appointments = [newAppointment, ...(currentState.appointments || [])];
-    currentState.timeline = [
-      {
-        id: `tl-${Date.now()}`,
-        date: appointmentDate,
-        time: selectedSlot,
-        type: 'DOCTOR_VISIT',
-        title: `Appointment Confirmed: ${doctorName}`,
-        description: `Serial #${serialNum} • ${selectedChamber.name} • Fee: ৳${fee} • Txn: ${txnId}`,
-        badgeColor: 'primary'
-      },
-      ...(currentState.timeline || [])
-    ];
-
-    saveStoredState(currentState);
-
-    addAuditLog('BOOKING_ENGINE', 'APPOINTMENT_CONFIRMED', `Serial #${serialNum} booked for ${patientDisplayName} with ${doctorName}. Txn: ${txnId}`);
-
-    setBookingResult(newAppointment);
-    setStep('confirmed');
-
-    // Confetti celebration
+  // ─── Resend OTP ───
+  const handleResendOtp = async () => {
+    if (!canResend) return;
+    setAuthLoading(true);
+    setAuthError('');
     try {
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    } catch (e) {}
-
-    if (onBookingSuccess) onBookingSuccess(newAppointment);
+      const res = await resendPatientOtp({
+        email: patientForm.email.trim(),
+        phone: patientForm.phone.trim(),
+        name: patientForm.name.trim()
+      });
+      const generatedOtp = res?.simulatedOtp || res?.otp || '';
+      setSimulatedOtp(generatedOtp);
+      if (generatedOtp) setOtpCode(generatedOtp);
+      setCountdown(60);
+      setCanResend(false);
+    } catch (err) {
+      setAuthError(err.message || 'Failed to resend code');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  const handleGoToDashboard = () => {
-    onClose();
-    navigate('/dashboard/appointments');
+  // ─── Step 5: Proceed to Payment & Zero-Trust Verification ───
+  const handleProceedToPayment = async () => {
+    setPaymentLoading(true);
+    setPaymentError('');
+
+    try {
+      // 1. Backend creates Pending Appointment with 15-minute slot hold
+      const apptRes = await appointmentsAPI.create({
+        doctorId: doctor._id || doctor.id || doctor.slug,
+        branchId: selectedBranch?._id,
+        appointmentDate: selectedDate,
+        timeSlot: selectedSlot,
+        consultationType,
+        patientName: patientForm.name,
+        patientPhone: patientForm.phone,
+        patientEmail: patientForm.email,
+        gender: patientForm.gender,
+        age: patientForm.age,
+        address: patientForm.address,
+        emergencyContact: patientForm.emergencyContact,
+        bloodGroup: patientForm.bloodGroup,
+        consultationReason: patientForm.consultationReason
+      });
+
+      const apptData = apptRes.data?.appointment;
+      setPendingAppointment(apptData);
+
+      // 2. Request SSLCOMMERZ Hosted Checkout Session
+      const payRes = await paymentsAPI.initiateSslCommerz({
+        appointmentId: apptData._id
+      });
+
+      const gatewayUrl = payRes.data?.gatewayPageUrl;
+      const isSandboxSim = payRes.data?.isSandbox;
+
+      if (!gatewayUrl) {
+        throw new Error('Payment gateway did not provide a checkout URL.');
+      }
+
+      // If user is in browser and wants hosted checkout, redirect
+      if (isSandboxSim) {
+        // Open the sandbox simulation window or redirect
+        window.location.href = gatewayUrl;
+      } else {
+        window.location.href = gatewayUrl;
+      }
+    } catch (err) {
+      console.error('Payment initiation error:', err);
+      setPaymentError(err.message || 'Unable to start payment checkout session. Please try again.');
+      setPaymentLoading(false);
+    }
+  };
+
+  // ─── Resend Confirmation Email (from Confirmed Screen) ───
+  const handleResendEmail = async () => {
+    if (!confirmedBooking?._id) return;
+    try {
+      await appointmentsAPI.resendEmail(confirmedBooking._id);
+      setEmailResent(true);
+      setTimeout(() => setEmailResent(false), 4000);
+    } catch (err) {
+      alert(err.message || 'Failed to resend confirmation email.');
+    }
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="modal-content" style={{ maxWidth: '640px', width: '94%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px' }}>
-        
-        {/* Header: Doctor Info */}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+    }}>
+      <div style={{
+        background: '#ffffff', borderRadius: '24px', width: '100%', maxWidth: '640px',
+        maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+        border: '1px solid var(--border-default, #e2eceb)', display: 'flex', flexDirection: 'column'
+      }}>
+        {/* ─── Modal Header ─── */}
         <div style={{
+          padding: '20px 24px', borderBottom: '1px solid #f1f5f9',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingBottom: '16px', borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
-          position: 'relative'
+          background: 'linear-gradient(135deg, rgba(13,124,110,0.06), #ffffff)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <DoctorAvatarThumb src={doctorImg} name={doctorName} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', margin: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary, #0f172a)', margin: 0 }}>
                   {doctorName}
                 </h3>
-                {doctor.verified && (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '1px 7px', borderRadius: '99px' }}>
-                    ✓ Verified
-                  </span>
-                )}
+                <span style={{
+                  fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px',
+                  background: 'rgba(13,124,110,0.1)', color: 'var(--primary, #0d7c6e)'
+                }}>
+                  {doctorSpecialty}
+                </span>
               </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--color-primary, #0d7c6e)', fontWeight: 700, margin: '2px 0 0 0' }}>
-                {doctorSpecialty}
-              </p>
-              <p style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary, #64748b)', margin: '1px 0 0 0' }}>
+              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '3px 0 0 0' }}>
                 {doctorSubtitle}
               </p>
             </div>
           </div>
+
           <button
             onClick={onClose}
             style={{
-              background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)',
-              fontSize: '24px', cursor: 'pointer', fontWeight: 'bold', padding: '4px 8px'
+              background: '#f1f5f9', border: 'none', width: 34, height: 34, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              color: '#64748b', transition: 'all 0.15s ease'
             }}
           >
-            &times;
+            <X size={18} />
           </button>
         </div>
 
-        {/* Progress Breadcrumbs */}
+        {/* ─── Step Indicator ─── */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '8px', padding: '12px 0', borderBottom: '1px solid var(--color-border, #e2e8f0)',
-          fontSize: '0.72rem', fontWeight: 700
+          display: 'flex', background: '#f8fafc', padding: '10px 24px',
+          borderBottom: '1px solid #f1f5f9', gap: '8px', overflowX: 'auto', fontSize: '0.75rem', fontWeight: 700
         }}>
-          <span style={{ color: step === 'slot' ? 'var(--color-primary, #0d7c6e)' : 'var(--color-text-muted, #94a3b8)' }}>
-            1. Serial & Chamber
-          </span>
-          <span style={{ color: 'var(--color-border, #cbd5e1)' }}>→</span>
-          <span style={{ color: (step === 'patient_auth' || step === 'otp_verify') ? 'var(--color-primary, #0d7c6e)' : 'var(--color-text-muted, #94a3b8)' }}>
-            2. Patient & OTP
-          </span>
-          <span style={{ color: 'var(--color-border, #cbd5e1)' }}>→</span>
-          <span style={{ color: step === 'payment' ? 'var(--color-primary, #0d7c6e)' : 'var(--color-text-muted, #94a3b8)' }}>
-            3. Payment
-          </span>
-          <span style={{ color: 'var(--color-border, #cbd5e1)' }}>→</span>
-          <span style={{ color: step === 'confirmed' ? '#16a34a' : 'var(--color-text-muted, #94a3b8)' }}>
-            4. Confirmed
-          </span>
-        </div>
-
-        {/* ════════════ STEP 1: SERIAL, CHAMBER & SLOT SELECTOR ════════════ */}
-        {step === 'slot' && (
-          <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            
-            {/* User status banner */}
-            {user ? (
-              <div style={{
-                padding: '10px 14px', borderRadius: '10px',
-                background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <User size={18} style={{ color: 'var(--color-primary, #0d7c6e)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>
-                      Booking for: {user.name}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary, #64748b)' }}>
-                      Mobile: {user.phone || '017XXXXXXXX'} • {user.email}
-                    </div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: 'rgba(34,197,94,0.15)', color: '#16a34a' }}>
-                  ✓ Signed In
-                </span>
-              </div>
-            ) : (
-              <div style={{
-                padding: '10px 14px', borderRadius: '10px',
-                background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.25)',
-                display: 'flex', alignItems: 'center', gap: '10px'
-              }}>
-                <Smartphone size={18} style={{ color: 'var(--color-primary, #0d7c6e)', flexShrink: 0 }} />
-                <div style={{ fontSize: '0.76rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.4 }}>
-                  <strong>New or Guest Patient?</strong> You don't need a prior account! You will provide your Name, Phone Number, Gmail & Password with instant SMS OTP verification in Step 2.
-                </div>
-              </div>
-            )}
-
-            {/* Chamber Selection (if doctor has multiple chambers) */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '8px' }}>
-                Select Chamber / Hospital (চেম্বার নির্বাচন করুন):
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {chambers.map((ch, idx) => {
-                  const isSelected = selectedChamberIndex === idx;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedChamberIndex(idx)}
-                      style={{
-                        padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
-                        border: isSelected ? '2px solid var(--color-primary, #0d7c6e)' : '1px solid var(--color-border, #e2e8f0)',
-                        background: isSelected ? 'var(--color-primary-50, #f0fdfa)' : '#ffffff',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Building2 size={16} style={{ color: isSelected ? 'var(--color-primary, #0d7c6e)' : '#94a3b8' }} />
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isSelected ? 'var(--color-primary, #0d7c6e)' : 'var(--color-text, #0f172a)' }}>
-                            {ch.name || `Chamber ${idx + 1}`}
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary, #0d7c6e)', background: '#ccfbf1', padding: '2px 8px', borderRadius: '99px' }}>
-                            ✓ Selected
-                          </span>
-                        )}
-                      </div>
-                      {ch.address && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary, #64748b)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <MapPin size={12} /> {ch.address}
-                        </div>
-                      )}
-                      {ch.visiting_hours && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-primary, #0d7c6e)', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} /> Schedule: {ch.visiting_hours}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Date Selection */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '8px' }}>
-                Consultation Day (তারিখ নির্বাচন করুন):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {dateOptions.map(opt => {
-                  const isSel = selectedDateObj.id === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSelectedDateObj(opt)}
-                      style={{
-                        padding: '10px 8px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
-                        border: isSel ? '2px solid var(--color-primary, #0d7c6e)' : '1px solid var(--color-border, #e2e8f0)',
-                        background: isSel ? 'var(--color-primary, #0d7c6e)' : '#ffffff',
-                        color: isSel ? '#ffffff' : 'var(--color-text, #0f172a)',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>{opt.label}</div>
-                      <div style={{ fontSize: '0.68rem', opacity: isSel ? 0.9 : 0.65, marginTop: '2px' }}>{opt.displayDate}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Serial Time Slots */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '8px' }}>
-                Serial & Time Slot (সিরিয়াল ও সময় বেছে নিন):
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {availableSlots.map((slot, i) => {
-                  const isSel = selectedSlot === slot;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setSelectedSlot(slot)}
-                      style={{
-                        padding: '8px 14px', borderRadius: '10px', fontSize: '0.76rem', fontWeight: 700,
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                        border: isSel ? '1.5px solid var(--color-primary, #0d7c6e)' : '1px solid var(--color-border, #e2e8f0)',
-                        background: isSel ? 'var(--color-primary, #0d7c6e)' : '#ffffff',
-                        color: isSel ? '#ffffff' : 'var(--color-text, #0f172a)'
-                      }}
-                    >
-                      <Clock size={12} style={{ display: 'inline', marginRight: '5px' }} />
-                      {slot}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Fee Summary */}
-            <div style={{
-              padding: '12px 16px', borderRadius: '12px',
-              background: '#f0fdf4', border: '1.5px solid #86efac',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-            }}>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'block' }}>
-                  Doctor Consultation Fee (ভিজিট ফি):
-                </span>
-                <span style={{ fontSize: '0.68rem', color: '#15803d' }}>
-                  Payable via bKash / Nagad / Rocket with instant serial confirmation
-                </span>
-              </div>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803d' }}>
-                ৳{fee}
-              </span>
-            </div>
-
-            {/* Step 1 Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px' }}>
-              <button type="button" onClick={onClose} className="btn" style={{ padding: '9px 18px', fontSize: '0.8rem', background: '#f1f5f9', border: '1px solid #cbd5e1' }}>
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleProceedFromSlot} 
-                className="btn btn-primary" 
+          {[
+            { id: 'branch_schedule', label: '1. Branch & Slot' },
+            { id: 'patient_info', label: '2. Patient Info' },
+            { id: 'otp_verify', label: '3. Email OTP' },
+            { id: 'summary', label: '4. Summary & Pay' }
+          ].map((st, idx) => {
+            const isActive = step === st.id;
+            return (
+              <div
+                key={st.id}
                 style={{
-                  padding: '10px 24px', fontSize: '0.85rem', fontWeight: 800,
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  background: 'linear-gradient(135deg, var(--color-primary, #0d7c6e) 0%, #064e3b 100%)'
+                  color: isActive ? 'var(--primary, #0d7c6e)' : '#94a3b8',
+                  fontWeight: isActive ? 800 : 600
                 }}
               >
-                {user ? 'Proceed to Payment (পেমেন্ট করুন)' : 'Next: Patient Details & OTP (পরবর্তী)'} <ArrowRight size={15} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════ STEP 2A: GUEST PATIENT REGISTRATION ════════════ */}
-        {step === 'patient_auth' && (
-          <form onSubmit={handleSendOtp} style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.25)' }}>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-primary, #0d7c6e)' }}>
-                Patient Account Details (রোগীর তথ্যাদি)
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary, #64748b)' }}>
-                আপনার নাম, মোবাইল নম্বর, জিমেইল এবং পাসওয়ার্ড দিন। আমরা আপনার মোবাইলে তাৎক্ষণিক ৬ ডিজিটের ভেরিফিকেশন কোড (OTP) পাঠাব।
-              </p>
-            </div>
-
-            {authError && (
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={16} /> {authError}
+                <span>{st.label}</span>
+                {idx < 3 && <ChevronRight size={14} style={{ color: '#cbd5e1' }} />}
               </div>
-            )}
+            );
+          })}
+        </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {/* ─── Modal Content ─── */}
+        <div style={{ padding: '24px' }}>
+
+          {/* ═════ STEP 1: BRANCH, DATE & SCHEDULE SLOTS ═════ */}
+          {step === 'branch_schedule' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Branch Selection */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                  🏥 Select Hospital Branch / Chamber (ডাক্তারের চেম্বার নির্বাচন করুন):
+                </label>
+                {loadingBranches ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                    <Loader2 size={16} className="animate-spin" /> Loading branches from database...
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                    {branches.map((b) => {
+                      const isSelected = selectedBranch?._id === b._id;
+                      return (
+                        <div
+                          key={b._id}
+                          onClick={() => setSelectedBranch(b)}
+                          style={{
+                            padding: '12px 14px', borderRadius: '12px', cursor: 'pointer',
+                            border: isSelected ? '2px solid var(--primary, #0d7c6e)' : '1.5px solid #e2e8f0',
+                            background: isSelected ? 'rgba(13,124,110,0.04)' : '#ffffff',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: isSelected ? 'var(--primary, #0d7c6e)' : '#0f172a' }}>
+                              {b.name}
+                            </span>
+                            {isSelected && <Check size={16} style={{ color: 'var(--primary, #0d7c6e)' }} />}
+                          </div>
+                          <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                            📍 {b.address}
+                          </p>
+                          <div style={{ fontSize: '0.72rem', color: '#0d7c6e', fontWeight: 700, marginTop: '6px' }}>
+                            Fee: ৳{b.consultationFee || fee} BDT
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Consultation Type */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                  🩺 Consultation Type:
+                </label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {[
+                    { id: 'Online Consultation', label: 'Online Telemedicine', icon: Video, desc: 'Video Consultation' },
+                    { id: 'In-person Consultation', label: 'In-Person Chamber', icon: Stethoscope, desc: 'Visit Hospital Branch' }
+                  ].map((ct) => {
+                    const isSelected = consultationType === ct.id;
+                    return (
+                      <div
+                        key={ct.id}
+                        onClick={() => setConsultationType(ct.id)}
+                        style={{
+                          flex: 1, padding: '12px', borderRadius: '12px', cursor: 'pointer',
+                          border: isSelected ? '2px solid var(--primary, #0d7c6e)' : '1.5px solid #e2e8f0',
+                          background: isSelected ? 'rgba(13,124,110,0.04)' : '#ffffff'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ct.icon size={16} style={{ color: isSelected ? 'var(--primary, #0d7c6e)' : '#64748b' }} />
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isSelected ? 'var(--primary, #0d7c6e)' : '#0f172a' }}>
+                            {ct.label}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                          {ct.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Date Selection */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                  📅 Select Appointment Date:
+                </label>
+                <input
+                  type="date"
+                  min={now.toISOString().split('T')[0]}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontWeight: 700, color: '#0f172a'
+                  }}
+                />
+              </div>
+
+              {/* Dynamic Slot Availability Grid */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
+                    ⏰ Select Available Time Slot:
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {slots.filter(s => s.available).length} slots available
+                  </span>
+                </div>
+
+                {loadingSlots ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                    <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                    <span style={{ fontSize: '0.82rem' }}>Checking real-time slot availability...</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+                    {slots.map((s, idx) => {
+                      const isSelected = selectedSlot === s.time;
+                      const isAvail = s.available;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={!isAvail}
+                          onClick={() => setSelectedSlot(s.time)}
+                          style={{
+                            padding: '10px 6px', borderRadius: '10px', textAlign: 'center',
+                            border: isSelected ? '2px solid var(--primary, #0d7c6e)' : '1px solid #e2e8f0',
+                            background: !isAvail ? '#f1f5f9' : (isSelected ? 'var(--primary, #0d7c6e)' : '#ffffff'),
+                            color: !isAvail ? '#94a3b8' : (isSelected ? '#ffffff' : '#0f172a'),
+                            cursor: !isAvail ? 'not-allowed' : 'pointer',
+                            fontSize: '0.78rem', fontWeight: 700,
+                            position: 'relative'
+                          }}
+                        >
+                          <div>{s.time}</div>
+                          {!isAvail && (
+                            <span style={{ fontSize: '0.62rem', display: 'block', color: '#dc2626' }}>
+                              {s.status === 'BOOKED' ? 'Booked' : 'Held'}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Step Action */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                <div>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Consultation Fee:</span>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary, #0d7c6e)' }}>৳{fee} BDT</div>
+                </div>
+                <button
+                  type="button"
+                  disabled={!selectedSlot}
+                  onClick={handleProceedFromSchedule}
+                  style={{
+                    padding: '12px 24px', borderRadius: '12px', border: 'none',
+                    background: selectedSlot ? 'var(--primary, #0d7c6e)' : '#cbd5e1',
+                    color: '#fff', fontWeight: 800, fontSize: '0.88rem', cursor: selectedSlot ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                  }}
+                >
+                  Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═════ STEP 2: PATIENT INFORMATION FORM ═════ */}
+          {step === 'patient_info' && (
+            <form onSubmit={handleProceedFromPatientInfo} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Patient Details (রোগীর তথ্য)
+              </h4>
+
+              {authError && (
+                <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 600 }}>
+                  ⚠️ {authError}
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                   Full Name (সম্পূর্ণ নাম) *
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <User size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., Rahim Uddin"
-                    value={patientForm.name}
-                    onChange={e => setPatientForm({ ...patientForm, name: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Jahid Hasan"
+                  value={patientForm.name}
+                  onChange={(e) => setPatientForm({ ...patientForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '5px' }}>
-                  Mobile Number (মোবাইল নম্বর) *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input
-                    type="tel"
-                    required
-                    placeholder="01711223344"
-                    value={patientForm.phone}
-                    onChange={e => setPatientForm({ ...patientForm, phone: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '5px' }}>
-                  Email Address / Gmail *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Email Address *
+                  </label>
                   <input
                     type="email"
                     required
                     placeholder="patient@gmail.com"
                     value={patientForm.email}
-                    onChange={e => setPatientForm({ ...patientForm, email: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                    onChange={(e) => setPatientForm({ ...patientForm, email: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
                   />
                 </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '5px' }}>
-                  Password (ভবিষ্যতের লগইন পাসওয়ার্ড) *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                  <input
-                    type="password"
-                    required
-                    placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড"
-                    value={patientForm.password}
-                    onChange={e => setPatientForm({ ...patientForm, password: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
-              <button type="button" onClick={() => setStep('slot')} className="btn" style={{ padding: '9px 18px', fontSize: '0.8rem', background: '#f1f5f9', border: '1px solid #cbd5e1' }}>
-                Back to Slots
-              </button>
-              <button 
-                type="submit" 
-                disabled={authLoading}
-                className="btn btn-primary" 
-                style={{ padding: '10px 24px', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                {authLoading ? <Loader2 size={16} className="animate-spin" /> : <Smartphone size={16} />}
-                Send OTP Verification (কোড পাঠান)
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ════════════ STEP 2B: OTP VERIFICATION ════════════ */}
-        {step === 'otp_verify' && (
-          <form onSubmit={handleVerifyOtp} style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ padding: '14px', borderRadius: '10px', background: '#eff6ff', border: '1.5px solid #93c5fd', textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '0.92rem', fontWeight: 800, color: '#1d4ed8' }}>
-                Enter SMS OTP Code (ওটিপি লিখুন)
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#1e40af' }}>
-                We sent a 6-digit verification code to <strong>{patientForm.phone}</strong>.
-              </p>
-            </div>
-
-            {/* Instant Demo Simulator Banner */}
-            <div style={{
-              padding: '12px 14px', borderRadius: '10px', background: '#f0fdf4',
-              border: '1.5px solid #86efac', display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <KeyRound size={18} style={{ color: '#16a34a' }} />
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#15803d' }}>
-                    Live SMS Simulator: Your OTP is <span style={{ fontSize: '1rem', letterSpacing: '2px', background: '#dcfce7', padding: '1px 6px', borderRadius: '4px' }}>{simulatedOtp}</span>
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: '#166534' }}>Instant auto-fill enabled for immediate serial booking</div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Phone Number (১১ ডিজিট) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="017XXXXXXXX"
+                    value={patientForm.phone}
+                    onChange={(e) => setPatientForm({ ...patientForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setOtpCode(simulatedOtp)}
-                style={{
-                  padding: '6px 12px', borderRadius: '6px', background: '#16a34a',
-                  color: '#fff', border: 'none', fontSize: '0.72rem', fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                Auto-Fill OTP
-              </button>
-            </div>
 
-            {authError && (
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={16} /> {authError}
-              </div>
-            )}
-
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
-                6-Digit OTP Code:
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={otpCode}
-                onChange={e => setOtpCode(e.target.value)}
-                placeholder="• • • • • •"
-                style={{
-                  width: '240px', margin: '0 auto', display: 'block',
-                  textAlign: 'center', fontSize: '1.5rem', letterSpacing: '10px',
-                  fontWeight: 900, padding: '10px', borderRadius: '10px',
-                  border: '2px solid var(--color-primary, #0d7c6e)',
-                  background: '#ffffff', color: '#0f172a', outline: 'none'
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
-              <button type="button" onClick={() => setStep('patient_auth')} className="btn" style={{ padding: '9px 18px', fontSize: '0.8rem', background: '#f1f5f9', border: '1px solid #cbd5e1' }}>
-                Edit Details
-              </button>
-              <button 
-                type="submit" 
-                disabled={authLoading}
-                className="btn btn-primary" 
-                style={{ padding: '10px 24px', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                {authLoading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                Verify & Proceed to Payment
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ════════════ STEP 3: PAYMENT METHOD ════════════ */}
-        {step === 'payment' && (
-          <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{
-              padding: '14px 16px', borderRadius: '12px',
-              background: 'var(--color-bg, #f8fafc)', border: '1.5px solid var(--color-border, #e2e8f0)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary, #64748b)' }}>Appointment For:</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>
-                  {doctorName}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-primary, #0d7c6e)', fontWeight: 700 }}>
-                  {selectedChamber.name} • {selectedDateObj.displayDate} at {selectedSlot}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary, #64748b)', fontWeight: 700 }}>PAYABLE FEE:</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary, #0d7c6e)' }}>
-                  ৳{fee}
-                </div>
-              </div>
-            </div>
-
-            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '4px' }}>
-              Select Payment Gateway (পেমেন্ট মাধ্যম বেছে নিন):
-            </label>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-              {[
-                { id: 'bkash', name: 'bKash', color: '#e2136e', bg: 'rgba(226,19,110,0.1)' },
-                { id: 'nagad', name: 'Nagad', color: '#f7941d', bg: 'rgba(247,148,29,0.1)' },
-                { id: 'rocket', name: 'Rocket', color: '#8c3494', bg: 'rgba(140,52,148,0.1)' },
-                { id: 'card', name: 'Card', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' }
-              ].map(pm => {
-                const isSel = paymentMethod === pm.id;
-                return (
-                  <button
-                    key={pm.id}
-                    type="button"
-                    onClick={() => setPaymentMethod(pm.id)}
-                    style={{
-                      padding: '12px 8px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
-                      border: isSel ? `2px solid ${pm.color}` : '1px solid var(--color-border, #e2e8f0)',
-                      background: isSel ? pm.bg : '#ffffff',
-                      color: pm.color, fontWeight: 900, fontSize: '0.85rem',
-                      transition: 'all 0.15s ease'
-                    }}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Gender *
+                  </label>
+                  <select
+                    value={patientForm.gender}
+                    onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
                   >
-                    {pm.name}
-                  </button>
-                );
-              })}
-            </div>
+                    <option value="male">Male (পুরুষ)</option>
+                    <option value="female">Female (মহিলা)</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Age (বয়স)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 32"
+                    value={patientForm.age}
+                    onChange={(e) => setPatientForm({ ...patientForm, age: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Blood Group
+                  </label>
+                  <select
+                    value={patientForm.bloodGroup}
+                    onChange={(e) => setPatientForm({ ...patientForm, bloodGroup: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                  >
+                    <option value="">Select</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+              </div>
 
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text, #0f172a)', display: 'block', marginBottom: '4px' }}>
-                Account / Mobile Wallet Number:
-              </label>
-              <input
-                type="text"
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
-                style={{
-                  width: '100%', padding: '9px 12px', borderRadius: '8px',
-                  border: '1px solid var(--color-border, #cbd5e1)', background: '#ffffff',
-                  color: '#0f172a', fontFamily: 'monospace', fontSize: '0.85rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Address (ঠিকানা) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Laxmipur, Rajshahi"
+                    value={patientForm.address}
+                    onChange={(e) => setPatientForm({ ...patientForm, address: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    Emergency Contact Number *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="01XXXXXXXXX"
+                    value={patientForm.emergencyContact}
+                    onChange={(e) => setPatientForm({ ...patientForm, emergencyContact: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
 
-            <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#f0fdf4', color: '#16a34a', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={16} style={{ flexShrink: 0 }} />
-              <span>Compliant sandbox payment mode active. Instant digital receipt and serial generated.</span>
-            </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  Short Reason for Consultation (ঐচ্ছিক)
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. High blood pressure follow-up or fever..."
+                  value={patientForm.consultationReason}
+                  onChange={(e) => setPatientForm({ ...patientForm, consultationReason: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
+                />
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
-              <button type="button" onClick={() => setStep('slot')} className="btn" style={{ padding: '9px 18px', fontSize: '0.8rem', background: '#f1f5f9', border: '1px solid #cbd5e1' }}>
-                Back
-              </button>
-              <button 
-                type="button" 
-                onClick={handleConfirmPayment} 
-                className="btn btn-primary" 
-                style={{
-                  padding: '10px 28px', fontSize: '0.88rem', fontWeight: 900,
-                  background: 'linear-gradient(135deg, var(--color-primary, #0d7c6e) 0%, #064e3b 100%)'
-                }}
-              >
-                Confirm & Pay ৳{fee}
-              </button>
-            </div>
-          </div>
-        )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setStep('branch_schedule')}
+                  style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ← Back to Schedule
+                </button>
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  style={{
+                    padding: '12px 24px', borderRadius: '12px', border: 'none',
+                    background: 'var(--primary, #0d7c6e)', color: '#fff', fontWeight: 800,
+                    cursor: authLoading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                  }}
+                >
+                  {authLoading && <Loader2 size={16} className="animate-spin" />}
+                  Verify & Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </form>
+          )}
 
-        {/* ════════════ STEP 4: CONFIRMED SERIAL & DIGITAL RECEIPT ════════════ */}
-        {step === 'confirmed' && bookingResult && (
-          <div style={{ margin: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            <div style={{
-              width: '68px', height: '68px', borderRadius: '50%',
-              background: '#dcfce7', color: '#16a34a', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', margin: '0 auto',
-              boxShadow: '0 0 0 6px rgba(34,197,94,0.15)'
-            }}>
-              <CheckCircle2 size={40} />
-            </div>
+          {/* ═════ STEP 3: EMAIL OTP VERIFICATION ═════ */}
+          {step === 'otp_verify' && (
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: '50%', background: 'rgba(13,124,110,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #0d7c6e)',
+                margin: '0 auto 16px'
+              }}>
+                <Mail size={28} />
+              </div>
 
-            <div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', margin: '0 0 4px 0' }}>
-                Appointment Confirmed!
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
+                Verify Your Email
               </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
-                আপনার অ্যাপয়েন্টমেন্ট সফলভাবে নিশ্চিত হয়েছে এবং হিস্টোরিতে সংরক্ষিত হয়েছে।
+              <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.5 }}>
+                We have dispatched a 6-digit one-time verification password to <strong style={{ color: '#0f172a' }}>{patientForm.email}</strong>.
               </p>
-            </div>
 
-            {/* Serial Badge */}
-            <div style={{
-              padding: '12px 20px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #0d7c6e 0%, #044e43 100%)',
-              color: '#ffffff', maxWidth: '320px', margin: '0 auto', width: '100%',
-              boxShadow: '0 4px 14px rgba(13, 124, 110, 0.3)'
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.85 }}>
-                Your Serial Token (আপনার সিরিয়াল নম্বর)
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.02em', marginTop: 2 }}>
-                #{bookingResult.serialNumber}
-              </div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: 2 }}>
-                Time: {bookingResult.time}
-              </div>
-            </div>
+              {authError && (
+                <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 600, marginBottom: '16px' }}>
+                  ⚠️ {authError}
+                </div>
+              )}
 
-            {/* Details Card */}
-            <div style={{
-              padding: '16px', borderRadius: '12px',
-              background: '#f8fafc', border: '1.5px solid #e2e8f0',
-              textAlign: 'left', maxWidth: '480px', margin: '0 auto',
-              width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '9px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Doctor:</span>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>{bookingResult.doctorName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Specialty:</span>
-                <span style={{ fontWeight: 700, color: '#0d7c6e' }}>{bookingResult.specialty}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Chamber:</span>
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>{bookingResult.chamberName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Date & Time:</span>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>{bookingResult.dateDisplay || bookingResult.date} at {bookingResult.time}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Patient Name:</span>
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>{bookingResult.patientName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Contact Phone:</span>
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>{bookingResult.patientPhone}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
-                <span style={{ color: '#64748b' }}>Fee Paid:</span>
-                <span style={{ fontWeight: 900, color: '#15803d' }}>৳{bookingResult.fee} (Paid via {bookingResult.paymentMethod})</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Transaction ID:</span>
-                <span style={{ fontFamily: 'monospace', color: '#0d7c6e', fontWeight: 800 }}>{bookingResult.paymentTxnId}</span>
-              </div>
-            </div>
+              <form onSubmit={handleVerifyOtp} style={{ maxWidth: 360, margin: '0 auto' }}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  required
+                  placeholder="• • • • • •"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    width: '100%', padding: '14px', textAlign: 'center', fontSize: '1.8rem',
+                    letterSpacing: '12px', fontWeight: 900, borderRadius: '12px',
+                    border: '2px solid var(--primary, #0d7c6e)', color: 'var(--primary, #0d7c6e)',
+                    background: '#f0fdf4', marginBottom: '16px'
+                  }}
+                />
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '6px' }}>
-              <button
-                type="button"
-                onClick={handleGoToDashboard}
-                className="btn btn-primary"
-                style={{
-                  fontSize: '0.82rem', padding: '10px 20px', fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-primary, #0d7c6e) 0%, #064e3b 100%)',
-                  display: 'flex', alignItems: 'center', gap: 6
-                }}
-              >
-                Go to Dashboard (ড্যাশবোর্ডে দেখুন) →
-              </button>
+                <button
+                  type="submit"
+                  disabled={authLoading || otpCode.length !== 6}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                    background: otpCode.length === 6 ? 'var(--primary, #0d7c6e)' : '#cbd5e1',
+                    color: '#fff', fontWeight: 800, fontSize: '0.92rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                  }}
+                >
+                  {authLoading && <Loader2 size={16} className="animate-spin" />}
+                  Verify & Auto Login
+                </button>
+              </form>
+
+              <div style={{ marginTop: '20px', fontSize: '0.8rem', color: '#64748b' }}>
+                {countdown > 0 ? (
+                  <span>Resend verification code in <strong>{countdown}s</strong></span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary, #0d7c6e)', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    Resend OTP Code
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
-                onClick={() => setShowEmailPreview(true)}
-                className="btn"
-                style={{
-                  fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '9px 18px', background: '#f8fafc', border: '1.5px solid #cbd5e1',
-                  color: '#0f172a', fontWeight: 700
-                }}
+                onClick={() => setStep('patient_info')}
+                style={{ marginTop: '16px', background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.78rem', cursor: 'pointer' }}
               >
-                <Mail size={14} style={{ color: 'var(--color-primary, #0d7c6e)' }} /> View Digital Slip
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn"
-                style={{ fontSize: '0.8rem', padding: '9px 18px', background: '#f1f5f9', border: '1px solid #cbd5e1' }}
-              >
-                Close
+                Change email address
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ════════════ EMAIL / DIGITAL SLIP MODAL ════════════ */}
-        {showEmailPreview && (
-          <div className="modal-overlay" style={{ zIndex: 1200 }}>
-            <div className="modal-content" style={{ maxWidth: '500px', width: '92%', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Mail size={16} style={{ color: 'var(--color-primary, #0d7c6e)' }} /> Niramoy Digital Serial Slip
-                </h4>
-                <button onClick={() => setShowEmailPreview(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+          {/* ═════ STEP 4: APPOINTMENT SUMMARY & SSLCOMMERZ CHECKOUT ═════ */}
+          {step === 'summary' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(13,124,110,0.06), #f8fafc)',
+                border: '1.5px solid #e2eceb', borderRadius: '16px', padding: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary, #0d7c6e)', textTransform: 'uppercase' }}>
+                      Appointment Summary
+                    </span>
+                    <h4 style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                      {doctorName}
+                    </h4>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{doctorSpecialty}</span>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Consultation Fee</span>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--primary, #0d7c6e)' }}>
+                      ৳{fee} BDT
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.82rem' }}>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Branch / Chamber:</span>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{selectedBranch?.name}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Consultation Mode:</span>
+                    <div style={{ fontWeight: 800, color: '#0d7c6e' }}>{consultationType}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Date:</span>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                      {new Date(selectedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Time Slot:</span>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{selectedSlot}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Patient Name:</span>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{patientForm.name}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Patient Phone:</span>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{patientForm.phone}</div>
+                  </div>
+                </div>
               </div>
 
-              <div style={{ margin: '16px 0', padding: '16px', borderRadius: '12px', background: '#f8fafc', border: '1.5px solid #e2e8f0', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <div><strong>From:</strong> appointments@niramoy.health</div>
-                  <div><strong>To:</strong> {bookingResult?.patientPhone} / {bookingResult?.patientEmail || 'patient@niramoy.health'}</div>
-                  <div><strong>Subject:</strong> Confirmed Serial #{bookingResult?.serialNumber} with {bookingResult?.doctorName}</div>
-                </div>
-
-                <p style={{ margin: 0 }}>Dear {bookingResult?.patientName},</p>
-                <p style={{ margin: 0 }}>Your consultation serial has been successfully booked and recorded in Niramoy Healthcare Network.</p>
-                
-                <div style={{ padding: '12px', borderRadius: '8px', background: '#f0fdf4', border: '1.5px solid #86efac', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div><strong>Serial Number:</strong> #{bookingResult?.serialNumber}</div>
-                  <div><strong>Doctor:</strong> {bookingResult?.doctorName} ({bookingResult?.specialty})</div>
-                  <div><strong>Date & Time:</strong> {bookingResult?.dateDisplay || bookingResult?.date} @ {bookingResult?.time}</div>
-                  <div><strong>Chamber / Facility:</strong> {bookingResult?.chamberName}</div>
-                  <div><strong>Address:</strong> {bookingResult?.chamberAddress}</div>
-                  <div><strong>Fee:</strong> ৳{bookingResult?.fee} (Paid)</div>
-                  <div><strong>Status:</strong> Confirmed</div>
-                </div>
-
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                  🔔 Please arrive 15 minutes before your time slot with previous prescriptions and diagnostic reports.
-                </div>
+              {/* Zero-trust payment assurance note */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '14px', fontSize: '0.78rem', color: '#166534', lineHeight: 1.5 }}>
+                🔒 <strong>Secure SSLCOMMERZ Payment Gateway:</strong> Upon clicking Proceed, you will be redirected to the secure SSLCOMMERZ Hosted Checkout page. Your appointment will be confirmed only after server-side validation.
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowEmailPreview(false)} className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.8rem' }}>
-                  Close Slip
+              {paymentError && (
+                <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 600 }}>
+                  ⚠️ {paymentError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setStep('branch_schedule')}
+                  style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ← Edit Schedule
+                </button>
+
+                <button
+                  type="button"
+                  disabled={paymentLoading}
+                  onClick={handleProceedToPayment}
+                  style={{
+                    padding: '14px 28px', borderRadius: '12px', border: 'none',
+                    background: 'linear-gradient(135deg, #0d7c6e 0%, #064e3b 100%)',
+                    color: '#fff', fontWeight: 900, fontSize: '0.95rem', cursor: paymentLoading ? 'wait' : 'pointer',
+                    boxShadow: '0 8px 20px rgba(13,124,110,0.3)', display: 'flex', alignItems: 'center', gap: '8px'
+                  }}
+                >
+                  {paymentLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> Connecting to SSLCOMMERZ...
+                    </>
+                  ) : (
+                    <>
+                      Proceed to Payment (৳{fee}) <ArrowRight size={18} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* ═════ STEP 5: CONFIRMED STATE (Triggered after payment callback) ═════ */}
+          {step === 'confirmed' && confirmedBooking && (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%', background: '#dcfce7', color: '#16a34a',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                border: '4px solid #bbf7d0'
+              }}>
+                <CheckCircle2 size={42} />
+              </div>
+
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                ✓ Appointment Confirmed & Verified
+              </span>
+
+              <div style={{
+                margin: '16px 0', padding: '16px', borderRadius: '14px',
+                background: '#f8fafc', border: '2px dashed #0d7c6e'
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>YOUR OFFICIAL SERIAL ID</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--primary, #0d7c6e)', fontFamily: 'monospace' }}>
+                  {confirmedBooking.serialNumber || 'NRM-CONFIRMED'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800, marginTop: '4px' }}>
+                  Payment Verified by Niramoy Healthcare • Status: PAID
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', textAlign: 'left', fontSize: '0.8rem', background: '#f8fafc', padding: '14px', borderRadius: '12px', marginBottom: '20px' }}>
+                <div><strong>Doctor:</strong> {doctorName}</div>
+                <div><strong>Branch:</strong> {selectedBranch?.name}</div>
+                <div><strong>Date:</strong> {selectedDate}</div>
+                <div><strong>Time:</strong> {selectedSlot}</div>
+                <div><strong>Type:</strong> {consultationType}</div>
+                <div><strong>Amount Paid:</strong> ৳{fee} BDT</div>
+              </div>
+
+              {emailResent && (
+                <div style={{ padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4', color: '#166534', fontSize: '0.78rem', fontWeight: 700, marginBottom: '14px' }}>
+                  ✓ Confirmation email re-sent with PDF attachment!
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <a
+                  href={appointmentsAPI.getPdfUrl(confirmedBooking._id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{
+                    padding: '12px', borderRadius: '10px', textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    fontWeight: 800, fontSize: '0.88rem'
+                  }}
+                >
+                  <Download size={16} /> Download PDF Voucher
+                </a>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={handleResendEmail}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid #cbd5e1',
+                      background: '#fff', color: '#334155', fontWeight: 700, fontSize: '0.82rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                    }}
+                  >
+                    <Mail size={14} /> Resend Email
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      navigate('/dashboard?tab=appointments');
+                    }}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none',
+                      background: '#0f172a', color: '#fff', fontWeight: 700, fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Go to Dashboard →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );

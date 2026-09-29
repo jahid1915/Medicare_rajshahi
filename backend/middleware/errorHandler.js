@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Centralized error handler middleware
  * Must be registered LAST in Express app
  */
@@ -9,11 +9,11 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose validation error
   if (err.name === "ValidationError") {
     statusCode = 422;
-    message = "Validation failed";
     const errors = Object.values(err.errors).map(e => ({
       field: e.path,
       message: e.message
     }));
+    message = errors.map(e => e.message).join(", ") || "Validation failed";
     return res.status(statusCode).json({ success: false, message, code: "VALIDATION_ERROR", errors });
   }
 

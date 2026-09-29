@@ -1,9 +1,12 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
 const Hospital = require("../models/Hospital");
 const Pharmacy = require("../models/Pharmacy");
 const Doctor = require("../models/Doctor");
 const AuditLog = require("../models/AuditLog");
+const OtpVerification = require("../models/OtpVerification");
+const { sendOtpEmail } = require("../services/emailService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 
 const generateToken = (user) => {
@@ -141,95 +144,187 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// In-memory OTP cache: key -> { otp, expiresAt, phone, email }
+// Helper: SHA-256 hash of OTP
+const hashOtp = (otp) => crypto.createHash("sha256").update(otp.trim()).digest("hex");
+
+// In-memory OTP cache for fallback backwards compatibility
 const otpCache = new Map();
 
-// POST /api/auth/send-otp
-exports.sendOtp = async (req, res, next) => {
+/**
+ * POST /api/auth/patient/request-otp
+ * Generates 6-digit OTP, stores secure hash with 5-minute TTL, enforces 60s rate limit, and emails OTP
+ */
+exports.requestPatientOtp = async (req, res, next) => {
   try {
-    const { phone, email, purpose = "checkout_verification" } = req.body;
-    if (!phone && !email) {
-      return errorResponse(res, "Phone number or email is required to send OTP", 422);
+    const { email, phone, name, purpose = "PATIENT_SIGNUP" } = req.body;
+
+    if (!email || !email.includes("@")) {
+      return errorResponse(res, "A valid email address is required to receive the verification OTP", 422);
     }
 
-    // 6-digit random OTP
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Enforce 60-second resend rate limit
+    const existingOtp = await OtpVerification.findOne({ email: cleanEmail }).sort({ createdAt: -1 });
+    if (existingOtp && existingOtp.last_resend_at) {
+      const elapsedMs = Date.now() - new Date(existingOtp.last_resend_at).getTime();
+      if (elapsedMs < 60000) {
+        const remainingSecs = Math.ceil((60000 - elapsedMs) / 1000);
+        return errorResponse(
+          res,
+          `Please wait ${remainingSecs} seconds before requesting a new OTP.`,
+          429,
+          "RATE_LIMITED"
+        );
+      }
+    }
+
+    // Generate random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const key = (phone || email).trim().toLowerCase();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otp_hash = hashOtp(otp);
+    const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
 
-    otpCache.set(key, { otp, expiresAt, phone, email });
+    await OtpVerification.create({
+      email: cleanEmail,
+      phone: phone ? phone.trim() : undefined,
+      otp_hash,
+      purpose,
+      expires_at,
+      attempt_count: 0,
+      resend_count: existingOtp ? (existingOtp.resend_count || 0) + 1 : 0,
+      last_resend_at: new Date(),
+      verified: false,
+      metadata: { name: name || "" }
+    });
 
-    console.log(`\n========================================`);
-    console.log(`[NIRAMOY OTP SERVICE]`);
-    console.log(`Recipient : ${phone || email}`);
-    console.log(`Code      : ${otp}`);
-    console.log(`Purpose   : ${purpose}`);
-    console.log(`Expires   : 10 minutes`);
-    console.log(`========================================\n`);
+    // Send professional HTML email
+    await sendOtpEmail({
+      email: cleanEmail,
+      otp,
+      purpose: "Niramoy Healthcare Patient Authentication"
+    });
+
+    // Also populate in-memory cache for legacy handlers
+    otpCache.set(cleanEmail, { otp, expiresAt: Date.now() + 5 * 60 * 1000, phone, email: cleanEmail });
 
     return successResponse(res, {
-      phone,
-      email,
-      otp, // Provided for live demonstration & one-click auto-fill
-      message: "Verification code sent successfully"
-    }, "Verification OTP generated");
+      email: cleanEmail,
+      expires_in_seconds: 300,
+      resend_available_in_seconds: 60,
+      simulatedOtp: otp, // Provided for live demonstration & one-click auto-fill
+      message: "Verification code sent to your email"
+    }, "Verification code dispatched successfully");
   } catch (err) {
     next(err);
   }
 };
 
-// POST /api/auth/verify-patient-checkout
-exports.verifyPatientCheckout = async (req, res, next) => {
+/**
+ * POST /api/auth/patient/verify-otp
+ * Validates OTP hash, enforces 5-attempt limit, auto-provisions or logs in patient, issues JWT
+ */
+exports.verifyPatientOtp = async (req, res, next) => {
   try {
-    const { name, phone, email, password, otp } = req.body;
+    const {
+      email,
+      otp,
+      name,
+      phone,
+      gender,
+      date_of_birth,
+      address,
+      emergency_contact,
+      blood_group
+    } = req.body;
 
-    if (!name || !phone || !email || !password || !otp) {
-      return errorResponse(res, "Name, phone, email, password, and OTP are required", 422);
+    if (!email || !otp) {
+      return errorResponse(res, "Email and 6-digit OTP are required", 422);
     }
 
-    const key = (phone || email).trim().toLowerCase();
-    const cached = otpCache.get(key) || 
-                   otpCache.get((phone || "").trim().toLowerCase()) || 
-                   otpCache.get((email || "").trim().toLowerCase());
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
 
-    const isMatch = (cached && cached.otp === otp.trim()) || otp.trim() === "123456";
-    if (!isMatch) {
-      return errorResponse(res, "Invalid verification code. Please check and try again.", 400, "INVALID_OTP");
+    if (cleanOtp.length !== 6) {
+      return errorResponse(res, "OTP must be exactly 6 digits", 422, "INVALID_FORMAT");
     }
 
-    if (cached && Date.now() > cached.expiresAt) {
+    // Lookup latest active OTP verification record
+    const record = await OtpVerification.findOne({
+      email: cleanEmail,
+      verified: false
+    }).sort({ createdAt: -1 });
+
+    if (!record) {
+      return errorResponse(res, "No active OTP request found. Please request a new verification code.", 400, "NO_ACTIVE_OTP");
+    }
+
+    // Check expiration (5 minutes TTL)
+    if (new Date() > new Date(record.expires_at)) {
       return errorResponse(res, "Verification code has expired. Please request a new one.", 400, "EXPIRED_OTP");
     }
 
-    if (cached) {
-      otpCache.delete(key);
+    // Check attempt count (max 5 attempts)
+    if (record.attempt_count >= 5) {
+      return errorResponse(res, "Maximum verification attempts exceeded (5/5). Please request a fresh OTP.", 429, "MAX_ATTEMPTS_EXCEEDED");
     }
 
-    // Check if user already exists
-    let user = await User.findOne({
-      $or: [
-        { email: email.trim().toLowerCase() },
-        { phone: phone.trim() }
-      ]
-    }).select("+password");
+    // Validate hash
+    const inputHash = hashOtp(cleanOtp);
+    const isMatch = inputHash === record.otp_hash || (process.env.NODE_ENV !== "production" && cleanOtp === "123456");
 
+    if (!isMatch) {
+      record.attempt_count += 1;
+      await record.save();
+      const remaining = 5 - record.attempt_count;
+      return errorResponse(
+        res,
+        `Invalid verification code. You have ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+        400,
+        "INVALID_OTP"
+      );
+    }
+
+    // Mark OTP record verified
+    record.verified = true;
+    await record.save();
+
+    // Check if patient user already exists by email or phone
+    const searchConditions = [{ email: cleanEmail }];
+    if (phone && phone.trim()) {
+      searchConditions.push({ phone: phone.trim() });
+    }
+
+    let user = await User.findOne({ $or: searchConditions });
     let isNewUser = false;
+
     if (!user) {
+      // Auto-create patient account without requiring a password
       user = await User.create({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        password: password,
+        name: (name || cleanEmail.split("@")[0]).trim(),
+        email: cleanEmail,
+        phone: phone ? phone.trim() : undefined,
         role: "patient",
+        gender: gender || undefined,
+        date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+        address: address ? address.trim() : undefined,
+        emergency_contact: emergency_contact ? emergency_contact.trim() : undefined,
+        blood_group: blood_group || undefined,
         is_verified: true,
+        is_email_verified: true,
         is_active: true
       });
       isNewUser = true;
     } else {
-      if (password && !(await user.comparePassword(password))) {
-        return errorResponse(res, "An account with this email/number exists, but the password provided is incorrect.", 401, "INVALID_PASSWORD");
-      }
+      // Update existing patient profile fields if supplied
+      if (name && !user.name) user.name = name.trim();
+      if (phone && !user.phone) user.phone = phone.trim();
+      if (gender && !user.gender) user.gender = gender;
+      if (address && !user.address) user.address = address.trim();
+      if (emergency_contact && !user.emergency_contact) user.emergency_contact = emergency_contact.trim();
+      if (blood_group && !user.blood_group) user.blood_group = blood_group;
+
       user.is_verified = true;
+      user.is_email_verified = true;
       user.last_login = new Date();
       await user.save({ validateBeforeSave: false });
     }
@@ -240,8 +335,8 @@ exports.verifyPatientCheckout = async (req, res, next) => {
       actor_id: user._id,
       actor_name: user.name,
       actor_role: user.role,
-      action: isNewUser ? "PATIENT_ON_DEMAND_SIGNUP" : "PATIENT_ON_DEMAND_LOGIN",
-      detail: `Patient verified and signed in during booking/checkout.`
+      action: isNewUser ? "PATIENT_AUTO_SIGNUP_OTP" : "PATIENT_AUTO_LOGIN_OTP",
+      detail: `Patient authenticated via Email OTP.`
     });
 
     const populatedUser = await User.findById(user._id);
@@ -250,11 +345,22 @@ exports.verifyPatientCheckout = async (req, res, next) => {
       user: populatedUser,
       token,
       isNewUser
-    }, isNewUser ? "Patient account created and verified successfully" : "Logged in successfully", isNewUser ? 201 : 200);
+    }, isNewUser ? "Patient account created and authenticated" : "Logged in successfully", isNewUser ? 201 : 200);
   } catch (err) {
     next(err);
   }
 };
+
+/**
+ * POST /api/auth/patient/resend-otp
+ */
+exports.resendPatientOtp = exports.requestPatientOtp;
+
+// POST /api/auth/send-otp (Backwards-compatible endpoint)
+exports.sendOtp = exports.requestPatientOtp;
+
+// POST /api/auth/verify-patient-checkout (Backwards-compatible endpoint)
+exports.verifyPatientCheckout = exports.verifyPatientOtp;
 
 // POST /api/auth/login
 exports.login = async (req, res, next) => {

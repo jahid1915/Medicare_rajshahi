@@ -78,8 +78,54 @@ export function AuthProvider({ children }) {
     return data.data;
   }, [saveSession]);
 
+  const requestPatientOtp = useCallback(async ({ email, phone, name, purpose }) => {
+    const res = await fetch(`${API_BASE}/auth/patient/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, phone, name, purpose })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'Failed to send OTP');
+      err.code = data.code;
+      throw err;
+    }
+    return data.data;
+  }, []);
+
+  const verifyPatientOtp = useCallback(async (payload) => {
+    const res = await fetch(`${API_BASE}/auth/patient/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'OTP verification failed');
+      err.code = data.code;
+      throw err;
+    }
+    saveSession(data.data.user, data.data.token);
+    return data.data;
+  }, [saveSession]);
+
+  const resendPatientOtp = useCallback(async ({ email, phone, name }) => {
+    const res = await fetch(`${API_BASE}/auth/patient/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, phone, name })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'Failed to resend OTP');
+      err.code = data.code;
+      throw err;
+    }
+    return data.data;
+  }, []);
+
   const sendOtp = useCallback(async ({ phone, email, purpose }) => {
-    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+    const res = await fetch(`${API_BASE}/auth/patient/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, email, purpose })
@@ -93,11 +139,11 @@ export function AuthProvider({ children }) {
     return data.data;
   }, []);
 
-  const verifyPatientCheckout = useCallback(async ({ name, phone, email, password, otp }) => {
-    const res = await fetch(`${API_BASE}/auth/verify-patient-checkout`, {
+  const verifyPatientCheckout = useCallback(async ({ name, phone, email, password, otp, ...rest }) => {
+    const res = await fetch(`${API_BASE}/auth/patient/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, email, password, otp })
+      body: JSON.stringify({ name, phone, email, password, otp, ...rest })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -139,6 +185,9 @@ export function AuthProvider({ children }) {
     register,
     login,
     sendOtp,
+    requestPatientOtp,
+    verifyPatientOtp,
+    resendPatientOtp,
     verifyPatientCheckout,
     logout,
     fetchMe
