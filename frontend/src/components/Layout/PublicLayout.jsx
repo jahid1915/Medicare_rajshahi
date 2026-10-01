@@ -12,7 +12,9 @@ export default function PublicLayout() {
     <div className="public-layout">
       <NiramoyNavbar />
       <main className={`public-main ${isHome ? 'public-main--home' : 'public-main--padded'}`}>
-        <Outlet />
+        <div key={location.pathname} className="niramoy-page-transition">
+          <Outlet />
+        </div>
       </main>
       <NiramoyFooter />
       <MobileBottomNav />

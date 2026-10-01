@@ -82,30 +82,21 @@ function ComingSoon({ title }) {
 function ScrollToTop() {
   const { pathname } = useLocation();
   React.useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (window.scrollY > 0) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
   }, [pathname]);
   return null;
 }
 
 function PageLoader() {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-      gap: 16
-    }} role="status" aria-live="polite">
-      <div style={{
-        width: 44,
-        height: 44,
-        border: '3px solid #e2eceb',
-        borderTopColor: '#0d7c6e',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite'
-      }} />
-      <span style={{ fontSize: '0.875rem', color: '#47615f', fontWeight: 600 }}>Loading healthcare services...</span>
+    <div className="niramoy-page-loader" role="status" aria-live="polite">
+      <div className="niramoy-page-loader__bar" />
+      <div className="niramoy-page-loader__spinner" />
+      <span style={{ fontSize: '0.85rem', color: '#5eead4', fontWeight: 600, letterSpacing: '0.02em' }}>
+        Loading Niramoy healthcare services...
+      </span>
     </div>
   );
 }

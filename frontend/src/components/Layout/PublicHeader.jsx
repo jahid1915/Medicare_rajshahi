@@ -5,19 +5,18 @@ import { useCart } from '../../context/CartContext';
 import NiramoyLogo from '../Common/NiramoyLogo';
 import {
   Stethoscope, Pill, LayoutDashboard, LogOut, X, Menu,
-  ShoppingCart, ChevronDown, Home, Building2, Activity,
+  ShoppingCart, ChevronDown, Building2, Activity,
   Truck, Sparkles, BookOpen, MapPin, Cpu, Info, Mail,
-  UserPlus, ShieldCheck, HeartPulse
+  LogIn, UserPlus, PhoneCall, Shield, AlertCircle
 } from 'lucide-react';
 
 const MAIN_NAV_LINKS = [
-  { label: 'Home', href: '/' },
-  { label: 'Doctors', href: '/doctors' },
-  { label: 'Hospitals', href: '/hospitals' },
-  { label: 'Diagnostics', href: '/diagnostics' },
-  { label: 'Pharmacies', href: '/pharmacies' },
-  { label: 'Ambulance', href: '/ambulance' },
-  { label: 'AI', href: '/ai' },
+  { label: 'Doctors', href: '/doctors', icon: Stethoscope },
+  { label: 'Hospitals', href: '/hospitals', icon: Building2 },
+  { label: 'Diagnostics', href: '/diagnostics', icon: Activity },
+  { label: 'Pharmacies', href: '/pharmacies', icon: Pill },
+  { label: 'Ambulance', href: '/ambulance', icon: Truck },
+  { label: 'AI Health', href: '/ai', icon: Sparkles },
 ];
 
 const MORE_NAV_LINKS = [
@@ -88,12 +87,50 @@ export default function NiramoyNavbar() {
     setMoreDropdownOpen(false);
   }, [location.pathname]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
   const solid = !isHero || scrolled;
   const cartCount = cartItems?.reduce?.((s, i) => s + (i.quantity || 1), 0) || 0;
 
   const initials = user?.name
     ? user.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
     : '?';
+
+  // Pre-warm primary routes during idle time after initial page render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import('../Doctor/DoctorDiscovery');
+      import('../Hospitals/HospitalSearchPage');
+      import('../Pharmacy/PharmacyDirectory');
+      import('../Diagnostic/DiagnosticCenterView');
+      import('../Public/AmbulancePage');
+      import('../Public/AIPage');
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const prefetchRoute = (path) => {
+    switch (path) {
+      case '/doctors': import('../Doctor/DoctorDiscovery'); break;
+      case '/hospitals': import('../Hospitals/HospitalSearchPage'); break;
+      case '/diagnostics': import('../Diagnostic/DiagnosticCenterView'); break;
+      case '/pharmacies': import('../Pharmacy/PharmacyDirectory'); break;
+      case '/ambulance': import('../Public/AmbulancePage'); break;
+      case '/ai': import('../Public/AIPage'); break;
+      case '/health-tips': import('../Public/HealthTipsPage'); break;
+      default: break;
+    }
+  };
 
   const isMoreActive = MORE_NAV_LINKS.some(link => location.pathname === link.href);
 
@@ -103,24 +140,30 @@ export default function NiramoyNavbar() {
         role="navigation" aria-label="Main navigation">
         <div className="navbar__inner">
 
-          {/* Logo */}
-          <Link to="/" style={{ textDecoration: 'none' }} aria-label="Niramoy Home">
-            <NiramoyLogo size="md" variant={scrolled || solid ? 'default' : 'light'} tagline="Rajshahi Digital Health" />
+          {/* Logo — Clicking takes directly to Landing / Homepage */}
+          <Link to="/" className="navbar__logo-link" aria-label="Niramoy Healthcare Homepage" title="Go to Niramoy Homepage">
+            <NiramoyLogo size="md" variant="light" tagline="Rajshahi Digital Health" />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="navbar__nav" style={{ gap: '4px' }}>
-            {MAIN_NAV_LINKS.map(link => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`navbar__link ${location.pathname === link.href ||
-                  (link.href !== '/' && location.pathname.startsWith(link.href)) ? 'active' : ''}`}
-                style={{ padding: '8px 12px', fontSize: '0.86rem' }}
-              >
-                {link.label}
-              </Link>
-            ))}
+          {/* Desktop Nav Items (No 'Home' button, logo acts as Home) */}
+          <nav className="navbar__nav" aria-label="Primary Navigation">
+            {MAIN_NAV_LINKS.map(link => {
+              const Icon = link.icon;
+              const isActive = location.pathname === link.href ||
+                (link.href !== '/' && location.pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`navbar__link ${isActive ? 'active' : ''}`}
+                  onMouseEnter={() => prefetchRoute(link.href)}
+                  onFocus={() => prefetchRoute(link.href)}
+                >
+                  <Icon size={14} className="navbar__link-icon" />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
 
             {/* More ▾ Dropdown */}
             <div ref={moreDropdownRef} style={{ position: 'relative' }}>
@@ -129,15 +172,16 @@ export default function NiramoyNavbar() {
                 onClick={() => setMoreDropdownOpen(o => !o)}
                 className={`navbar__link ${isMoreActive ? 'active' : ''}`}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                  padding: '8px 12px', fontSize: '0.86rem', fontFamily: 'inherit'
+                  background: isMoreActive ? undefined : 'transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
                 }}
                 aria-expanded={moreDropdownOpen}
                 aria-haspopup="true"
               >
-                More <ChevronDown style={{
-                  width: 14, height: 14,
+                <span>More</span>
+                <ChevronDown style={{
+                  width: 13, height: 13,
                   transform: moreDropdownOpen ? 'rotate(180deg)' : 'rotate(0)',
                   transition: 'transform 0.15s ease'
                 }} />
@@ -156,10 +200,10 @@ export default function NiramoyNavbar() {
                           onClick={() => setMoreDropdownOpen(false)}
                           style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}
                         >
-                          <Icon size={16} style={{ marginTop: '2px', color: 'var(--color-primary, #0d7c6e)', flexShrink: 0 }} />
+                          <Icon size={16} style={{ marginTop: '2px', color: '#5eead4', flexShrink: 0 }} />
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{item.label}</div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #47615f)' }}>{item.desc}</div>
+                            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#ffffff' }}>{item.label}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.7)' }}>{item.desc}</div>
                           </div>
                         </Link>
                       );
@@ -172,7 +216,14 @@ export default function NiramoyNavbar() {
 
           {/* Right Actions */}
           <div className="navbar__actions">
-            {/* Cart */}
+            {/* Quick 24/7 SOS Helpline Pill */}
+            <Link to="/ambulance" className="navbar__sos-pill" aria-label="24/7 Emergency Ambulance" title="24/7 Emergency Ambulance & Blood Support">
+              <span className="navbar__sos-pulse" />
+              <Truck size={14} />
+              <span>SOS 24/7</span>
+            </Link>
+
+            {/* Cart Icon */}
             {cartCount > 0 && (
               <Link to="/cart" className="navbar__cart" aria-label={`Cart (${cartCount} items)`}>
                 <ShoppingCart style={{ width: 18, height: 18 }} />
@@ -190,11 +241,11 @@ export default function NiramoyNavbar() {
                   aria-haspopup="true"
                 >
                   <div className="navbar__avatar">{initials}</div>
-                  <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.name?.split(' ')[0]}
                   </span>
                   <ChevronDown style={{
-                    width: 14, height: 14, opacity: 0.6,
+                    width: 14, height: 14, opacity: 0.7,
                     transform: userDropdownOpen ? 'rotate(180deg)' : 'rotate(0)',
                     transition: 'transform 0.15s'
                   }} />
@@ -224,120 +275,174 @@ export default function NiramoyNavbar() {
               </div>
             ) : (
               <>
-                <Link to="/signin" className="navbar__signin">Enter Portal</Link>
+                <Link to="/signin" className="navbar__signin">
+                  <LogIn size={14} />
+                  <span>Portal</span>
+                </Link>
                 <Link to="/register" className="navbar__cta">
-                  Become a Member
+                  <span>Join Niramoy</span>
                 </Link>
               </>
             )}
 
-            {/* Mobile toggle */}
+            {/* Mobile Menu Hamburger Toggle */}
             <button
               className="navbar__mobile-toggle"
               onClick={() => setMobileOpen(true)}
               aria-label="Open mobile menu"
             >
-              <Menu style={{ width: 22, height: 22 }} />
+              <Menu size={22} />
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Drawer */}
+      {/* Modern Glassmorphic Mobile Drawer */}
       {mobileOpen && (
-        <div className="navbar__mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation"
-          onClick={(e) => { if (e.target === e.currentTarget) setMobileOpen(false); }}>
-          <div className="navbar__mobile-panel" style={{ maxHeight: '100vh', overflowY: 'auto' }}>
+        <div
+          className="navbar__mobile-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation"
+          onClick={(e) => { if (e.target === e.currentTarget) setMobileOpen(false); }}
+        >
+          <div className="navbar__mobile-panel">
+            {/* Mobile Header with Clickable Logo and Close */}
             <div className="navbar__mobile-header">
               <Link to="/" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
-                <NiramoyLogo size="sm" tagline="Rajshahi Health" />
+                <NiramoyLogo size="sm" variant="light" tagline="Rajshahi Health" />
               </Link>
-              <button onClick={() => setMobileOpen(false)} style={{
-                background: 'var(--color-bg-muted)', border: 'none', cursor: 'pointer',
-                width: 36, height: 36, borderRadius: 'var(--radius-md)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--color-text)'
-              }} aria-label="Close menu">
-                <X style={{ width: 18, height: 18 }} />
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="navbar__mobile-close"
+                aria-label="Close menu"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <div className="navbar__mobile-nav">
-              {/* Primary Services */}
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #47615f)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '8px 16px 4px 16px' }}>
+            {/* Mobile Nav Links */}
+            <div className="navbar__mobile-body">
+              {/* Emergency Banner at top of mobile menu */}
+              <Link to="/ambulance" onClick={() => setMobileOpen(false)} className="navbar__mobile-sos-card">
+                <div className="navbar__mobile-sos-icon">
+                  <Truck size={20} color="#ffffff" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>24/7 Emergency Ambulance</div>
+                  <div style={{ fontSize: '0.74rem', color: '#5eead4' }}>Call 16263 or find nearby vehicle</div>
+                </div>
+              </Link>
+
+              {/* Primary Healthcare Services */}
+              <div className="navbar__mobile-section-title">
                 Healthcare Services
               </div>
-              {MAIN_NAV_LINKS.map(link => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className={`navbar__mobile-link ${location.pathname === link.href ||
-                    (link.href !== '/' && location.pathname.startsWith(link.href)) ? 'active' : ''}`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              <div className="navbar__mobile-grid">
+                {MAIN_NAV_LINKS.map(link => {
+                  const Icon = link.icon;
+                  const isActive = location.pathname === link.href ||
+                    (link.href !== '/' && location.pathname.startsWith(link.href));
+                  return (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`navbar__mobile-card ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon size={18} className="navbar__mobile-card-icon" />
+                      <span className="navbar__mobile-card-label">{link.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
 
               {/* Resources & More */}
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #47615f)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '16px 16px 4px 16px' }}>
+              <div className="navbar__mobile-section-title" style={{ marginTop: '14px' }}>
                 Platform & Resources
               </div>
-              {MORE_NAV_LINKS.map(link => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className={`navbar__mobile-link ${location.pathname === link.href ? 'active' : ''}`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              <div className="navbar__mobile-list">
+                {MORE_NAV_LINKS.map(link => {
+                  const Icon = link.icon;
+                  const isActive = location.pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`navbar__mobile-list-item ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon size={16} style={{ color: '#5eead4', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#ffffff' }}>{link.label}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.65)' }}>{link.desc}</div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
 
-              {/* Provider Quick Links */}
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #47615f)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '16px 16px 4px 16px' }}>
+              {/* Provider Quick Registration Links */}
+              <div className="navbar__mobile-section-title" style={{ marginTop: '14px' }}>
                 For Healthcare Providers
               </div>
-              <Link to="/register/doctor" className="navbar__mobile-link">Doctor Registration</Link>
-              <Link to="/register/facility" className="navbar__mobile-link">Hospital / Clinic Registration</Link>
-              <Link to="/register/pharmacy" className="navbar__mobile-link">Pharmacy Registration</Link>
-              <Link to="/register/ambulance" className="navbar__mobile-link">Ambulance Fleet Registration</Link>
-
-              {user && (
-                <>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #47615f)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '16px 16px 4px 16px' }}>
-                    Account Portal
-                  </div>
-                  <Link to={getDashboard(user.role)} className="navbar__mobile-link">
-                    <LayoutDashboard style={{ width: 16, height: 16 }} /> Dashboard
-                  </Link>
-                </>
-              )}
+              <div className="navbar__mobile-provider-links">
+                <Link to="/register/doctor" onClick={() => setMobileOpen(false)}>Doctor Registration</Link>
+                <Link to="/register/facility" onClick={() => setMobileOpen(false)}>Hospital Registration</Link>
+                <Link to="/register/pharmacy" onClick={() => setMobileOpen(false)}>Pharmacy Registration</Link>
+              </div>
             </div>
 
+            {/* Mobile Footer Actions */}
             <div className="navbar__mobile-footer">
               {user ? (
                 <>
-                  <div style={{ padding: '10px 14px', background: 'var(--color-primary-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-primary-100)' }}>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text)' }}>{user.name}</div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{user.email}</div>
+                  <div className="navbar__mobile-user-card">
+                    <div className="navbar__avatar">{initials}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#5eead4' }}>{user.role?.replace(/_/g, ' ')}</div>
+                    </div>
                   </div>
+                  <Link
+                    to={getDashboard(user.role)}
+                    onClick={() => setMobileOpen(false)}
+                    className="navbar__mobile-cta-btn"
+                    style={{ background: 'rgba(94, 234, 212, 0.15)', color: '#5eead4', border: '1px solid rgba(94, 234, 212, 0.3)' }}
+                  >
+                    <LayoutDashboard size={16} />
+                    <span>Open Dashboard</span>
+                  </Link>
                   <button
                     onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px',
-                      borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
-                      background: 'var(--color-error-bg)', color: 'var(--color-error)',
-                      fontSize: 'var(--text-sm)', fontWeight: 700, width: '100%',
-                      fontFamily: 'var(--font-body)'
-                    }}
+                    className="navbar__mobile-cta-btn"
+                    style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                   >
-                    <LogOut style={{ width: 15, height: 15 }} /> Sign Out
+                    <LogOut size={16} />
+                    <span>Sign Out</span>
                   </button>
                 </>
               ) : (
-                <>
-                  <Link to="/signin" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Enter Portal</Link>
-                  <Link to="/register" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Become a Member</Link>
-                </>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <Link
+                    to="/signin"
+                    onClick={() => setMobileOpen(false)}
+                    className="navbar__mobile-cta-btn"
+                    style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                  >
+                    <LogIn size={15} />
+                    <span>Sign In</span>
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="navbar__mobile-cta-btn"
+                    style={{ background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', color: '#ffffff', border: 'none' }}
+                  >
+                    <UserPlus size={15} />
+                    <span>Register</span>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
