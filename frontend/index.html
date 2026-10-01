@@ -4,32 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Primary SEO -->
+    <!-- Primary SEO & Trust Verification -->
     <title>Niramoy — Healthcare Made Simple | Rajshahi Doctor & Pharmacy Directory</title>
-    <meta name="description" content="Find trusted doctors, discover pharmacies, and manage your healthcare journey with Niramoy — Rajshahi's modern digital healthcare platform. 350+ verified healthcare professionals." />
-    <meta name="keywords" content="Niramoy, Rajshahi doctors, doctor directory Bangladesh, pharmacy Rajshahi, healthcare platform, find doctor Rajshahi" />
-    <meta name="author" content="Niramoy Health" />
-    <meta name="theme-color" content="#0d7c6e" />
+    <meta name="description" content="Find trusted doctors, discover pharmacies, and manage your healthcare journey with Niramoy — Rajshahi's modern digital healthcare platform. 370+ verified healthcare professionals." />
+    <meta name="keywords" content="Niramoy, Rajshahi doctors, doctor directory Bangladesh, pharmacy Rajshahi, healthcare platform, find doctor Rajshahi, hospital directory" />
+    <meta name="author" content="Niramoy Digital Healthcare" />
+    <meta name="publisher" content="Niramoy Healthcare Platform" />
+    <meta name="copyright" content="Niramoy Healthcare" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="theme-color" content="#042621" />
 
-    <!-- Open Graph -->
+    <!-- Canonical URL matching live Vercel domain -->
+    <link rel="canonical" href="https://niramoy-health.vercel.app" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Niramoy — Healthcare Made Simple" />
-    <meta property="og:description" content="Find trusted doctors, pharmacies, and healthcare services in Rajshahi. 350+ verified healthcare professionals." />
-    <meta property="og:url" content="https://niramoy.vercel.app" />
-    <meta property="og:site_name" content="Niramoy" />
+    <meta property="og:description" content="Find trusted doctors, pharmacies, and healthcare services in Rajshahi. 370+ verified healthcare professionals." />
+    <meta property="og:url" content="https://niramoy-health.vercel.app" />
+    <meta property="og:site_name" content="Niramoy Digital Health" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Niramoy — Healthcare Made Simple" />
     <meta name="twitter:description" content="Find trusted doctors, pharmacies, and healthcare services in Rajshahi." />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='13' fill='%230d7c6e'/><path d='M14 34V15c0-1.1.9-2 2-2s2 .9 2 2v18c0 1.1-.9 2-2 2s-2-.9-2-2z' fill='white'/><path d='M16 16.5L24 28.5L27 24L32 33' stroke='%2334d399' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M30 33V15c0-1.1.9-2 2-2s2 .9 2 2v18c0 1.1-.9 2-2 2s-2-.9-2-2z' fill='white'/><circle cx='24' cy='18' r='2.5' fill='%235eead4'/></svg>" />
+    <!-- Favicon (Physical file in public/ directory) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Preconnect for fonts -->
+    <!-- Preconnect for Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Schema.org Medical Organization Structured Data (Establishes site credibility) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalOrganization",
+      "name": "Niramoy Healthcare",
+      "alternateName": "Niramoy Digital Health",
+      "url": "https://niramoy-health.vercel.app",
+      "logo": "https://niramoy-health.vercel.app/favicon.svg",
+      "description": "Verified physician directory, doctor appointment scheduling, pharmacy directory, and emergency healthcare network in Rajshahi, Bangladesh.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Rajshahi",
+        "addressRegion": "Rajshahi Division",
+        "addressCountry": "BD"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Emergency & Patient Care",
+        "telephone": "+8801700000000",
+        "availableLanguage": ["Bengali", "English"]
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

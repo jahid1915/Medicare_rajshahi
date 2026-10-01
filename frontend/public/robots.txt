@@ -1,0 +1,28 @@
+# Robots.txt for Niramoy Healthcare Platform
+# Domain: https://niramoy-health.vercel.app
+
+User-agent: *
+Allow: /
+Allow: /doctors
+Allow: /hospitals
+Allow: /diagnostics
+Allow: /pharmacies
+Allow: /ambulance
+Allow: /ai
+Allow: /health-tips
+Allow: /facilities
+Allow: /about
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+
+# Restrict private and portal management routes
+Disallow: /admin/
+Disallow: /hospital-portal/
+Disallow: /pharmacy-portal/
+Disallow: /doctor-portal/
+Disallow: /dashboard/
+Disallow: /api/
+
+Sitemap: https://niramoy-health.vercel.app/sitemap.xml
