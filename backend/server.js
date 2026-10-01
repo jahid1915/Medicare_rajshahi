@@ -70,7 +70,8 @@ app.get("/api", (req, res) => {
       "/api/appointments",
       "/api/pharmacy-orders",
       "/api/prescriptions",
-      "/api/payments"
+      "/api/payments",
+      "/api/ai"
     ]
   });
 });
@@ -87,6 +88,7 @@ app.use("/api/medicines",       require("./routes/medicines"));
 app.use("/api/pharmacy-orders", require("./routes/pharmacyOrders"));
 app.use("/api/prescriptions",   require("./routes/prescriptions"));
 app.use("/api/notifications",   require("./routes/notifications"));
+app.use("/api/ai",              require("./routes/ai"));
 
 // Serve Frontend Static Build if present (Single Fullstack Deployment)
 const frontendDist = path.join(__dirname, "../frontend/dist");

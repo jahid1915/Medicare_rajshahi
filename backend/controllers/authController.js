@@ -161,10 +161,10 @@ const hashOtp = (otp) => crypto.createHash("sha256").update(String(otp).trim()).
  */
 exports.sendOtp = async (req, res, next) => {
   try {
-    const { phone, email, purpose = "PATIENT_SIGNUP" } = req.body;
+    const { phone, email, purpose = "PATIENT_SIGNUP", channel } = req.body;
 
     if (!phone && !email) {
-      return errorResponse(res, "Mobile phone number is required to receive verification code", 422);
+      return errorResponse(res, "Mobile phone number or email is required to receive verification code", 422);
     }
 
     let normalizedPhone = null;
@@ -172,18 +172,21 @@ exports.sendOtp = async (req, res, next) => {
 
     if (phone) {
       const norm = normalizePhoneNumber(phone);
-      if (!norm.isValid) {
+      if (norm.isValid) {
+        normalizedPhone = norm.local;
+      } else if (!email || channel !== "email") {
         return errorResponse(res, "Please provide a valid 11-digit Bangladeshi mobile number (e.g., 017XXXXXXXX)", 422, "INVALID_PHONE");
       }
-      normalizedPhone = norm.local;
     }
 
     if (email) {
       cleanEmail = email.trim().toLowerCase();
     }
 
+    const useEmail = channel === "email" || (!normalizedPhone && cleanEmail);
+
     // Rate-limiting check: enforce 60s cooldown on the target identifier
-    const searchFilter = normalizedPhone ? { phone: normalizedPhone } : { email: cleanEmail };
+    const searchFilter = useEmail && cleanEmail ? { email: cleanEmail } : { phone: normalizedPhone };
     const latestOtp = await OtpVerification.findOne(searchFilter).sort({ createdAt: -1 });
 
     if (latestOtp && latestOtp.last_resend_at) {
@@ -222,26 +225,26 @@ exports.sendOtp = async (req, res, next) => {
       verified: false
     });
 
-    // Dispatch OTP: SMS primary, Email fallback if email-only
-    if (normalizedPhone) {
-      await sendOtpSms({ phone: normalizedPhone, otp, expiryMinutes: 5 });
-    } else if (cleanEmail) {
+    // Dispatch OTP: Email if useEmail, else SMS
+    if (useEmail && cleanEmail) {
       await sendOtpEmail({
         email: cleanEmail,
         otp,
         purpose: "Niramoy Healthcare Authentication"
       });
+    } else if (normalizedPhone) {
+      await sendOtpSms({ phone: normalizedPhone, otp, expiryMinutes: 5 });
     }
 
     // Return strictly sanitized response — ZERO OTP exposure
     return successResponse(res, {
-      destination: normalizedPhone || cleanEmail,
-      channel: normalizedPhone ? "sms" : "email",
+      destination: useEmail ? cleanEmail : normalizedPhone,
+      channel: useEmail ? "email" : "sms",
       expires_in_seconds: 300,
       resend_available_in_seconds: 60,
-      message: normalizedPhone 
-        ? `Verification code sent via SMS to ${normalizedPhone.slice(0, 3)}****${normalizedPhone.slice(-3)}`
-        : `Verification code sent to your email`
+      message: useEmail
+        ? `Verification code sent to your email (${cleanEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '***' + c)})`
+        : `Verification code sent via SMS to ${normalizedPhone.slice(0, 3)}****${normalizedPhone.slice(-3)}`
     }, "Verification code dispatched successfully");
   } catch (err) {
     next(err);
@@ -276,16 +279,25 @@ exports.verifyOtp = async (req, res, next) => {
 
     let searchFilter = null;
     let normalizedPhone = null;
+    const cleanEmail = email ? email.trim().toLowerCase() : null;
 
     if (phone) {
       const norm = normalizePhoneNumber(phone);
-      if (!norm.isValid) {
+      if (norm.isValid) {
+        normalizedPhone = norm.local;
+      } else if (!cleanEmail || req.body.channel !== "email") {
         return errorResponse(res, "Invalid mobile phone number", 422, "INVALID_PHONE");
       }
-      normalizedPhone = norm.local;
+    }
+
+    const useEmail = req.body.channel === "email" || (!normalizedPhone && cleanEmail);
+
+    if (useEmail && cleanEmail) {
+      searchFilter = { email: cleanEmail, verified: false };
+    } else if (normalizedPhone) {
       searchFilter = { phone: normalizedPhone, verified: false };
-    } else if (email) {
-      searchFilter = { email: email.trim().toLowerCase(), verified: false };
+    } else if (cleanEmail) {
+      searchFilter = { email: cleanEmail, verified: false };
     } else {
       return errorResponse(res, "Mobile phone number or email is required", 422);
     }
@@ -330,32 +342,40 @@ exports.verifyOtp = async (req, res, next) => {
     // Find or create patient
     const userSearch = [];
     if (normalizedPhone) userSearch.push({ phone: normalizedPhone });
-    if (email) userSearch.push({ email: email.trim().toLowerCase() });
+    if (cleanEmail) userSearch.push({ email: cleanEmail });
 
     let user = await User.findOne({ $or: userSearch });
     let isNewUser = false;
 
     if (!user) {
-      // Minimal verified patient creation: phone, ID, role: 'patient', timestamps
-      user = await User.create({
+      // Verified patient creation: phone, email, password, role: 'patient'
+      const newUserData = {
         name: req.body.name ? req.body.name.trim() : "Patient",
         phone: normalizedPhone || undefined,
-        email: email ? email.trim().toLowerCase() : undefined,
+        email: cleanEmail || undefined,
         role: "patient",
         is_verified: true,
+        is_email_verified: !!cleanEmail,
         is_active: true
-      });
+      };
+      if (req.body.password) {
+        newUserData.password = req.body.password;
+      }
+      user = await User.create(newUserData);
       isNewUser = true;
     } else {
       user.is_verified = true;
+      if (cleanEmail) user.is_email_verified = true;
       user.last_login = new Date();
-      // If patient had no phone, save it
       if (normalizedPhone && !user.phone) user.phone = normalizedPhone;
-      // If user supplied name during OTP verification
+      if (cleanEmail && !user.email) user.email = cleanEmail;
       if (req.body.name && (user.name === "Patient" || !user.name)) {
         user.name = req.body.name.trim();
       }
-      await user.save({ validateBeforeSave: false });
+      if (req.body.password && !user.password) {
+        user.password = req.body.password;
+      }
+      await user.save();
     }
 
     const token = generateToken(user);

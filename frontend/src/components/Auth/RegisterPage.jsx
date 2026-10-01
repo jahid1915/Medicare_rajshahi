@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hospitalsAPI, pharmaciesAPI } from '../../services/api';
@@ -109,13 +109,21 @@ export default function RegisterPage() {
     else if (path.includes('/register/ambulance')) setActiveRole('ambulance_op');
   }, [location.pathname]);
 
-  // Patient Phone OTP Registration States
-  const [patientPhone, setPatientPhone] = useState('');
-  const [patientName, setPatientName] = useState('');
-  const [otpStep, setOtpStep] = useState('phone'); // 'phone' | 'verify'
-  const [otpCode, setOtpCode] = useState('');
+  // Patient Registration & OTP States (Full Name, Email, Phone, Password, Confirm Password)
+  const [patientForm, setPatientForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    channel: 'email' // 'email' | 'phone'
+  });
+  const [showPatientPassword, setShowPatientPassword] = useState(false);
+  const [otpStep, setOtpStep] = useState(location.state?.step === 'verify' ? 'verify' : 'form'); // 'form' | 'verify'
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpLoading, setOtpLoading] = useState(false);
+  const otpInputRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)];
 
   // Resend Countdown Timer
   useEffect(() => {
@@ -125,20 +133,75 @@ export default function RegisterPage() {
     }
   }, [otpCountdown]);
 
+  const handleDigitChange = (index, value) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+    if (digit && index < 5) {
+      otpInputRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleDigitKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs[index - 1].current?.focus();
+    }
+  };
+
+  const handleDigitPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const newDigits = ['', '', '', '', '', ''];
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setOtpDigits(newDigits);
+    const focusIndex = Math.min(pasted.length, 5);
+    otpInputRefs[focusIndex].current?.focus();
+  };
+
   const handlePatientSendOtp = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
-    if (!patientPhone.trim()) {
-      setError('Please enter your 11-digit mobile phone number (e.g. 017XXXXXXXX).');
+
+    if (!patientForm.name.trim()) {
+      setError('Please enter your full name (আপনার নাম লিখুন).');
       return;
     }
+    if (!patientForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientForm.email.trim())) {
+      setError('Please enter a valid email address (সঠিক ইমেইল লিখুন).');
+      return;
+    }
+    if (!patientForm.phone.trim() || !/^01[3-9]\d{8}$/.test(patientForm.phone.trim().replace(/\s+/g, ''))) {
+      setError('Please enter an 11-digit Bangladeshi mobile phone number (e.g. 017XXXXXXXX).');
+      return;
+    }
+    if (!patientForm.password || patientForm.password.length < 6) {
+      setError('Password must be at least 6 characters (কমপক্ষে ৬ সংখ্যার পাসওয়ার্ড দিন).');
+      return;
+    }
+    if (patientForm.password !== patientForm.confirmPassword) {
+      setError('Passwords do not match (উভয় পাসওয়ার্ড একই হতে হবে).');
+      return;
+    }
+
     setOtpLoading(true);
     try {
-      await sendOtp({ phone: patientPhone.trim() });
+      await sendOtp({
+        name: patientForm.name.trim(),
+        email: patientForm.email.trim().toLowerCase(),
+        phone: patientForm.phone.trim(),
+        channel: patientForm.channel,
+        purpose: 'PATIENT_REGISTRATION'
+      });
       setOtpStep('verify');
+      setOtpDigits(['', '', '', '', '', '']);
       setOtpCountdown(60);
+      setTimeout(() => otpInputRefs[0].current?.focus(), 150);
     } catch (err) {
-      setError(err.message || 'Failed to send OTP code.');
+      setError(err.message || 'Failed to send verification code.');
     } finally {
       setOtpLoading(false);
     }
@@ -147,16 +210,20 @@ export default function RegisterPage() {
   const handlePatientVerifyOtp = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
-    if (!otpCode || otpCode.trim().length !== 6) {
+    const fullOtp = otpDigits.join('');
+    if (!fullOtp || fullOtp.length !== 6) {
       setError('Please enter the 6-digit verification code.');
       return;
     }
     setOtpLoading(true);
     try {
-      const data = await verifyOtp({
-        phone: patientPhone.trim(),
-        otp: otpCode.trim(),
-        name: patientName.trim() || undefined
+      await verifyOtp({
+        name: patientForm.name.trim(),
+        email: patientForm.email.trim().toLowerCase(),
+        phone: patientForm.phone.trim(),
+        password: patientForm.password,
+        channel: patientForm.channel,
+        otp: fullOtp
       });
       navigate(from || '/dashboard', { replace: true });
     } catch (err) {
@@ -338,11 +405,11 @@ export default function RegisterPage() {
       <div className="auth-form-side" style={{ padding: 'var(--sp-8) var(--sp-4)' }}>
         <div className="auth-form-card" style={{ maxWidth: 580, padding: '36px 32px' }}>
           <h1 className="auth-form-card__title" style={{ fontSize: '1.65rem', marginBottom: 4 }}>
-            Create Niramoy Account
+            {activeRole === 'patient' ? 'Become a Member' : 'Create Niramoy Account'}
           </h1>
           <p className="auth-form-card__subtitle" style={{ marginBottom: 20 }}>
             Already registered?{' '}
-            <Link to="/signin" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Sign In to Portal</Link>
+            <Link to="/signin" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Enter Portal</Link>
           </p>
 
           {/* Role Switcher Tabs */}
@@ -384,107 +451,253 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ═══ PATIENT PHONE OTP REGISTRATION ═══ */}
+          {/* ═══ PATIENT MANDATORY EMAIL/PHONE OTP REGISTRATION ═══ */}
           {activeRole === 'patient' ? (
             <div style={{ marginBottom: 20 }}>
               <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '18px', fontSize: '0.82rem', color: 'var(--color-text-primary)' }}>
-                <strong>📱 Quick Patient Signup (দ্রুত রোগী নিবন্ধন):</strong>
-                <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)' }}>
-                  Sign up instantly using your mobile number. No password or lengthy forms required. You can complete your medical profile anytime from your dashboard.
+                <strong>🛡️ Verified Patient Membership (রোগী নিবন্ধন):</strong>
+                <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                  Join Niramoy to manage your medical prescriptions, doctor bookings, and diagnostics with two-factor verified account protection.
                 </p>
               </div>
 
-              {otpStep === 'phone' ? (
+              {otpStep !== 'verify' ? (
                 <form onSubmit={handlePatientSendOtp} className="auth-form" noValidate>
+                  {/* Segmented control for preferred OTP delivery */}
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Primary Verification Method (যাচাইকরণ মাধ্যম)
+                    </label>
+                    <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: 3, border: '1px solid var(--color-border)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPatientForm(p => ({ ...p, channel: 'email' }))}
+                        style={{
+                          flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px',
+                          background: patientForm.channel === 'email' ? 'white' : 'transparent',
+                          color: patientForm.channel === 'email' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                          fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                          boxShadow: patientForm.channel === 'email' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Mail style={{ width: 14, height: 14 }} />
+                        Email OTP (ইমেইল ওটিপি)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPatientForm(p => ({ ...p, channel: 'phone' }))}
+                        style={{
+                          flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px',
+                          background: patientForm.channel === 'phone' ? 'white' : 'transparent',
+                          color: patientForm.channel === 'phone' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                          fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                          boxShadow: patientForm.channel === 'phone' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Phone style={{ width: 14, height: 14 }} />
+                        Phone OTP (মোবাইল ওটিপি)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Full Name */}
                   <div className="auth-field">
-                    <label htmlFor="patient-reg-name">Full Name (আপনার পুরো নাম - ঐচ্ছিক)</label>
+                    <label htmlFor="patient-reg-name">Full Name (পূর্ণ নাম) *</label>
                     <div className="auth-input-wrap">
                       <User style={{ width: 16, height: 16 }} />
                       <input
                         id="patient-reg-name"
                         type="text"
-                        placeholder="e.g. Rahim Uddin"
-                        value={patientName}
-                        onChange={e => setPatientName(e.target.value)}
+                        placeholder="e.g. Jahid Hasan"
+                        value={patientForm.name}
+                        onChange={e => setPatientForm(p => ({ ...p, name: e.target.value }))}
+                        required
                         disabled={otpLoading}
                       />
                     </div>
                   </div>
 
-                  <div className="auth-field">
-                    <label htmlFor="patient-reg-phone">Mobile Phone Number (মোবাইল নম্বর) *</label>
-                    <div className="auth-input-wrap">
-                      <Phone style={{ width: 16, height: 16 }} />
-                      <input
-                        id="patient-reg-phone"
-                        type="tel"
-                        placeholder="e.g. 017XXXXXXXX"
-                        value={patientPhone}
-                        onChange={e => setPatientPhone(e.target.value)}
-                        autoComplete="tel"
-                        required
-                        disabled={otpLoading}
-                        style={{ fontSize: '1rem', letterSpacing: '0.5px' }}
-                      />
+                  {/* Email & Phone Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    <div className="auth-field">
+                      <label htmlFor="patient-reg-email">
+                        Email Address (ইমেইল ঠিকানা) {patientForm.channel === 'email' ? '*' : '(Optional)'}
+                      </label>
+                      <div className="auth-input-wrap">
+                        <Mail style={{ width: 16, height: 16 }} />
+                        <input
+                          id="patient-reg-email"
+                          type="email"
+                          placeholder="e.g. jahid@example.com"
+                          value={patientForm.email}
+                          onChange={e => setPatientForm(p => ({ ...p, email: e.target.value }))}
+                          autoComplete="email"
+                          required
+                          disabled={otpLoading}
+                        />
+                      </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                      A 6-digit OTP will be dispatched via MIM SMS to your mobile phone.
-                    </span>
+
+                    <div className="auth-field">
+                      <label htmlFor="patient-reg-phone">
+                        Mobile Phone Number (মোবাইল নম্বর) {patientForm.channel === 'phone' ? '*' : '(Optional)'}
+                      </label>
+                      <div className="auth-input-wrap">
+                        <Phone style={{ width: 16, height: 16 }} />
+                        <input
+                          id="patient-reg-phone"
+                          type="tel"
+                          placeholder="e.g. 017XXXXXXXX"
+                          value={patientForm.phone}
+                          onChange={e => setPatientForm(p => ({ ...p, phone: e.target.value }))}
+                          autoComplete="tel"
+                          required
+                          disabled={otpLoading}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Password & Confirm Password Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 4 }}>
+                    <div className="auth-field">
+                      <label htmlFor="patient-reg-password">Create Password (পাসওয়ার্ড) *</label>
+                      <div className="auth-input-wrap">
+                        <Lock style={{ width: 16, height: 16 }} />
+                        <input
+                          id="patient-reg-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Min 6 characters"
+                          value={patientForm.password}
+                          onChange={e => setPatientForm(p => ({ ...p, password: e.target.value }))}
+                          autoComplete="new-password"
+                          required
+                          disabled={otpLoading}
+                        />
+                        <button
+                          type="button"
+                          className="auth-input-action"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="auth-field">
+                      <label htmlFor="patient-reg-confirm">Confirm Password (পুনরায় পাসওয়ার্ড) *</label>
+                      <div className="auth-input-wrap">
+                        <Lock style={{ width: 16, height: 16 }} />
+                        <input
+                          id="patient-reg-confirm"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Repeat password"
+                          value={patientForm.confirmPassword}
+                          onChange={e => setPatientForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                          autoComplete="new-password"
+                          required
+                          disabled={otpLoading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', margin: '8px 0 16px 0' }}>
+                    {patientForm.channel === 'email'
+                      ? 'A secure 6-digit OTP verification code will be sent to your email address.'
+                      : 'A secure 6-digit OTP verification code will be dispatched to your phone number via SMS.'}
+                  </p>
 
                   <button
                     id="btn-patient-reg-send-otp"
                     type="submit"
                     className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-3)', gap: 8 }}
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', gap: 8 }}
                     disabled={otpLoading}
                   >
                     {otpLoading ? (
-                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Sending OTP…</>
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Sending Verification Code…</>
                     ) : (
                       <>
-                        Send Verification Code (ওটিপি পাঠান)
+                        Become a Member (ওটিপি যাচাই করুন)
                         <ArrowRight style={{ width: 16, height: 16 }} />
                       </>
                     )}
                   </button>
                 </form>
               ) : (
+                /* ═══ 6-DIGIT OTP VERIFICATION SCREEN ═══ */
                 <form onSubmit={handlePatientVerifyOtp} className="auth-form" noValidate>
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2eceb', borderRadius: '12px', padding: '12px', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#475569' }}>
-                        Code sent to: <strong>{patientPhone}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => { setOtpStep('phone'); setOtpCode(''); setError(''); }}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        Change
-                      </button>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2eceb', borderRadius: '12px', padding: '16px', marginBottom: 20, textAlign: 'center' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(13,124,110,0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px auto' }}>
+                      <CheckCircle2 style={{ width: 22, height: 22 }} />
                     </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--color-text-primary)' }}>
+                      Verify Your Account
+                    </h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                      We sent a 6-digit verification code to:{' '}
+                      <strong style={{ color: 'var(--color-text-primary)' }}>
+                        {patientForm.channel === 'email' ? maskIdentifier(patientForm.email) : maskIdentifier(patientForm.phone)}
+                      </strong>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep('phone'); setError(''); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', marginTop: 6 }}
+                    >
+                      Change contact details
+                    </button>
                   </div>
 
-                  <div className="auth-field">
-                    <label htmlFor="patient-reg-otp">Enter 6-Digit Verification Code (৬ সংখ্যার ওটিপি)</label>
-                    <div className="auth-input-wrap">
-                      <Lock style={{ width: 16, height: 16 }} />
-                      <input
-                        id="patient-reg-otp"
-                        type="text"
-                        maxLength={6}
-                        placeholder="••••••"
-                        value={otpCode}
-                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        autoFocus
-                        required
-                        disabled={otpLoading}
-                        style={{
-                          fontSize: '1.4rem', letterSpacing: '6px', textAlign: 'center', fontWeight: 800,
-                          fontFamily: 'monospace'
-                        }}
-                      />
+                  <div className="auth-field" style={{ marginBottom: 20 }}>
+                    <label style={{ textAlign: 'center', display: 'block', marginBottom: 12, fontWeight: 700, fontSize: '0.9rem' }}>
+                      Enter 6-Digit Code (৬ সংখ্যার কোড লিখুন)
+                    </label>
+                    <div
+                      onPaste={handleDigitPaste}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+                        gap: '8px',
+                        maxWidth: '360px',
+                        margin: '0 auto'
+                      }}
+                    >
+                      {otpDigits.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={otpInputRefs[idx]}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          value={digit}
+                          onChange={e => handleDigitChange(idx, e.target.value)}
+                          onKeyDown={e => handleDigitKeyDown(idx, e)}
+                          disabled={otpLoading}
+                          aria-label={`Digit ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '52px',
+                            fontSize: '1.5rem',
+                            fontWeight: '800',
+                            textAlign: 'center',
+                            borderRadius: '10px',
+                            border: digit ? '2px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                            background: digit ? 'rgba(13,124,110,0.04)' : 'white',
+                            color: 'var(--color-text-primary)',
+                            outline: 'none',
+                            transition: 'all var(--trans-fast)',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
 
@@ -492,23 +705,23 @@ export default function RegisterPage() {
                     id="btn-patient-reg-verify-otp"
                     type="submit"
                     className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
-                    disabled={otpLoading || otpCode.length !== 6}
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', gap: 8 }}
+                    disabled={otpLoading || otpDigits.join('').length !== 6}
                   >
                     {otpLoading ? (
-                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Verifying…</>
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Activating Account…</>
                     ) : (
                       <>
-                        Verify & Create Account (অ্যাকাউন্ট তৈরি করুন)
+                        Verify & Complete Membership (যাচাই সম্পন্ন করুন)
                         <CheckCircle2 style={{ width: 16, height: 16 }} />
                       </>
                     )}
                   </button>
 
-                  <div style={{ marginTop: 14, textAlign: 'center' }}>
+                  <div style={{ marginTop: 16, textAlign: 'center' }}>
                     {otpCountdown > 0 ? (
-                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                        Resend code in <strong>{otpCountdown}s</strong>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                        Didn&apos;t receive the code? Resend in <strong>{otpCountdown}s</strong>
                       </span>
                     ) : (
                       <button
@@ -516,11 +729,11 @@ export default function RegisterPage() {
                         onClick={handlePatientSendOtp}
                         disabled={otpLoading}
                         style={{
-                          background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)',
-                          fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
+                          background: 'none', border: 'none', color: 'var(--color-primary)',
+                          fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
                         }}
                       >
-                        Resend Verification Code (পুনরায় কোড পাঠান)
+                        Resend Code (পুনরায় কোড পাঠান)
                       </button>
                     )}
                   </div>

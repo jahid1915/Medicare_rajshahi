@@ -7,24 +7,40 @@ import {
 
 const CATEGORIES = [
   'All',
+  'Heart Health',
+  'Diabetes',
   'Preventive Healthcare',
-  'General Wellness',
   'Nutrition',
-  'Medicine Awareness',
-  'Maternal Health',
+  'Mental Wellness',
+  'Women\'s Health',
   'Child Health',
-  'Emergency Awareness',
-  'Chronic Disease Education'
+  'Elderly Care',
+  'Skin Care',
+  'Respiratory Health',
+  'Digestive Health',
+  'Eye Care',
+  'Dental Health',
+  'First Aid',
+  'Sleep & Recovery',
+  'Medicine Awareness',
+  'Emergency Awareness'
 ];
 
 const HEALTH_ARTICLES = [
   {
     id: 'art-1',
+    slug: 'managing-seasonal-dengue-platelet-monitoring',
     title: 'Managing Seasonal Dengue & Platelet Monitoring in Rajshahi',
     category: 'Preventive Healthcare',
     author: 'Dr. M. A. Rahman, MBBS, FCPS (Medicine)',
     publishedDate: 'Sep 28, 2026',
     readTime: '5 min read',
+    tags: ['Dengue', 'RMCH', 'Platelet', 'Fever', 'Infectious Disease'],
+    keyPoints: [
+      'Early hydration with ORS and clear fluids is the most effective intervention.',
+      'Strictly avoid NSAIDs (Aspirin, Ibuprofen, Diclofenac) to prevent gastrointestinal bleeding.',
+      'Warning signs requiring urgent hospital admission include persistent vomiting, mucosal bleeding, and severe abdominal pain.'
+    ],
     summary: 'Essential clinical guidelines on recognizing early warning signs of dengue hemorrhagic fever, hydration protocols, and when hospital admission is mandatory at RMCH.',
     content: `
 Dengue fever continues to be an annual public health challenge across Rajshahi and surrounding districts. Early clinical suspicion and rigorous monitoring of fluid intake and platelet trends are the cornerstones of successful outpatient management.
@@ -47,16 +63,23 @@ If the patient exhibits any of the following, do not delay seeking hospital care
 - **Strict Avoidance of NSAIDs:** Never take Aspirin, Ibuprofen, or Diclofenac, as they dramatically increase the risk of gastrointestinal bleeding. Use only Paracetamol within safe daily limits (maximum 3g/24 hours for adults).
 - **Platelet Count:** Maintain regular CBC tests as directed by your physician. Platelet count below 50,000/μL or rapid decline requires close clinical supervision.
     `,
-    relatedIds: ['art-5', 'art-7'],
+    relatedIds: ['art-5', 'art-16'],
     featured: true
   },
   {
     id: 'art-2',
-    title: 'Understanding Diabetes Mellitus: Fasting vs Postprandial Targets',
-    category: 'Chronic Disease Education',
+    slug: 'understanding-diabetes-mellitus-targets',
+    title: 'Understanding Diabetes Mellitus: Fasting vs Postprandial Targets & Foot Care',
+    category: 'Diabetes',
     author: 'Dr. Nasreen Sultana, MBBS, MD (Endocrinology)',
     publishedDate: 'Sep 24, 2026',
     readTime: '6 min read',
+    tags: ['Diabetes', 'HbA1c', 'Endocrinology', 'Glucose', 'Diet'],
+    keyPoints: [
+      'Target fasting glucose is 4.4–7.0 mmol/L and 2-hour postprandial is under 8.5–10.0 mmol/L.',
+      'Daily 30-minute brisk walking dramatically improves cellular insulin sensitivity.',
+      'Daily diabetic foot inspections prevent undetected neuropathic ulcerations.'
+    ],
     summary: 'A comprehensive guide to interpreting HbA1c, maintaining healthy glucose levels through dietary discipline, and preventing diabetic retinopathy and neuropathy.',
     content: `
 Type 2 Diabetes Mellitus affects a significant portion of urban and semi-urban adults in Bangladesh. Consistent glycemic control prevents devastating long-term microvascular and macrovascular complications.
@@ -70,17 +93,66 @@ Type 2 Diabetes Mellitus affects a significant portion of urban and semi-urban a
 - Prioritize high-fiber complex carbohydrates (unpolished brown rice, whole wheat atta, vegetables) over refined white rice and sweetened tea.
 - Invert meal proportions: dedicate 50% of the plate to non-starchy vegetables, 25% to lean protein (fish, dal, egg whites), and 25% to carbohydrates.
 - Regular 30-minute brisk walking at least 5 days a week improves insulin receptor sensitivity naturally.
+
+### Diabetic Foot Hygiene
+- Wash feet daily with lukewarm water and dry thoroughly, especially between the toes.
+- Never walk barefoot, even indoors, to avoid minor punctures that can progress to diabetic ulcers.
     `,
     relatedIds: ['art-3', 'art-7'],
     featured: false
   },
   {
     id: 'art-3',
+    slug: 'managing-hypertension-cardiovascular-health',
+    title: 'Managing Hypertension & Lowering Cardiovascular Risk in South Asia',
+    category: 'Heart Health',
+    author: 'Prof. Dr. A. K. M. Shamsuddin, MBBS, FCPS, MD (Cardiology)',
+    publishedDate: 'Sep 22, 2026',
+    readTime: '6 min read',
+    tags: ['Cardiology', 'Hypertension', 'Blood Pressure', 'Heart Attack', 'Salt'],
+    keyPoints: [
+      'Normal blood pressure is below 120/80 mmHg; sustained readings above 140/90 require medical management.',
+      'Limiting dietary sodium to under 5 grams (approx. 1 level teaspoon) daily lowers systolic BP by 5–8 mmHg.',
+      'Never discontinue antihypertensive medications abruptly without doctor instruction.'
+    ],
+    summary: 'Clinical advice on managing high blood pressure, minimizing salt intake, recognizing subtle heart attack warning signs, and preserving arterial elasticity.',
+    content: `
+Hypertension is known as the "silent killer" because elevated arterial pressure damages vital organs for years without causing noticeable symptoms.
+
+### Blood Pressure Classifications
+- **Optimal:** < 120/80 mmHg
+- **Elevated:** 120–129 / < 80 mmHg
+- **Stage 1 Hypertension:** 130–139 / 80–89 mmHg
+- **Stage 2 Hypertension:** ≥ 140/90 mmHg
+
+### Practical Sodium Reduction in Bangladeshi Diets
+- Eliminate added table salt on rice, salads, and cut fruits.
+- Limit processed savories, pickles (achar), and dried salted fish (shutki), which have exceptionally high sodium density.
+- Incorporate potassium-rich foods (bananas, green leafy vegetables, coconut water) to help counterbalance sodium effects.
+
+### Red-Flag Symptoms of Angina / Acute Coronary Syndrome
+Seek immediate emergency medical attention if you experience:
+- Crushing, squeezing retrosternal chest pain or pressure lasting more than 10 minutes.
+- Pain radiating to the jaw, neck, back, or left arm.
+- Accompanying cold diaphoresis (sweating), unexplained nausea, or lightheadedness.
+    `,
+    relatedIds: ['art-7', 'art-16'],
+    featured: false
+  },
+  {
+    id: 'art-4',
+    slug: 'safe-medicine-storage-antibiotic-stewardship',
     title: 'Safe Medicine Storage & Antibiotic Stewardship',
     category: 'Medicine Awareness',
     author: 'Prof. S. K. Das, MPharm, Clinical Pharmacologist',
     publishedDate: 'Sep 20, 2026',
     readTime: '4 min read',
+    tags: ['Antibiotics', 'Pharmacy', 'AMR', 'Medication Safety', 'Storage'],
+    keyPoints: [
+      'Antibiotics are ineffective against common viral colds, influenza, and COVID-19.',
+      'Always complete the exact duration prescribed to eliminate resistant bacteria.',
+      'Store oral antibiotic suspensions in the refrigerator (2°C–8°C) and discard after 7–14 days.'
+    ],
     summary: 'Why completing full antibiotic courses prevents antimicrobial resistance, and how humidity and heat affect everyday home medications in Bangladesh.',
     content: `
 Antimicrobial resistance (AMR) is one of the gravest threats to modern medical care. Misusing antibiotics for viral colds or stopping courses prematurely fosters resistant bacterial strains.
@@ -94,41 +166,55 @@ Antimicrobial resistance (AMR) is one of the gravest threats to modern medical c
 - Keep medicines away from direct sunlight, stove heat, and bathroom dampness.
 - Suspensions like reconstituted antibiotic syrups must be stored in the refrigerator (2°C–8°C) and discarded after 7–14 days as stated on the leaflet.
     `,
-    relatedIds: ['art-2', 'art-4'],
-    featured: false
-  },
-  {
-    id: 'art-4',
-    title: 'Essential Nutritional Milestones During Pregnancy',
-    category: 'Maternal Health',
-    author: 'Dr. Farhana Yasmin, MBBS, DGO, MCPS (Obs & Gynae)',
-    publishedDate: 'Sep 15, 2026',
-    readTime: '7 min read',
-    summary: 'Trimester-by-trimester nutritional advice, importance of folic acid and elemental iron supplementation, and warning signs of gestational hypertension.',
-    content: `
-A balanced maternal diet and consistent antenatal checkups (ANC) ensure optimal fetal organ development and protect the expectant mother from maternal morbidity.
-
-### Trimester Essentials
-- **First Trimester (Weeks 1–12):** Daily Folic Acid (400–800 mcg) is critical to prevent neural tube defects. Focus on hydration to combat morning nausea.
-- **Second Trimester (Weeks 13–27):** Increase dietary calcium and iron. Start elemental iron and calcium supplementation separated by at least 2 hours for optimal absorption.
-- **Third Trimester (Weeks 28–40):** High-quality protein intake supports rapid fetal brain and muscular growth.
-
-### Danger Signs in Pregnancy
-Contact your obstetrician immediately if you observe:
-- Sudden swelling of face and hands with persistent headache (indicative of pre-eclampsia)
-- Any vaginal spotting or bleeding
-- Reduced fetal movements after 28 weeks
-    `,
-    relatedIds: ['art-6', 'art-1'],
+    relatedIds: ['art-2', 'art-14'],
     featured: false
   },
   {
     id: 'art-5',
+    slug: 'pcos-awareness-maternal-health',
+    title: 'PCOS Awareness, Menstrual Health & Iron Deficiency Anemia in Women',
+    category: 'Women\'s Health',
+    author: 'Dr. Farhana Yasmin, MBBS, DGO, MCPS (Obs & Gynae)',
+    publishedDate: 'Sep 17, 2026',
+    readTime: '6 min read',
+    tags: ['PCOS', 'Maternal Health', 'Anemia', 'Gynecology', 'Nutrition'],
+    keyPoints: [
+      'Polycystic Ovary Syndrome (PCOS) is primarily a metabolic condition driven by insulin resistance.',
+      'Routine ferritin screening detects iron deficiency before frank anemia manifests.',
+      'Take iron supplements with Vitamin C (lemon juice) and avoid tea or milk for 2 hours.'
+    ],
+    summary: 'Clinical insights into identifying polycystic ovary syndrome, managing hormonal imbalances, and addressing high rates of microcytic hypochromic anemia in women.',
+    content: `
+Polycystic Ovary Syndrome (PCOS) and iron-deficiency anemia represent two of the most prevalent yet frequently underdiagnosed conditions impacting women across Bangladesh.
+
+### Understanding PCOS
+PCOS is a complex hormonal and metabolic condition characterized by:
+- Irregular or absent menstrual cycles (oligomenorrhea)
+- Elevated androgens causing facial hirsutism or severe acne
+- Polycystic ovarian morphology observed on pelvic ultrasound
+
+### Combating Iron-Deficiency Anemia
+- Symptoms: Chronic fatigue, pale conjunctiva/nail beds, brittle nails, shortness of breath upon mild exertion.
+- Dietary sources: Green leafy vegetables (kochushak, palong), liver, lentils, and small fish eaten with bones.
+- Supplement rules: Calcium and tannins in strong tea inhibit iron absorption. Always separate iron intake from dairy products and hot tea.
+    `,
+    relatedIds: ['art-6', 'art-7'],
+    featured: false
+  },
+  {
+    id: 'art-6',
+    slug: 'pediatric-fever-management-vaccination',
     title: 'Pediatric Fever Management & Dehydration Warning Signs',
     category: 'Child Health',
     author: 'Dr. K. M. Hossain, MBBS, DCH (Pediatrics)',
-    publishedDate: 'Sep 10, 2026',
+    publishedDate: 'Sep 14, 2026',
     readTime: '5 min read',
+    tags: ['Pediatrics', 'Child Health', 'Fever', 'Vaccines', 'Dehydration'],
+    keyPoints: [
+      'Sponge bath with lukewarm tap water only; never use ice water or alcohol rubs.',
+      'Dose paracetamol strictly by child weight (15 mg/kg per dose), not age guesswork.',
+      'Urgent medical care is needed if an infant has fewer than 4 wet diapers in 24 hours.'
+    ],
     summary: 'How to safely manage childhood fever, appropriate sponge bath techniques, weight-based paracetamol dosing, and identifying acute dehydration.',
     content: `
 Fever in infants and young children frequently alarms parents. Understanding normal physiological responses and precise red-flag symptoms helps protect your child safely.
@@ -145,16 +231,289 @@ Always consult your pediatrician or refer to prescription guidelines for weight-
 - Dry lips and tongue with absence of tears when crying
 - Fewer than 4 wet diapers in 24 hours
     `,
+    relatedIds: ['art-1', 'art-5'],
+    featured: false
+  },
+  {
+    id: 'art-7',
+    slug: 'heart-healthy-dietary-patterns',
+    title: 'Heart-Healthy Dietary Patterns for South Asian Lifestyles',
+    category: 'Nutrition',
+    author: 'Nusrat Jahan, BSc (Nutrition), MSc (Dietetics)',
+    publishedDate: 'Sep 11, 2026',
+    readTime: '5 min read',
+    tags: ['Nutrition', 'Cholesterol', 'Heart Health', 'Diet', 'Vegetables'],
+    keyPoints: [
+      'Limit cooking oil to no more than 500 mL per person per month.',
+      'Never repeatedly reuse fried vegetable oil, which creates carcinogenic trans-fats.',
+      'Include a small palm-sized portion (30g) of raw almonds or walnuts for essential omega-3 fatty acids.'
+    ],
+    summary: 'Practical dietary swaps for traditional Bangladeshi cooking to lower LDL cholesterol, reduce arterial inflammation, and regulate hypertension.',
+    content: `
+South Asians have a documented genetic predisposition to premature coronary artery disease. Modifying traditional cooking practices can dramatically lower cardiovascular risk.
+
+### Practical Kitchen Swaps
+- **Cooking Oil Moderation:** Restrict cooking oil to 500 mL per person per month. Avoid reheating vegetable oils repeatedly, which produces harmful trans-fats.
+- **Sodium Control:** Keep total salt intake under 5 grams (approx 1 level teaspoon) daily. Avoid table salt on raw salads and fruit.
+- **Incorporate Seeds & Nuts:** A small handful (30g) of unsalted almonds or walnuts provides cardioprotective omega-3 fatty acids.
+- **Spices as Antioxidants:** Turmeric, garlic, and ginger carry natural anti-inflammatory compounds that support vascular endothelium health.
+    `,
+    relatedIds: ['art-2', 'art-3'],
+    featured: false
+  },
+  {
+    id: 'art-8',
+    slug: 'recognizing-clinical-anxiety-depression',
+    title: 'Recognizing Clinical Anxiety, Depression & Stress De-escalation',
+    category: 'Mental Wellness',
+    author: 'Dr. Tanvir Ahmed, MBBS, MPhil (Psychiatry)',
+    publishedDate: 'Sep 08, 2026',
+    readTime: '5 min read',
+    tags: ['Mental Health', 'Anxiety', 'Depression', 'Psychiatry', 'Wellness'],
+    keyPoints: [
+      'Mental illness is a physiological brain health condition, not personal weakness or lack of willpower.',
+      'Persistent low mood or anhedonia (inability to feel pleasure) lasting over 2 weeks warrants professional evaluation.',
+      'Diaphragmatic 4-7-8 breathing activates the parasympathetic nervous system to de-escalate panic attacks.'
+    ],
+    summary: 'Breaking stigma around psychological distress, recognizing somatic symptoms of clinical anxiety, and when to consult a licensed psychiatrist in Rajshahi.',
+    content: `
+Mental health concerns in Bangladesh are frequently masked as vague somatic complaints—chronic headaches, unexplained palpitations, gastric distress, and insomnia. Recognizing psychological roots is the first step toward effective healing.
+
+### Recognizing Symptoms of Major Depressive Disorder (MDD)
+- Persistent depressed mood, emptiness, or tearfulness for more than 2 consecutive weeks.
+- Marked loss of interest in previously cherished hobbies and social interactions (anhedonia).
+- Sleep disturbances: early morning awakening or excessive hypersomnia.
+- Pervasive fatigue and feelings of excessive guilt or worthlessness.
+
+### Immediate Panic De-escalation (The 4-7-8 Technique)
+1. Inhale quietly through your nose for a mental count of 4 seconds.
+2. Hold your breath gently for a count of 7 seconds.
+3. Exhale completely through your mouth with a soft whoosh for a count of 8 seconds.
+4. Repeat 4 times to stimulate the vagus nerve and slow elevated heart rates.
+    `,
+    relatedIds: ['art-13', 'art-7'],
+    featured: false
+  },
+  {
+    id: 'art-9',
+    slug: 'preventing-falls-osteoporosis-elderly-care',
+    title: 'Preventing Falls, Osteoporosis & Managing Polypharmacy in Seniors',
+    category: 'Elderly Care',
+    author: 'Dr. Mahfuzur Rahman, MBBS, MD (Internal Medicine & Geriatrics)',
+    publishedDate: 'Sep 05, 2026',
+    readTime: '6 min read',
+    tags: ['Geriatrics', 'Elderly Care', 'Osteoporosis', 'Falls', 'Polypharmacy'],
+    keyPoints: [
+      'Ensure bathroom safety with non-slip mats and wall-mounted grab rails.',
+      'Annual DEXA bone scans identify silent osteopenia before hip or vertebral fractures occur.',
+      'Regularly review all active prescription medicines with a doctor to avoid hazardous drug-drug interactions.'
+    ],
+    summary: 'A geriatric healthcare guide for caring for aging parents, minimizing bathroom fall hazards, screening for bone fragility, and consolidating complex medication schedules.',
+    content: `
+As life expectancy increases, specialized geriatric care becomes paramount to preserve physical mobility, cognitive clarity, and quality of life for our senior citizens.
+
+### Environmental Fall Prevention
+- **Bathroom Safety:** More than 70% of senior falls occur on wet bathroom tiles. Install grab rails beside the commode and shower area, and remove loose floor rugs.
+- **Lighting:** Maintain adequate night-light illumination along hallways between the bedroom and bathroom.
+- **Footwear:** Ensure elderly family members wear closed-heel, non-slip footwear rather than loose slippers.
+
+### Managing Polypharmacy
+Taking 5 or more concurrent daily medications increases adverse drug event risks. Bring all medicine boxes to your doctor every 6 months for a medication reconciliation review.
+    `,
+    relatedIds: ['art-3', 'art-4'],
+    featured: false
+  },
+  {
+    id: 'art-10',
+    slug: 'managing-eczema-fungal-infections-skincare',
+    title: 'Managing Eczema, Fungal Infections & Sun Protection in Bangladesh',
+    category: 'Skin Care',
+    author: 'Dr. Subhashish Roy, MBBS, DDV (Dermatology & Venereology)',
+    publishedDate: 'Sep 02, 2026',
+    readTime: '5 min read',
+    tags: ['Dermatology', 'Skin Care', 'Eczema', 'Fungal', 'Sunscreen'],
+    keyPoints: [
+      'Never apply over-the-counter steroid creams on itchy ringworm rashes; steroids worsen fungal proliferation.',
+      'Moisturize skin within 3 minutes of bathing to seal in epidermal hydration.',
+      'Broad-spectrum SPF 30+ sunscreen protects against hyperpigmentation and premature photoaging.'
+    ],
+    summary: 'Guidance on treating prevalent fungal dermatophytosis (Tinea), managing atopic dermatitis flare-ups, and debunking dangerous topical steroid misuse.',
+    content: `
+The humid, subtropical climate of Rajshahi fosters widespread fungal infections and inflammatory skin disorders. Misuse of combination steroid creams sold over-the-counter is a major clinical issue.
+
+### The Danger of Topical Steroids on Fungal Infections
+Combination creams containing strong corticosteroids (like Clobetasol) suppress local cutaneous immunity. While they temporarily reduce itching, the underlying fungus multiplies unchecked, creating widespread refractory Tinea Incognito. Always obtain a dermatological diagnosis before applying topical medications.
+
+### Eczema (Atopic Dermatitis) Care
+- Bathe in lukewarm water for no longer than 10 minutes using a gentle, fragrance-free cleanser.
+- Apply a thick ceramide- or petroleum-based moisturizer within 3 minutes of stepping out of the shower ("soak and seal").
+- Wear loose, breathable cotton clothing to minimize friction and thermal perspiration.
+    `,
     relatedIds: ['art-1', 'art-4'],
     featured: false
   },
   {
-    id: 'art-6',
-    title: 'Recognizing Acute Stroke: The F.A.S.T Protocol',
+    id: 'art-11',
+    slug: 'seasonal-asthma-air-quality-respiratory-health',
+    title: 'Seasonal Asthma, Bronchitis & Coping with Air Quality in Northern Bengal',
+    category: 'Respiratory Health',
+    author: 'Dr. Nazmul Huda, MBBS, MD (Pulmonology)',
+    publishedDate: 'Aug 29, 2026',
+    readTime: '5 min read',
+    tags: ['Pulmonology', 'Asthma', 'COPD', 'Air Pollution', 'Inhaler'],
+    keyPoints: [
+      'Inhaled corticosteroids delivered via spacer deliver medicine directly to bronchial airways with minimal systemic absorption.',
+      'Monitor seasonal particulate matter (PM2.5) and wear a fitted N95 mask during winter morning smog.',
+      'Never delay seeking emergency care if speech is interrupted by breathlessness.'
+    ],
+    summary: 'Managing seasonal respiratory flare-ups, proper inhaler and spacer technique, understanding peak flow monitoring, and minimizing particulate matter exposure.',
+    content: `
+During late autumn and winter, temperature inversions trap particulate pollution and agricultural dust across Rajshahi Division, triggering severe exacerbations in patients with asthma and Chronic Obstructive Pulmonary Disease (COPD).
+
+### Proper Inhaler Technique with a Spacer
+Over 60% of patients use metered-dose inhalers incorrectly, causing medication to deposit on the tongue rather than reaching deep pulmonary bronchioles. Using an anti-static valved spacer ensures optimal lung deposition and dramatically reduces oral thrush.
+
+### Asthma Action Plan
+- **Green Zone:** No cough or wheeze, normal sleep. Continue maintenance controller inhalers.
+- **Yellow Zone:** Mild wheezing, chest tightness, waking at night. Use prescribed reliever (Salbutamol) and contact doctor.
+- **Red Zone:** Severe shortness of breath, inability to speak full sentences without pausing for breath, rib retraction. Call 999 or proceed immediately to RMCH Emergency.
+    `,
+    relatedIds: ['art-1', 'art-16'],
+    featured: false
+  },
+  {
+    id: 'art-12',
+    slug: 'gerd-acid-reflux-digestive-health',
+    title: 'GERD (Acid Reflux), Peptic Ulcer Prevention & Gut Microbiome Health',
+    category: 'Digestive Health',
+    author: 'Prof. Dr. M. Masud Karim, MBBS, FCPS (Gastroenterology)',
+    publishedDate: 'Aug 26, 2026',
+    readTime: '6 min read',
+    tags: ['Gastroenterology', 'GERD', 'Ulcer', 'Gastric', 'PPI'],
+    keyPoints: [
+      'Chronic unmonitored PPI (Omeprazole, Esomeprazole) use can impair calcium and vitamin B12 absorption.',
+      'Avoid lying down for at least 2 to 3 hours following a heavy meal.',
+      'Black tarry stools (melena) or vomiting blood indicate acute gastrointestinal bleeding requiring urgent endoscopy.'
+    ],
+    summary: 'Clinical advice on curbing chronic dyspepsia, moving beyond lifelong PPI dependency through lifestyle adjustments, and identifying red flags for upper GI ulcers.',
+    content: `
+"Gastric" is one of the most frequent complaints in clinical chambers across Bangladesh. Chronic heartburn and acid regurgitation can cause erosive esophagitis and Barrett's esophagus if left unmanaged.
+
+### Breaking Lifelong PPI Dependency
+Proton Pump Inhibitors (such as Omeprazole, Esomeprazole, and Pantoprazole) are effective for healing acute ulcers. However, taking them continuously for years without clinical review reduces gastric acidity, impairing calcium, magnesium, and vitamin B12 absorption, and increasing susceptibility to intestinal infections.
+
+### Practical Lifestyle Measures for Reflux
+- Eat smaller, more frequent meals rather than large, oil-heavy dinners.
+- Allow at least 2.5 to 3 hours between your evening meal and bedtime.
+- Elevate the head of your bed by 6 inches (using bed riser blocks, not extra pillows) to prevent nocturnal acid backflow.
+- Limit triggers: excessive black tea, carbonated sodas, deep-fried snacks (singara, puri), and raw onions.
+    `,
+    relatedIds: ['art-7', 'art-4'],
+    featured: false
+  },
+  {
+    id: 'art-13',
+    slug: 'sleep-hygiene-circadian-rhythms',
+    title: 'Sleep Hygiene, Circadian Rhythms & Overcoming Chronic Insomnia',
+    category: 'Sleep & Recovery',
+    author: 'Dr. Nabila Chowdhury, MBBS, MSc (Sleep Medicine)',
+    publishedDate: 'Aug 23, 2026',
+    readTime: '5 min read',
+    tags: ['Sleep', 'Insomnia', 'Mental Health', 'Circadian', 'Wellness'],
+    keyPoints: [
+      'Maintain an unvarying wake-up time 7 days a week to anchor your circadian rhythm.',
+      'Stop viewing blue-light screens (smartphones, tablets) 60 minutes prior to sleep.',
+      'Reserve the bed exclusively for sleep and intimacy to reinforce conditioned stimulus association.'
+    ],
+    summary: 'Evidence-based behavioral sleep strategies, managing melatonin disruption from smartphones, and avoiding reliance on addictive over-the-counter sedatives.',
+    content: `
+Adequate restorative sleep (7–8 hours for adults) is a non-negotiable biological requirement for neurocognitive function, metabolic equilibrium, and cardiovascular preservation.
+
+### The Science of Sleep Hygiene
+- **Consistent Wake-Up Time:** Waking up at the exact same hour every day sets your master circadian clock in the suprachiasmatic nucleus.
+- **Blue Light Disruption:** The short-wavelength blue light emitted by smartphone screens suppresses pineal melatonin secretion, delaying sleep onset latency by up to 90 minutes.
+- **The 20-Minute Rule:** If you are unable to fall asleep within 20 minutes, get out of bed. Move to a dimly lit room and engage in a calming activity (reading a physical book) until sleepiness arrives.
+
+### The Risk of Self-Medicating with Benzodiazepines
+Never purchase sedatives or sleeping tablets without a psychiatric or medical prescription. Benzodiazepines induce rapid physiological tolerance and high dependence liability.
+    `,
+    relatedIds: ['art-8', 'art-3'],
+    featured: false
+  },
+  {
+    id: 'art-14',
+    slug: 'immediate-first-aid-burn-care-snakebites',
+    title: 'Immediate First Aid: Burn Care, Bleeding Control & Snakebite Protocol',
+    category: 'First Aid',
+    author: 'Dr. Zahirul Haque, MBBS, MS (Emergency Medicine)',
+    publishedDate: 'Aug 19, 2026',
+    readTime: '6 min read',
+    tags: ['First Aid', 'Emergency', 'Burn Care', 'Snakebite', 'Trauma'],
+    keyPoints: [
+      'Cool thermal burns immediately with cool running tap water for 15–20 minutes; never apply toothpaste or raw eggs.',
+      'For severe arterial bleeding, apply direct, relentless pressure with a clean cloth.',
+      'In snakebites, immobilize the limb like a fractured bone and transport immediately to RMCH; never make incisions or tourniquets.'
+    ],
+    summary: 'Life-saving first-aid guidelines for household burn accidents, laceration hemorrhage control, and scientifically sound snakebite management in rural Rajshahi.',
+    content: `
+In emergency trauma and acute accidents, the interventions delivered in the initial "golden hour" dictate whether a patient survives with minimal morbidity.
+
+### 1. Thermal Burn Care
+- **Cool Running Water:** Immediately cool the burned area with running tap water for 15 to 20 minutes. This halts deep thermal progression into subcutaneous tissues.
+- **Never Apply Folk Remedies:** Toothpaste, raw eggs, butter, or engine oil trap heat and introduce severe bacterial infections into compromised tissue.
+- Cover with a clean, dry, non-adherent cloth or sterile cling film and proceed to an emergency facility.
+
+### 2. Snakebite Management (National Guidelines)
+- **Do NOT cut or suck the bite wound.**
+- **Do NOT apply tight tourniquets or ropes,** which cause ischemic gangrene and necessitate limb amputation.
+- **Immobilize the bitten limb:** Keep the patient calm, immobilize the limb with a splint, and transport them immediately to Rajshahi Medical College Hospital, where polyvalent antivenom and respiratory support are available 24/7.
+    `,
+    relatedIds: ['art-1', 'art-16'],
+    featured: false
+  },
+  {
+    id: 'art-15',
+    slug: 'preventing-periodontal-gum-disease-oral-hygiene',
+    title: 'Preventing Periodontal Gum Disease, Cavities & Oral Hygiene Rules',
+    category: 'Dental Health',
+    author: 'Dr. Anisur Rahman, BDS, FCPS (Oral & Maxillofacial Surgery)',
+    publishedDate: 'Aug 15, 2026',
+    readTime: '4 min read',
+    tags: ['Dental', 'Oral Health', 'Teeth', 'Hygiene', 'Periodontal'],
+    keyPoints: [
+      'Brush twice daily for a full 2 minutes using a soft-bristled brush with fluoride toothpaste.',
+      'Bleeding gums are a clinical indicator of gingivitis, not an excuse to cease brushing.',
+      'Oral tobacco (zarda, gul, pan-masala) is the leading risk factor for oral squamous cell carcinoma.'
+    ],
+    summary: 'Best practices for dental hygiene, proper modified Bass brushing technique, and the severe oral cancer hazards associated with betel nut and chewing tobacco.',
+    content: `
+Oral health is deeply connected to systemic well-being. Chronic periodontal infection is an established contributing factor for coronary artery disease and poor glycemic control in diabetics.
+
+### Daily Oral Hygiene Regimen
+- **Brushing Technique:** Hold your toothbrush at a 45-degree angle toward the gum line. Use short, gentle vibratory circular strokes. Brush for 2 full minutes twice daily (especially before bed).
+- **Flossing:** Toothbrush bristles cannot penetrate interdental contact points where cavities frequently initiate. Daily flossing removes trapped food debris and plaque biofilm.
+- **Replace Toothbrushes:** Discard your toothbrush every 3 months or sooner if bristles splay outwards.
+
+### Oral Cancer Prevention
+Chewing betel quid (pan) combined with smokeless tobacco (zarda, gul, sadapata) causes chronic submucous fibrosis and carries an exceptionally high risk of malignant transformation into oral carcinoma. Any non-healing mouth ulcer lasting more than 2 weeks warrants immediate biopsy evaluation.
+    `,
+    relatedIds: ['art-2', 'art-3'],
+    featured: false
+  },
+  {
+    id: 'art-16',
+    slug: 'recognizing-acute-stroke-fast-protocol',
+    title: 'Recognizing Acute Stroke: The F.A.S.T Protocol & RMCH Transfer',
     category: 'Emergency Awareness',
     author: 'Dr. Tariqul Islam, MBBS, FCPS (Neurology)',
-    publishedDate: 'Sep 05, 2026',
-    readTime: '4 min read',
+    publishedDate: 'Aug 10, 2026',
+    readTime: '5 min read',
+    tags: ['Neurology', 'Stroke', 'FAST', 'Emergency', 'RMCH', '999'],
+    keyPoints: [
+      'F.A.S.T: Face drooping, Arm weakness, Speech difficulty, Time to call 999.',
+      'The thrombolysis window for acute ischemic stroke is under 3 to 4.5 hours from symptom onset.',
+      'Never give water, food, or oral aspirin at home before emergency CT imaging confirms stroke type.'
+    ],
     summary: 'Time is brain tissue. Every minute lost during an acute ischemic stroke leads to irreversible neuron loss. Learn the rapid F.A.S.T screening method.',
     content: `
 Acute ischemic stroke occurs when blood flow to an area of the brain is obstructed. The window for effective thrombolytic therapy is narrow (within 3 to 4.5 hours of symptom onset).
@@ -166,53 +525,14 @@ Acute ischemic stroke occurs when blood flow to an area of the brain is obstruct
 - **T - Time to Call 999:** If any of these signs are present, call emergency services immediately or transport the patient directly to Rajshahi Medical College Hospital with stroke facilities.
 
 ### What NOT to Do
-- Do not feed the patient or give water, as swallowing reflexes may be impaired and lead to aspiration.
+- Do not feed the patient or give water, as swallowing reflexes may be impaired and lead to aspiration pneumonia.
 - Do not administer blood thinners or aspirin at home before a non-contrast CT brain scan confirms whether the stroke is ischemic or hemorrhagic.
     `,
-    relatedIds: ['art-1', 'art-7'],
-    featured: false
-  },
-  {
-    id: 'art-7',
-    title: 'Heart-Healthy Dietary Patterns for South Asian Lifestyles',
-    category: 'Nutrition',
-    author: 'Nusrat Jahan, BSc (Nutrition), MSc (Dietetics)',
-    publishedDate: 'Aug 28, 2026',
-    readTime: '5 min read',
-    summary: 'Practical dietary swaps for traditional Bangladeshi cooking to lower LDL cholesterol, reduce arterial inflammation, and regulate hypertension.',
-    content: `
-South Asians have a documented genetic predisposition to premature coronary artery disease. Modifying traditional cooking practices can dramatically lower cardiovascular risk.
-
-### Practical Kitchen Swaps
-- **Cooking Oil Moderation:** Restrict cooking oil to 500 mL per person per month. Avoid reheating vegetable oils repeatedly, which produces harmful trans-fats.
-- **Sodium Control:** Keep total salt intake under 5 grams (approx 1 level teaspoon) daily. Avoid table salt on raw salads and fruit.
-- **Incorporate Seeds & Nuts:** A small handful (30g) of unsalted almonds or walnuts provides cardioprotective omega-3 fatty acids.
-- **Spices as Antioxidants:** Turmeric, garlic, and ginger carry natural anti-inflammatory compounds that support vascular endothelium health.
-    `,
-    relatedIds: ['art-2', 'art-6'],
-    featured: false
-  },
-  {
-    id: 'art-8',
-    title: 'Routine Health Screenings by Decade: 20s, 30s, 40s and Beyond',
-    category: 'General Wellness',
-    author: 'Dr. Shahriar Kabir, MBBS, MPH',
-    publishedDate: 'Aug 20, 2026',
-    readTime: '6 min read',
-    summary: 'A preventative health roadmap detailing which annual tests, lipid profiles, and cancer screenings are medically recommended at each stage of life.',
-    content: `
-Preventive medicine saves lives by detecting hypertension, dyslipidemia, and metabolic disturbances long before overt clinical symptoms manifest.
-
-### Recommended Screening Schedule
-- **Age 20–29:** Baseline blood pressure, lipid profile every 5 years, annual dental and visual checkup.
-- **Age 30–39:** Annual fasting blood glucose/HbA1c, liver and renal function tests, cervical Pap smear for women every 3 years.
-- **Age 40–49:** Annual cardiovascular risk assessment, baseline ECG, mammography screening for women starting at age 40.
-- **Age 50+:** Colon cancer screening (fecal occult blood or colonoscopy), bone density (DEXA) scan, prostate assessment for men.
-    `,
-    relatedIds: ['art-2', 'art-8'],
+    relatedIds: ['art-3', 'art-14'],
     featured: false
   }
 ];
+
 
 export default function HealthTipsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -547,6 +867,26 @@ export default function HealthTipsPage() {
                 <span>{activeArticle.readTime}</span>
               </div>
 
+              {/* Key Clinical Takeaways */}
+              {activeArticle.keyPoints && activeArticle.keyPoints.length > 0 && (
+                <div style={{
+                  background: 'rgba(13, 124, 110, 0.06)',
+                  border: '1px solid rgba(13, 124, 110, 0.2)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-primary, #0d7c6e)', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <CheckCircle2 size={16} /> Key Clinical Takeaways
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.88rem', color: 'var(--color-text, #142422)', lineHeight: 1.6 }}>
+                    {activeArticle.keyPoints.map((pt, kIdx) => (
+                      <li key={kIdx} style={{ marginBottom: '6px' }}>{pt}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Formatted Content */}
               <div style={{
                 fontSize: '0.95rem',
@@ -556,6 +896,17 @@ export default function HealthTipsPage() {
               }}>
                 {activeArticle.content.trim()}
               </div>
+
+              {/* Tags */}
+              {activeArticle.tags && activeArticle.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '20px' }}>
+                  {activeArticle.tags.map((tg, tIdx) => (
+                    <span key={tIdx} style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      #{tg}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Medical Review Disclaimer */}
               <div style={{

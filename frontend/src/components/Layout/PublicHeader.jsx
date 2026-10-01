@@ -53,7 +53,16 @@ export default function NiramoyNavbar() {
   const isHero = location.pathname === '/';
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -90,13 +99,13 @@ export default function NiramoyNavbar() {
 
   return (
     <>
-      <nav className={`navbar ${solid ? 'navbar--solid' : 'navbar--transparent'}`}
+      <nav className={`navbar ${scrolled ? 'navbar--scrolled' : (solid ? 'navbar--solid' : 'navbar--transparent')}`}
         role="navigation" aria-label="Main navigation">
         <div className="navbar__inner">
 
           {/* Logo */}
           <Link to="/" style={{ textDecoration: 'none' }} aria-label="Niramoy Home">
-            <NiramoyLogo size="md" variant={solid ? 'default' : 'light'} tagline="Rajshahi Digital Health" />
+            <NiramoyLogo size="md" variant={scrolled || solid ? 'default' : 'light'} tagline="Rajshahi Digital Health" />
           </Link>
 
           {/* Desktop Nav */}
@@ -215,9 +224,9 @@ export default function NiramoyNavbar() {
               </div>
             ) : (
               <>
-                <Link to="/signin" className="navbar__signin">Sign In</Link>
+                <Link to="/signin" className="navbar__signin">Enter Portal</Link>
                 <Link to="/register" className="navbar__cta">
-                  Get Started
+                  Become a Member
                 </Link>
               </>
             )}
@@ -326,8 +335,8 @@ export default function NiramoyNavbar() {
                 </>
               ) : (
                 <>
-                  <Link to="/signin" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Sign In</Link>
-                  <Link to="/register" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Get Started</Link>
+                  <Link to="/signin" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Enter Portal</Link>
+                  <Link to="/register" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Become a Member</Link>
                 </>
               )}
             </div>

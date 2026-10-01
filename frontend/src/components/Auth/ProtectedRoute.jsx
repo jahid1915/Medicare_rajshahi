@@ -33,6 +33,11 @@ export default function ProtectedRoute({ children, roles }) {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
+  // Redirect unverified users to OTP verification
+  if (user && user.is_verified === false) {
+    return <Navigate to="/register" state={{ from: location.pathname, step: 'verify', email: user.email, phone: user.phone }} replace />;
+  }
+
   if (roles && roles.length > 0 && !roles.includes(user?.role)) {
     return (
       <div style={{

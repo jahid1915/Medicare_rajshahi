@@ -19,9 +19,9 @@ async function request(method, path, body = null, requireAuth = false) {
     headers["Content-Type"] = "application/json";
   }
 
-  if (requireAuth) {
-    const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+  const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const options = { method, headers };
@@ -192,5 +192,10 @@ export const notificationsAPI = {
   },
   markAsRead:    (id) => request("PATCH", `/notifications/${id}/read`, {}, true),
   markAllAsRead: () => request("PATCH", "/notifications/read-all", {}, true)
+};
+
+// AI Healthcare & Navigation API
+export const aiAPI = {
+  chat: (message) => request("POST", "/ai/chat", { message })
 };
 

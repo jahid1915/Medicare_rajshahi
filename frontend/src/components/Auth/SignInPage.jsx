@@ -184,15 +184,15 @@ export default function SignInPage() {
       {/* Right Form Panel */}
       <div className="auth-form-side">
         <div className="auth-form-card" style={{ maxWidth: 500, width: '100%' }}>
-          <Link to="/" style={{ textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
+          <Link to="/" className="auth-card-logo" style={{ textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
             <NiramoyLogo size="md" />
           </Link>
 
-          <h1 className="auth-form-card__title" style={{ marginBottom: '6px' }}>Sign In to Niramoy</h1>
+          <h1 className="auth-form-card__title" style={{ marginBottom: '6px' }}>Enter Portal</h1>
           <p className="auth-form-card__subtitle" style={{ marginBottom: '16px' }}>
             Don't have an account?{' '}
             <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
-              Create an account / সাইন আপ করুন
+              Become a Member / নতুন অ্যাকাউন্ট
             </Link>
           </p>
 
@@ -451,7 +451,7 @@ export default function SignInPage() {
                   <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Signing in…</>
                 ) : (
                   <>
-                    Sign In as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
+                    Enter Portal as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
                     <ArrowRight style={{ width: 16, height: 16 }} />
                   </>
                 )}

@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom';
 import {
   Sparkles, ShieldCheck, AlertTriangle, Stethoscope, FileText,
   Search, Pill, ArrowRight, MessageSquare, Bot, CheckCircle2,
-  Clock, Zap, PhoneCall, HelpCircle
+  Clock, Zap, PhoneCall, HelpCircle, ExternalLink, Calendar, MapPin
 } from 'lucide-react';
 import { SPECIALTIES, classifyHealthInput } from '../../data/specialties';
+import { aiAPI } from '../../services/api';
 
 const SAMPLE_PROMPTS = [
-  'I have had a sore throat, dry cough, and mild fever for 2 days.',
+  'Rajshahi te skin specialist doctor ke ke ache?',
+  'রাজশাহীতে অ্যাম্বুলেন্স কোথায় পাব?',
+  'Niramoy te doctor appointment kivabe nibo?',
   'What are standard fasting blood sugar targets for adults?',
   'Severe pressure in my chest spreading to my left arm.',
-  'Need to find a verified pediatrician in Laxmipur, Rajshahi.',
   'Can I take antacids at the same time as my daily iron tablet?'
 ];
 
@@ -20,14 +22,19 @@ export default function AIPage() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: 'Hello! I am Niramoy AI, your intelligent health navigation assistant. Describe a symptom, ask general medicine questions, or find specialized doctors in Rajshahi. Remember: I provide informational guidance only and cannot replace an in-person doctor consultation.',
+      text: 'Hello! I am Niramoy AI, your intelligent health navigation assistant for Rajshahi. You can ask in Bangla, English, or Banglish:\n\n• "Rajshahi te skin doctor ke ache?"\n• "রাজশাহীতে অ্যাম্বুলেন্স কোথায় পাব?"\n• "Niramoy te doctor appointment kivabe nibo?"\n• Describe your symptoms for safe clinical guidance.\n\n*Informational guidance only — emergency patients should proceed directly to RMCH.*',
+      entities: [],
+      suggestedActions: [
+        { label: 'Find Doctors', link: '/doctors' },
+        { label: 'Emergency Ambulance', link: '/ambulance' }
+      ],
       timestamp: 'Just now'
     }
   ]);
   const [loading, setLoading] = useState(false);
   const [emergencyAlert, setEmergencyAlert] = useState(false);
 
-  const handleSend = (textToSend) => {
+  const handleSend = async (textToSend) => {
     const text = (textToSend || inputQuery).trim();
     if (!text) return;
 
@@ -42,36 +49,46 @@ export default function AIPage() {
     setLoading(true);
     setEmergencyAlert(false);
 
-    setTimeout(() => {
+    try {
+      const res = await aiAPI.chat(text);
+      const isEmergency = (res.reply || '').includes('⚠️') || (res.reply || '').includes('EMERGENCY') || (res.reply || '').includes('সতর্কতা');
+      if (isEmergency) setEmergencyAlert(true);
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: res.reply,
+          entities: res.entities || [],
+          suggestedActions: res.suggestedActions || [],
+          isEmergency,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (err) {
+      // Local fallback in case network/offline
       const lower = text.toLowerCase();
       let isEmergency = false;
       let reply = '';
       let recommendedSpecialty = null;
 
-      // Clinical Red Flag Checks
       if (
-        lower.includes('chest pain') ||
-        lower.includes('heart attack') ||
-        lower.includes('stroke') ||
-        lower.includes('cannot breathe') ||
-        lower.includes('shortness of breath') ||
+        lower.includes('chest pain') || lower.includes('heart attack') ||
+        lower.includes('stroke') || lower.includes('cannot breathe') ||
         lower.includes('unconscious')
       ) {
         isEmergency = true;
         setEmergencyAlert(true);
-        reply = `⚠️ **CRITICAL RED-FLAG WARNING:** Your description may indicate a life-threatening medical emergency (such as acute coronary syndrome, stroke, or respiratory distress). **DO NOT WAIT for an online reply.** Immediately call **999**, proceed to the Emergency Room at Rajshahi Medical College Hospital (RMCH), or call the National Health Helpline at **16263**.`;
+        reply = `⚠️ **CRITICAL RED-FLAG WARNING:** Your description may indicate a life-threatening medical emergency. **DO NOT WAIT for an online reply.** Immediately call **999** or proceed to the Emergency Room at Rajshahi Medical College Hospital (RMCH).`;
       } else {
-        // Normal classification
         const classification = classifyHealthInput(text);
         if (classification && classification.specialty) {
           recommendedSpecialty = classification.specialty;
           reply = `Based on your description, this commonly involves **${classification.specialty.name}** (${classification.specialty.banglaName || ''}).\n\n` +
             `• **Potential Considerations:** ${classification.specialty.commonConditions?.slice(0, 3).join(', ') || 'General evaluation'}\n` +
-            `• **Next Clinical Step:** We recommend scheduling a physical chamber consultation with a verified BMDC specialist to review your vitals and obtain an accurate diagnosis.\n` +
-            `• **Home Guidance:** Stay well hydrated, record temperature/vitals, and avoid self-medicating with unprescribed antibiotics or strong painkillers.`;
+            `• **Next Clinical Step:** We recommend scheduling a physical chamber consultation with a verified BMDC specialist in Rajshahi.`;
         } else {
-          reply = `Thank you for sharing your concern. While these symptoms can arise from a range of benign to acute causes, an in-person physical assessment is essential for clinical diagnosis.\n\n` +
-            `Would you like to search for available General Physicians or Internal Medicine chambers in Rajshahi today?`;
+          reply = `Thank you for sharing your concern. For accurate diagnosis, an in-person physical assessment with a licensed doctor is essential.\n\nWould you like to search available doctors or chambers in Rajshahi today?`;
         }
       }
 
@@ -82,11 +99,14 @@ export default function AIPage() {
           text: reply,
           isEmergency,
           recommendedSpecialty,
+          entities: [],
+          suggestedActions: [{ label: 'Find Doctors', link: '/doctors' }],
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (
@@ -186,6 +206,101 @@ export default function AIPage() {
                   }}
                 >
                   <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+
+                  {/* Structured Entity Cards (Doctors, Ambulances, Hospitals, Medicines, etc.) */}
+                  {m.entities && m.entities.length > 0 && (
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {m.entities.map((item, eIdx) => (
+                        <div
+                          key={eIdx}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid var(--color-border, #e2eceb)',
+                            borderRadius: '10px',
+                            padding: '10px 12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                            <div>
+                              <strong style={{ fontSize: '0.9rem', color: 'var(--color-text-primary, #0f172a)' }}>
+                                {item.title}
+                              </strong>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--color-primary, #0d7c6e)', fontWeight: 600 }}>
+                                {item.subtitle}
+                              </div>
+                            </div>
+                            <span style={{
+                              fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700,
+                              background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#475569'
+                            }}>
+                              {item.type}
+                            </span>
+                          </div>
+
+                          {item.details && (
+                            <div style={{ fontSize: '0.76rem', color: 'var(--color-text-secondary, #334155)', margin: '2px 0' }}>
+                              {item.details}
+                            </div>
+                          )}
+
+                          {item.link && (
+                            <div style={{ marginTop: '4px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                              {item.link.startsWith('tel:') ? (
+                                <a
+                                  href={item.link}
+                                  className="btn btn-primary"
+                                  style={{ fontSize: '0.74rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                >
+                                  <PhoneCall size={12} /> {item.actionLabel || 'Call Now'}
+                                </a>
+                              ) : (
+                                <Link
+                                  to={item.link}
+                                  className="btn btn-primary"
+                                  style={{ fontSize: '0.74rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                >
+                                  {item.actionLabel || 'View Details'} <ArrowRight size={12} />
+                                </Link>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Suggested Quick Actions */}
+                  {m.suggestedActions && m.suggestedActions.length > 0 && (
+                    <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {m.suggestedActions.map((act, aIdx) => (
+                        <Link
+                          key={aIdx}
+                          to={act.link}
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '99px',
+                            background: '#ffffff',
+                            color: 'var(--color-primary, #0d7c6e)',
+                            border: '1px solid var(--color-primary, #0d7c6e)',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {act.label} <ArrowRight size={11} />
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
                   {m.recommendedSpecialty && (
                     <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--color-border, #e2eceb)' }}>
                       <Link
