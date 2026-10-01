@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NiramoyLogo from '../Common/NiramoyLogo';
+import LegalContextModal from '../Legal/LegalContextModal';
 import {
   Mail, Lock, Eye, EyeOff, AlertCircle, Loader2,
   CheckCircle2, Stethoscope, Shield, Users, ArrowRight,
@@ -50,6 +51,9 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Legal Modal State for interactive contextual terms
+  const [legalModal, setLegalModal] = useState({ open: false, topic: 'terms' });
 
   // Phone OTP States for Patients
   const [patientAuthMode, setPatientAuthMode] = useState('otp'); // 'otp' | 'password'
@@ -467,12 +471,39 @@ export default function SignInPage() {
 
           <p className="auth-footer" style={{ marginTop: '16px' }}>
             By continuing, you agree to Niramoy's{' '}
-            <span style={{ color: 'var(--color-primary)', cursor: 'default' }}>Terms of Service</span>{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal({ open: true, topic: 'terms' })}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--color-primary)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Terms of Service
+            </button>{' '}
             and{' '}
-            <span style={{ color: 'var(--color-primary)', cursor: 'default' }}>Privacy Policy</span>.
+            <button
+              type="button"
+              onClick={() => setLegalModal({ open: true, topic: 'privacy' })}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--color-primary)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Privacy Policy
+            </button>.
           </p>
         </div>
       </div>
+
+      {/* Interactive Contextual Terms Modal */}
+      <LegalContextModal
+        isOpen={legalModal.open}
+        initialTopic={legalModal.topic}
+        onClose={() => setLegalModal({ open: false, topic: 'terms' })}
+      />
     </div>
   );
 }

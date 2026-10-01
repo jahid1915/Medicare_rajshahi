@@ -1,8 +1,106 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ShieldCheck, Stethoscope, PhoneCall, ArrowLeft, HeartPulse, FileText } from 'lucide-react';
+import {
+  AlertTriangle, ArrowLeft, Stethoscope, ShieldCheck, HeartPulse,
+  ChevronDown, HelpCircle, PhoneCall, Building2, Pill, Sparkles
+} from 'lucide-react';
+
+const DISCLAIMER_SECTIONS = [
+  {
+    id: 'platform-nature',
+    num: '1',
+    title: 'Nature of the Niramoy Platform',
+    icon: Building2,
+    badge: 'Technology Intermediary',
+    summary: 'Niramoy connects you with independent licensed doctors and facilities.',
+    fullText: 'Niramoy is a healthcare technology platform designed to streamline doctor discovery, hospital bed resource monitoring, pharmacy catalog lookup, and clinical appointment scheduling across Rajshahi and Bangladesh. Niramoy is not a hospital, medical clinic, or healthcare provider organization. Any doctor-patient relationship is formed directly and exclusively between you and the independent, registered physician you choose to consult.',
+    contextMeaning: 'Niramoy provides the digital network and booking tools. Your medical care, diagnosis, and prescriptions are given directly by your doctor.',
+    actions: [
+      'Doctor credentials are BMDC validated at onboarding',
+      'Prescriptions are signed and authorized solely by attending doctors',
+      'Consultations happen directly in-chamber or via secure video call'
+    ]
+  },
+  {
+    id: 'educational-content',
+    num: '2',
+    title: 'General Informational & Educational Content',
+    icon: HelpCircle,
+    badge: 'Educational Notice',
+    summary: 'Health tips and articles are for educational awareness only.',
+    fullText: 'All health tips, medical articles, educational summaries, drug database descriptions, and wellness materials published on Niramoy are provided for general educational and informational purposes only. Such materials do not constitute individual medical advice, diagnosis, or treatment plans and should never replace an in-person doctor visit.',
+    contextMeaning: 'Articles about nutrition, seasonal illnesses, or health tips help you stay informed, but cannot diagnose illnesses. Always consult a physician for symptoms.',
+    actions: [
+      'Articles are peer-reviewed against standard medical guidelines',
+      'Never alter your prescribed treatment based on online articles',
+      'Ask your doctor if you have questions about any medical topic'
+    ]
+  },
+  {
+    id: 'ai-tools',
+    num: '3',
+    title: 'Niramoy AI & Automated Decision-Support Tools',
+    icon: Sparkles,
+    badge: 'Clinical AI Advisory',
+    summary: 'AI symptom assistants guide clinical navigation; doctors make diagnoses.',
+    fullText: 'Niramoy AI assists users in navigating healthcare services, translating lab report terms into plain language, and organizing questions for appointments. Niramoy AI is an intelligent assistant, not an autonomous physician or medical diagnostician. AI outputs cannot prescribe medications, modify existing treatment regimens, or issue clinical orders.',
+    contextMeaning: 'Our AI translates complex lab values into easy-to-understand explanations and suggests relevant specialties, but your doctor always reviews and confirms.',
+    actions: [
+      'Automated safety red-flag triage redirecting to emergency hotlines',
+      'Zero algorithmic prescription generation',
+      'Human doctor review required for clinical decisions'
+    ]
+  },
+  {
+    id: 'physician-credentials',
+    num: '4',
+    title: 'Physician Credentials & Verification',
+    icon: Stethoscope,
+    badge: 'BMDC Validation',
+    summary: 'Verification processes for doctor registration and qualifications.',
+    fullText: 'Where a doctor profile displays a BMDC verification badge, it indicates that Niramoy has validated the physician registration record against Bangladesh Medical & Dental Council registries during onboarding. Medical practitioners are solely responsible for maintaining active licensing and clinical treatment standards.',
+    contextMeaning: 'You can trust the doctor BMDC badge, degrees, and hospital workplace details shown on Niramoy because they are cross-referenced with official records.',
+    actions: [
+      'Direct link to official BMDC registry lookups',
+      'Verified chamber schedules and hospital affiliations',
+      'Regular compliance audits of practicing specialists'
+    ]
+  },
+  {
+    id: 'hospital-beds',
+    num: '5',
+    title: 'Hospital Resource & Bed Availability Data',
+    icon: Building2,
+    badge: 'Resource Telemetry',
+    summary: 'Real-time telemetry and emergency room readiness verification.',
+    fullText: 'Live hospital bed, ICU, CCU, and incubator availability metrics published on Niramoy are reported directly by participating hospital administration desks or estimated via clinical resource telemetry. In critical medical emergencies, users and patient attendants must directly contact the hospital emergency desk to confirm real-time admission readiness before transit.',
+    contextMeaning: 'Bed metrics give you instant visibility into Rajshahi hospital capacities. In emergencies, call the hotline before transit so the ICU or bed is pre-held.',
+    actions: [
+      'Direct emergency room phone numbers provided on each hospital card',
+      'Real-time bed counts updated by participating clinics',
+      'Verified ambulance dispatch coordination'
+    ]
+  },
+  {
+    id: 'medicines',
+    num: '6',
+    title: 'Medicine Information & Pharmacy Orders',
+    icon: Pill,
+    badge: 'Pharmacy Safety',
+    summary: 'Prescription verification rules and authentic pharmaceuticals.',
+    fullText: 'Pharmaceutical details including generic names, standard dosages, and therapeutic classifications are compiled from national formularies. Users should never self-medicate or alter drug dosages without consulting a licensed physician. Prescription-only medicines (POM) strictly require a valid prescription uploaded and verified by a licensed pharmacist before fulfillment.',
+    contextMeaning: 'Prescription-only drugs require a verified doctor prescription before a pharmacy dispatches them. This ensures safe dosages and authentic pharmaceuticals.',
+    actions: [
+      '100% DGDA-compliant authentic medicine inventory',
+      'Licensed pharmacist review for all prescription orders',
+      'Automated allergy and conflict warnings'
+    ]
+  }
+];
 
 export default function MedicalDisclaimerPage() {
+  const [expandedId, setExpandedId] = useState('platform-nature');
+
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '40px 20px 80px 20px', color: 'var(--color-text, #142422)' }}>
       {/* Breadcrumb */}
@@ -15,117 +113,242 @@ export default function MedicalDisclaimerPage() {
       </div>
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid var(--color-border, #e2eceb)', paddingBottom: '24px', marginBottom: '36px' }}>
+      <div style={{ borderBottom: '1px solid var(--color-border, #e2eceb)', paddingBottom: '24px', marginBottom: '28px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '99px', background: 'var(--color-primary-50, #f0faf9)', color: 'var(--color-primary, #0d7c6e)', fontSize: '0.78rem', fontWeight: 700, marginBottom: '12px' }}>
-          <ShieldCheck size={14} /> Clinical & Safety Disclosures
+          <ShieldCheck size={14} /> Clinical Governance & Patient Safety
         </div>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 900, margin: '0 0 10px 0', letterSpacing: '-0.02em', color: 'var(--color-text, #142422)' }}>
+        <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 900, margin: '0 0 10px 0', letterSpacing: '-0.02em', color: 'var(--color-text, #142422)' }}>
           Medical Disclaimer
         </h1>
         <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-secondary, #2f4847)' }}>
-          Official Medical & Health Information Notice • Effective Date: October 1, 2026
+          Click any disclaimer clause below to view contextual safety guidelines, clinical boundaries, and emergency protocols.
         </p>
       </div>
 
-      {/* Critical Emergency Banner */}
+      {/* Emergency Red Banner */}
       <div style={{
         background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '14px',
-        padding: '20px 24px', marginBottom: '36px', display: 'flex', gap: '16px', alignItems: 'flex-start'
+        padding: '20px 24px', marginBottom: '28px', display: 'flex', gap: '16px', alignItems: 'flex-start'
       }}>
         <AlertTriangle size={26} style={{ color: '#dc2626', flexShrink: 0, marginTop: '2px' }} />
         <div>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#991b1b', margin: '0 0 6px 0' }}>
-            Emergency Medical Situations
+          <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 900, color: '#991b1b' }}>
+            EMERGENCY MEDICAL NOTICE — CALL 999 IMMEDIATELY
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#b91c1c', lineHeight: 1.6 }}>
-            If you or someone in your care is experiencing severe chest pain, shortness of breath, sudden numbness, uncontrolled bleeding, poisoning, acute trauma, or any life-threatening condition, <strong>DO NOT use this website or wait for an online response.</strong> Call <strong>999</strong> immediately, contact the National Health Helpline at <strong>16263</strong>, or proceed at once to the Emergency Department of Rajshahi Medical College Hospital (RMCH) or your nearest medical center.
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#b91c1c', lineHeight: 1.6 }}>
+            If you or someone in your care is experiencing severe chest pain, shortness of breath, sudden numbness, uncontrolled bleeding, poisoning, acute trauma, or any life-threatening condition, <strong>DO NOT wait for an online response.</strong> Call <strong>999</strong> immediately, contact the National Health Helpline at <strong>16263</strong>, or proceed at once to the Emergency Department of Rajshahi Medical College Hospital (RMCH).
           </p>
         </div>
       </div>
 
-      {/* Main Content Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', fontSize: '0.92rem', lineHeight: 1.7, color: 'var(--color-text-secondary, #2f4847)' }}>
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            1. Nature of the Niramoy Platform
-          </h2>
-          <p>
-            Niramoy is a healthcare technology platform designed to streamline doctor discovery, hospital bed resource monitoring, pharmacy catalog lookup, and clinical appointment scheduling across Rajshahi and Bangladesh. 
-          </p>
-          <p>
-            <strong>Niramoy is not a hospital, medical clinic, or healthcare provider organization.</strong> Niramoy does not employ medical practitioners to practice medicine on its behalf, nor does the platform establish a physician-patient relationship simply by your use of the website or mobile application. Any doctor-patient relationship is formed directly and exclusively between you and the independent, registered physician you choose to consult.
-          </p>
-        </section>
+      {/* Quick Jump Buttons */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+          Quick Jump by Safety Context:
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {DISCLAIMER_SECTIONS.map(s => {
+            const isSelected = expandedId === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setExpandedId(s.id)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '99px',
+                  border: isSelected ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: isSelected ? 'var(--color-primary-50)' : '#ffffff',
+                  color: isSelected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <s.icon size={12} />
+                {s.title}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            2. General Informational & Educational Content
-          </h2>
-          <p>
-            All health tips, medical articles, educational summaries, drug database descriptions, and wellness materials published on Niramoy are provided for general educational and informational purposes only. Such materials:
-          </p>
-          <ul style={{ paddingLeft: '24px', margin: '8px 0' }}>
-            <li>Do not constitute individual medical advice, diagnosis, or treatment plans;</li>
-            <li>Should never be relied upon as a substitute for an in-person clinical assessment by a licensed medical professional;</li>
-            <li>Must not be used to disregard or delay seeking professional medical advice because of something you have read on this site.</li>
-          </ul>
-        </section>
+      {/* Interactive Clauses List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {DISCLAIMER_SECTIONS.map(s => {
+          const isOpen = expandedId === s.id;
+          return (
+            <div
+              key={s.id}
+              style={{
+                borderRadius: '16px',
+                border: isOpen ? '2px solid var(--color-primary, #0d7c6e)' : '1.5px solid var(--color-border, #e2eceb)',
+                background: '#ffffff',
+                boxShadow: isOpen ? '0 10px 30px rgba(13, 124, 110, 0.08)' : '0 2px 8px rgba(0,0,0,0.02)',
+                transition: 'all 0.2s ease',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Header Button */}
+              <button
+                type="button"
+                onClick={() => setExpandedId(isOpen ? '' : s.id)}
+                style={{
+                  width: '100%',
+                  padding: '18px 22px',
+                  background: isOpen ? 'linear-gradient(135deg, rgba(13,124,110,0.04), #ffffff)' : 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  textAlign: 'left',
+                  gap: '12px'
+                }}
+                aria-expanded={isOpen}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '10px',
+                    background: isOpen ? 'var(--color-primary, #0d7c6e)' : 'var(--color-primary-50, #f0faf9)',
+                    color: isOpen ? '#ffffff' : 'var(--color-primary, #0d7c6e)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    fontWeight: 900,
+                    fontSize: '0.9rem'
+                  }}>
+                    {s.num}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: 'var(--color-text, #142422)'
+                      }}>
+                        {s.title}
+                      </h2>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '99px',
+                        background: 'var(--color-primary-50, #f0faf9)',
+                        color: 'var(--color-primary, #0d7c6e)'
+                      }}>
+                        {s.badge}
+                      </span>
+                    </div>
+                    <p style={{
+                      margin: '4px 0 0 0',
+                      fontSize: '0.8rem',
+                      color: 'var(--color-text-secondary, #2f4847)',
+                      lineHeight: 1.4
+                    }}>
+                      {s.summary}
+                    </p>
+                  </div>
+                </div>
 
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            3. Niramoy AI & Automated Decision-Support Tools
-          </h2>
-          <p>
-            Niramoy incorporates artificial intelligence (AI) and automated assistive algorithms to help users navigate healthcare services, explore symptom information, and prepare questions for medical consultations.
-          </p>
-          <div style={{
-            background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #e2eceb)',
-            borderRadius: '12px', padding: '16px 20px', margin: '14px 0'
-          }}>
-            <ul style={{ paddingLeft: '20px', margin: 0 }}>
-              <li><strong>Informational Assistant Only:</strong> Niramoy AI is an intelligent assistant, not an autonomous physician or medical diagnostician.</li>
-              <li><strong>No Prescriptive Authority:</strong> AI outputs cannot prescribe medications, modify existing treatment regimens, or issue clinical orders.</li>
-              <li><strong>Mandatory Verification:</strong> All AI-generated insights, summaries, or triage suggestions must be reviewed and confirmed by a certified medical doctor before taking clinical action.</li>
-              <li><strong>Safety Protocols:</strong> The AI system automatically flags clinical red flags (such as stroke or coronary warning signs) and redirects the user to emergency services.</li>
-            </ul>
-          </div>
-        </section>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--color-primary, #0d7c6e)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>
+                  <span style={{ display: window.innerWidth <= 480 ? 'none' : 'inline' }}>
+                    {isOpen ? 'Hide Details' : 'View Safety Context'}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    style={{
+                      transform: isOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  />
+                </div>
+              </button>
 
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            4. Physician Credentials & Verification
-          </h2>
-          <p>
-            Where a doctor profile displays a BMDC verification badge, it indicates that Niramoy has validated the physician's registration record against Bangladesh Medical & Dental Council registries during onboarding. While we strive to maintain accurate information, medical practitioners are solely responsible for maintaining their active licensing, adherence to clinical standards, and the medical advice they deliver during appointments or teleconsultations.
-          </p>
-        </section>
+              {/* Context Details */}
+              {isOpen && (
+                <div style={{
+                  padding: '0 22px 22px 22px',
+                  borderTop: '1px solid #f1f5f9',
+                  background: '#ffffff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  animation: 'fadeIn 0.2s ease-out'
+                }}>
+                  {/* Context Note */}
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    background: 'var(--color-primary-50, #f0faf9)',
+                    border: '1px solid rgba(13,124,110,0.15)'
+                  }}>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: 'var(--color-primary, #0d7c6e)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      marginBottom: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <HelpCircle size={14} /> What this means for your care (চিকিৎসাগত অর্থ)
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#134e4a', lineHeight: 1.6 }}>
+                      {s.contextMeaning}
+                    </p>
+                  </div>
 
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            5. Hospital Resource & Bed Availability Data
-          </h2>
-          <p>
-            Live hospital bed, ICU, CCU, and incubator availability metrics published on Niramoy are reported directly by participating hospital administration desks or estimated via clinical resource telemetry. In critical medical emergencies, users and patient attendants must directly contact the hospital emergency desk to confirm real-time admission readiness before transit.
-          </p>
-        </section>
+                  {/* Policy Clause */}
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>
+                      Clinical Notice Text:
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+                      {s.fullText}
+                    </p>
+                  </div>
 
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            6. Medicine Information & Pharmacy Orders
-          </h2>
-          <p>
-            Pharmaceutical details including generic names, standard dosages, and therapeutic classifications are compiled from national formularies and manufacturer documentation. Users should never self-medicate or alter drug dosages without consulting a licensed physician. Prescription-only medicines (POM) strictly require a valid prescription uploaded and verified by a licensed pharmacist before fulfillment.
-          </p>
-        </section>
-
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text, #142422)', marginBottom: '10px' }}>
-            7. Contact for Clinical Safety Inquiries
-          </h2>
-          <p>
-            For inquiries regarding clinical compliance, reporting inaccurate medical information, or technical safety concerns, please contact our medical compliance desk at <a href="mailto:compliance@niramoy.health" style={{ color: 'var(--color-primary, #0d7c6e)', fontWeight: 600 }}>compliance@niramoy.health</a> or our Rajshahi coordination office at +880 1700-NIRAMOY.
-          </p>
-        </section>
+                  {/* Safety Guidance */}
+                  <div style={{
+                    background: '#f8fafc',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                      Patient Safety & Verification Protocols:
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.82rem', color: '#475569', lineHeight: 1.6 }}>
+                      {s.actions.map((act, i) => (
+                        <li key={i}>{act}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Footer Navigation */}

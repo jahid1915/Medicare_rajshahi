@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hospitalsAPI, pharmaciesAPI } from '../../services/api';
 import NiramoyLogo from '../Common/NiramoyLogo';
+import LegalContextModal from '../Legal/LegalContextModal';
 import {
   User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, Loader2,
   Calendar, MapPin, ArrowRight, ShieldCheck, HeartPulse, Clock,
@@ -93,6 +94,7 @@ export default function RegisterPage() {
   const [hospitalsList, setHospitalsList] = useState([]);
   const [pharmaciesList, setPharmaciesList] = useState([]);
   const [loadingLists, setLoadingLists] = useState(false);
+  const [legalModal, setLegalModal] = useState({ open: false, topic: 'terms' });
 
   // Route-based default role selection
   useEffect(() => {
@@ -1038,10 +1040,50 @@ export default function RegisterPage() {
 
 
           <p className="auth-footer" style={{ marginTop: 20 }}>
-            By registering, you agree to Niramoy's <Link to="/terms" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Terms of Service</Link>, <Link to="/privacy" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Privacy Policy</Link>, and <Link to="/disclaimer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Medical Disclaimer</Link>.
+            By registering, you agree to Niramoy's{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal({ open: true, topic: 'terms' })}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--color-primary)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Terms of Service
+            </button>,{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal({ open: true, topic: 'privacy' })}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--color-primary)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Privacy Policy
+            </button>, and{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal({ open: true, topic: 'disclaimer' })}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--color-primary)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Medical Disclaimer
+            </button>.
           </p>
         </div>
       </div>
+
+      {/* Interactive Contextual Legal Modal */}
+      <LegalContextModal
+        isOpen={legalModal.open}
+        initialTopic={legalModal.topic}
+        onClose={() => setLegalModal({ open: false, topic: 'terms' })}
+      />
     </div>
   );
 }

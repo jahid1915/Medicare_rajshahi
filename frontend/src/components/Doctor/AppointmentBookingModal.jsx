@@ -9,6 +9,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { doctorsAPI, appointmentsAPI, paymentsAPI } from '../../services/api';
+import LegalContextModal from '../Legal/LegalContextModal';
 
 // ─── Avatar Fallback ────────────────────────────────────────────────────────
 function DoctorAvatarThumb({ src, name }) {
@@ -63,6 +64,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
   // Step state: 'branch_schedule' | 'patient_info' | 'otp_verify' | 'summary' | 'payment_processing' | 'confirmed'
   const [step, setStep] = useState('branch_schedule');
+  const [legalModal, setLegalModal] = useState({ open: false, topic: 'cancellation' });
 
   // Branch states (dynamically loaded from backend)
   const [branches, setBranches] = useState([]);
@@ -868,6 +870,25 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                   {authLoading && <Loader2 size={16} className="animate-spin" />}
                   Verify & Confirm Serial
                 </button>
+
+                <div style={{ marginTop: '12px', fontSize: '0.72rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                  By verifying, you agree to Niramoy's{' '}
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal({ open: true, topic: 'cancellation' })}
+                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary, #0d7c6e)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Appointment & Cancellation Terms
+                  </button>{' '}
+                  and{' '}
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal({ open: true, topic: 'disclaimer' })}
+                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary, #0d7c6e)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Medical Consultation Notice
+                  </button>.
+                </div>
               </form>
 
               <div style={{ marginTop: '20px', fontSize: '0.8rem', color: '#64748b' }}>
@@ -953,6 +974,34 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               {/* Zero-trust payment assurance note */}
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '14px', fontSize: '0.78rem', color: '#166534', lineHeight: 1.5 }}>
                 🔒 <strong>Secure SSLCOMMERZ Payment Gateway:</strong> Upon clicking Proceed, you will be redirected to the secure SSLCOMMERZ Hosted Checkout page. Your appointment will be confirmed only after server-side validation.
+              </div>
+
+              {/* Contextual Terms and Policies */}
+              <div style={{ fontSize: '0.74rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                By proceeding to payment, you agree to Niramoy's{' '}
+                <button
+                  type="button"
+                  onClick={() => setLegalModal({ open: true, topic: 'terms' })}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary, #0d7c6e)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Terms of Service
+                </button>
+                ,{' '}
+                <button
+                  type="button"
+                  onClick={() => setLegalModal({ open: true, topic: 'cancellation' })}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary, #0d7c6e)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  15-min Slot Hold & Cancellation Policy
+                </button>
+                , and{' '}
+                <button
+                  type="button"
+                  onClick={() => setLegalModal({ open: true, topic: 'disclaimer' })}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary, #0d7c6e)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Clinical Notice
+                </button>.
               </div>
 
               {paymentError && (
@@ -1088,6 +1137,13 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
         </div>
       </div>
+
+      {/* Interactive Contextual Terms Modal */}
+      <LegalContextModal
+        isOpen={legalModal.open}
+        initialTopic={legalModal.topic}
+        onClose={() => setLegalModal({ open: false, topic: 'cancellation' })}
+      />
     </div>
   );
 }
