@@ -655,18 +655,11 @@ exports.checkPrescriptionAvailability = async (req, res, next) => {
     if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
       prescription = await Prescription.findById(req.params.id).lean();
     }
-    if (!prescription) {
-      prescription = await Prescription.findOne().lean();
+    if (!prescription && req.params.id) {
+      prescription = await Prescription.findOne({ prescription_number: req.params.id }).lean();
     }
     if (!prescription) {
-      prescription = {
-        _id: req.params.id,
-        prescription_number: "RX-DEMO-2026",
-        medicines: [
-          { medicine_name: "Napa Extra", dosage: "500mg" },
-          { medicine_name: "Seclo 20", dosage: "20mg" }
-        ]
-      };
+      return errorResponse(res, "Prescription not found", 404, "NOT_FOUND");
     }
 
     const medNames = (prescription.medicines || []).map(m => (m.medicine_name || m.name || "").trim().toLowerCase());

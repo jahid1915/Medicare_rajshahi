@@ -35,7 +35,6 @@ export default function BedBookingModal({ hospital, initialResource, onClose, on
     password: ''
   });
   const [otpCode, setOtpCode] = useState('');
-  const [simulatedOtp, setSimulatedOtp] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -67,28 +66,17 @@ export default function BedBookingModal({ hospital, initialResource, onClose, on
       setAuthError('Please enter a valid 11-digit mobile number.');
       return;
     }
-    if (!patientForm.email.trim() || !patientForm.email.includes('@')) {
-      setAuthError('Please enter a valid email address (e.g., patient@gmail.com).');
-      return;
-    }
-    if (!patientForm.password || patientForm.password.length < 6) {
-      setAuthError('Password must be at least 6 characters.');
-      return;
-    }
 
     setAuthLoading(true);
     try {
-      const res = await sendOtp({
+      await sendOtp({
         phone: patientForm.phone.trim(),
         email: patientForm.email.trim(),
         purpose: 'Hospital Bed Booking Verification'
       });
-      setSimulatedOtp(res?.otp || '592814');
       setStep('otp_verify');
     } catch (err) {
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setSimulatedOtp(fallbackOtp);
-      setStep('otp_verify');
+      setAuthError(err.message || 'Failed to dispatch SMS verification code. Please check your phone number.');
     } finally {
       setAuthLoading(false);
     }
@@ -116,12 +104,7 @@ export default function BedBookingModal({ hospital, initialResource, onClose, on
       setMobileNumber(patientForm.phone.trim());
       setStep('payment');
     } catch (err) {
-      if (otpCode.trim() === simulatedOtp || otpCode.trim() === '123456') {
-        setMobileNumber(patientForm.phone.trim());
-        setStep('payment');
-      } else {
-        setAuthError(err.message || 'Invalid OTP code. Please try again.');
-      }
+      setAuthError(err.message || 'Invalid or expired OTP code. Please try again.');
     } finally {
       setAuthLoading(false);
     }
@@ -436,27 +419,6 @@ export default function BedBookingModal({ hospital, initialResource, onClose, on
                 We sent a 6-digit OTP code to <strong style={{ color: 'var(--text-primary)' }}>{patientForm.phone}</strong> & <strong style={{ color: 'var(--text-primary)' }}>{patientForm.email}</strong>.
               </p>
             </div>
-
-            {/* LIVE SMS SIMULATOR BANNER */}
-            {simulatedOtp && (
-              <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'rgba(34,197,94,0.08)', border: '1.5px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span>📩 Niramoy Hospital Tele-SMS Gateway</span>
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    Your bed reservation code is: <span style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--primary)' }}>{simulatedOtp}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOtpCode(simulatedOtp)}
-                  style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: 'var(--primary)', color: '#ffffff', border: 'none', cursor: 'pointer' }}
-                >
-                  Auto-Fill Code
-                </button>
-              </div>
-            )}
 
             {authError && (
               <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#dc2626', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

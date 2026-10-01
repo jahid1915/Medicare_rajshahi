@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 
+  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
 const TOKEN_KEY = 'niramoy_token';
 const USER_KEY = 'niramoy_user';
 
@@ -78,76 +79,30 @@ export function AuthProvider({ children }) {
     return data.data;
   }, [saveSession]);
 
-  const requestPatientOtp = useCallback(async ({ email, phone, name, purpose }) => {
-    const res = await fetch(`${API_BASE}/auth/patient/request-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, phone, name, purpose })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const err = new Error(data.message || 'Failed to send OTP');
-      err.code = data.code;
-      throw err;
-    }
-    return data.data;
-  }, []);
-
-  const verifyPatientOtp = useCallback(async (payload) => {
-    const res = await fetch(`${API_BASE}/auth/patient/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const err = new Error(data.message || 'OTP verification failed');
-      err.code = data.code;
-      throw err;
-    }
-    saveSession(data.data.user, data.data.token);
-    return data.data;
-  }, [saveSession]);
-
-  const resendPatientOtp = useCallback(async ({ email, phone, name }) => {
-    const res = await fetch(`${API_BASE}/auth/patient/resend-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, phone, name })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const err = new Error(data.message || 'Failed to resend OTP');
-      err.code = data.code;
-      throw err;
-    }
-    return data.data;
-  }, []);
-
   const sendOtp = useCallback(async ({ phone, email, purpose }) => {
-    const res = await fetch(`${API_BASE}/auth/patient/request-otp`, {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, email, purpose })
     });
     const data = await res.json();
     if (!res.ok) {
-      const err = new Error(data.message || 'Failed to send OTP');
+      const err = new Error(data.message || 'Failed to send verification code');
       err.code = data.code;
       throw err;
     }
     return data.data;
   }, []);
 
-  const verifyPatientCheckout = useCallback(async ({ name, phone, email, password, otp, ...rest }) => {
-    const res = await fetch(`${API_BASE}/auth/patient/verify-otp`, {
+  const verifyOtp = useCallback(async (payload) => {
+    const res = await fetch(`${API_BASE}/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, email, password, otp, ...rest })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (!res.ok) {
-      const err = new Error(data.message || 'OTP verification failed');
+      const err = new Error(data.message || 'Verification code check failed');
       err.code = data.code;
       throw err;
     }
@@ -155,27 +110,58 @@ export function AuthProvider({ children }) {
     return data.data;
   }, [saveSession]);
 
+  const requestPatientOtp = sendOtp;
+  const resendPatientOtp = sendOtp;
+  const verifyPatientOtp = verifyOtp;
+  const verifyPatientCheckout = verifyOtp;
+
+  const updateProfile = useCallback(async (profileData) => {
+    const currentToken = token || localStorage.getItem(TOKEN_KEY) || localStorage.getItem('medicare_token');
+    const res = await fetch(`${API_BASE}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify(profileData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.message || 'Failed to update profile');
+      err.code = data.code;
+      throw err;
+    }
+    if (data.data?.user) {
+      setUser(data.data.user);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.data.user));
+    }
+    return data.data;
+  }, [token]);
+
+  const fetchProfile = useCallback(async () => {
+    const currentToken = token || localStorage.getItem(TOKEN_KEY) || localStorage.getItem('medicare_token');
+    if (!currentToken) return null;
+    try {
+      const res = await fetch(`${API_BASE}/auth/profile`, {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.data?.user) {
+        setUser(data.data.user);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.data.user));
+        return data.data;
+      }
+    } catch {
+      // Keep cached session
+    }
+    return user;
+  }, [token, user]);
+
   const logout = useCallback(() => {
     clearSession();
   }, [clearSession]);
 
-  const fetchMe = useCallback(async () => {
-    if (!token) return null;
-    try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.data) {
-        setUser(data.data);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.data));
-        return data.data;
-      }
-    } catch {
-      // Network error — keep cached user
-    }
-    return user;
-  }, [token, user]);
+  const fetchMe = fetchProfile;
 
   const value = {
     user,
@@ -185,10 +171,13 @@ export function AuthProvider({ children }) {
     register,
     login,
     sendOtp,
+    verifyOtp,
     requestPatientOtp,
     verifyPatientOtp,
     resendPatientOtp,
     verifyPatientCheckout,
+    updateProfile,
+    fetchProfile,
     logout,
     fetchMe
   };
@@ -198,6 +187,7 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+
 }
 
 export function useAuth() {

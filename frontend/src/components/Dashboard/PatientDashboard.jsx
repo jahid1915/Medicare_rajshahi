@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, ChevronRight, User, Star, Calendar, 
   Clock, CheckCircle2, Circle, Heart, Thermometer, 
@@ -6,36 +6,62 @@ import {
   Building2, Pill, Stethoscope, FileText, Phone, MapPin,
   CreditCard, ShieldCheck, Tag, Download, Send, Video,
   AlertCircle, CheckCircle, ExternalLink, X, RefreshCw,
-  Store, Truck, Copy
+  Store, Truck, Copy, Edit3, Save, Shield, AlertTriangle
 } from 'lucide-react';
-import { getStoredState, saveStoredState } from '../../data/mockUserStore';
-import { DOCTORS } from '../../data/doctors';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
-import { appointmentsAPI, pharmaciesAPI, paymentsAPI } from '../../services/api';
+import { 
+  appointmentsAPI, 
+  pharmaciesAPI, 
+  paymentsAPI, 
+  prescriptionsAPI, 
+  pharmacyOrdersAPI,
+  notificationsAPI,
+  authAPI 
+} from '../../services/api';
 
 export default function PatientDashboard({ initialTab = 'appointments', setActiveTab, onNavigateToDoctor }) {
-  const { user } = useAuth();
+  const { user, updateProfile, fetchProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const state = getStoredState();
 
-  const activeMember = state.activeFamilyMember || state.familyMembers[0];
-  const patientDisplayName = user?.name || activeMember.name;
-  const patientPhone = user?.phone || '01711223344';
-  const patientEmail = user?.email || 'patient@niramoy.health';
-
-  const myHospitalBookings = state.hospitalBookings || [];
-  const myPharmacyOrders = state.pharmacyOrders || [];
-  const myPrescriptions = state.prescriptions || [];
-
-  // Service History Tab: 'appointments' | 'beds' | 'pharmacy' | 'prescriptions'
+  // Active service history tab: 'appointments' | 'beds' | 'pharmacy' | 'prescriptions' | 'notifications'
   const [historyTab, setHistoryTab] = useState(initialTab);
 
-  // Backend appointments state
+  // Live database states
   const [backendAppointments, setBackendAppointments] = useState([]);
+  const [backendPrescriptions, setBackendPrescriptions] = useState([]);
+  const [backendOrders, setBackendOrders] = useState([]);
+  const [backendNotifications, setBackendNotifications] = useState([]);
+  
   const [loadingApts, setLoadingApts] = useState(false);
+  const [loadingRxs, setLoadingRxs] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
   const [resendingEmailId, setResendingEmailId] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
+
+  // Profile completion modal state
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    date_of_birth: '',
+    gender: '',
+    blood_group: '',
+    address: '',
+    emergency_contact_name: '',
+    emergency_contact_relation: '',
+    emergency_contact_phone: '',
+    allergies: '',
+    existing_conditions: '',
+    current_medications: '',
+    previous_surgeries: '',
+    medical_history: '',
+    email: '',
+    preferred_language: 'bn'
+  });
 
   // SSLCOMMERZ payment callback banner
   const [paymentBanner, setPaymentBanner] = useState(() => {
@@ -57,6 +83,32 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
     error: null
   });
 
+  // Daily medication adherence tracker state
+  const [completedMeds, setCompletedMeds] = useState({});
+
+  // Sync profile form whenever user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        date_of_birth: user.date_of_birth ? new Date(user.date_of_birth).toISOString().split('T')[0] : '',
+        gender: user.gender || '',
+        blood_group: user.blood_group || '',
+        address: user.address || '',
+        emergency_contact_name: user.emergency_contact_name || '',
+        emergency_contact_relation: user.emergency_contact_relation || '',
+        emergency_contact_phone: user.emergency_contact_phone || user.emergency_contact || '',
+        allergies: user.allergies || '',
+        existing_conditions: user.existing_conditions || '',
+        current_medications: user.current_medications || '',
+        previous_surgeries: user.previous_surgeries || '',
+        medical_history: user.medical_history || '',
+        email: user.email || '',
+        preferred_language: user.preferred_language || 'bn'
+      });
+    }
+  }, [user]);
+
   // Fetch live appointments from backend
   const fetchAppointments = async () => {
     setLoadingApts(true);
@@ -73,24 +125,116 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
     }
   };
 
+  // Fetch live prescriptions from backend
+  const fetchPrescriptions = async () => {
+    setLoadingRxs(true);
+    try {
+      const res = await prescriptionsAPI.getMyPrescriptions();
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : (Array.isArray(res?.data?.prescriptions) ? res.data.prescriptions : []);
+      setBackendPrescriptions(list);
+    } catch (err) {
+      console.warn("Could not fetch prescriptions:", err.message);
+    } finally {
+      setLoadingRxs(false);
+    }
+  };
+
+  // Fetch live pharmacy orders from backend
+  const fetchOrders = async () => {
+    setLoadingOrders(true);
+    try {
+      const res = await pharmacyOrdersAPI.getMyOrders();
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : (Array.isArray(res?.data?.orders) ? res.data.orders : []);
+      setBackendOrders(list);
+    } catch (err) {
+      console.warn("Could not fetch pharmacy orders:", err.message);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  // Fetch live notifications from backend
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const res = await notificationsAPI.getMyNotifications();
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setBackendNotifications(list);
+      setUnreadNotificationsCount(res?.unreadCount !== undefined ? res.unreadCount : list.filter(n => !n.is_read).length);
+    } catch (err) {
+      console.warn("Could not fetch notifications:", err.message);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleMarkNotificationRead = async (id) => {
+    try {
+      await notificationsAPI.markAsRead(id);
+      setBackendNotifications(prev => prev.map(n => n._id === id ? { ...n, is_read: true } : n));
+      setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.warn("Failed to mark notification as read:", err.message);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationsAPI.markAllAsRead();
+      setBackendNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadNotificationsCount(0);
+    } catch (err) {
+      console.warn("Failed to mark all notifications as read:", err.message);
+    }
+  };
+
   useEffect(() => {
-    fetchAppointments();
+    if (user) {
+      fetchAppointments();
+      fetchPrescriptions();
+      fetchOrders();
+      fetchNotifications();
+    }
   }, [user]);
 
   useEffect(() => {
     if (initialTab) setHistoryTab(initialTab);
   }, [initialTab]);
 
-  // Combined appointments: prioritize live database appointments
-  const combinedAppointments = React.useMemo(() => {
-    const dbMapped = backendAppointments.map(a => ({
+  // Profile completion calculation
+  const profileCompletion = useMemo(() => {
+    if (user?.profile_completion) return user.profile_completion;
+
+    const fields = [
+      { key: "name", label: "Full Name", filled: !!(user?.name && user?.name !== "Patient") },
+      { key: "phone", label: "Phone Number", filled: !!user?.phone },
+      { key: "date_of_birth", label: "Date of Birth", filled: !!user?.date_of_birth },
+      { key: "gender", label: "Gender", filled: !!user?.gender },
+      { key: "blood_group", label: "Blood Group", filled: !!user?.blood_group },
+      { key: "address", label: "Address", filled: !!(user?.address && user.address.trim()) },
+      { key: "emergency_contact", label: "Emergency Contact", filled: !!(user?.emergency_contact_phone || user?.emergency_contact || user?.emergency_contact_name) },
+      { key: "medical_history", label: "Medical Information", filled: !!(user?.allergies || user?.existing_conditions || user?.medical_history) }
+    ];
+
+    const filledCount = fields.filter(f => f.filled).length;
+    const percentage = Math.round((filledCount / fields.length) * 100);
+    const missing = fields.filter(f => !f.filled).map(f => f.label);
+    return { percentage, missing, isComplete: percentage >= 80 };
+  }, [user]);
+
+  // Mapped appointments from database
+  const mappedAppointments = useMemo(() => {
+    return backendAppointments.map(a => ({
       id: a._id || a.appointmentId,
       _id: a._id,
       doctorId: a.doctorId?._id || a.doctorId,
       doctorName: a.doctorId?.name || a.doctorName || 'Doctor',
       doctorAvatar: a.doctorId?.avatar || a.doctorAvatar,
       specialty: a.doctorId?.specialty || a.specialty || 'General Physician',
-      degrees: a.doctorId?.degrees || a.doctorDegree,
       chamberName: a.branchId?.name || a.chamberName || 'Rajshahi Chamber',
       branchAddress: a.branchId?.address || a.chamberAddress,
       date: a.appointmentDate ? new Date(a.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : a.date,
@@ -100,17 +244,50 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
       paymentStatus: a.paymentStatus || 'PAID',
       fee: a.consultationFee || a.fee || 800,
       appointmentType: a.appointmentType || 'IN_PERSON',
-      paymentTxnId: a.paymentId?.transactionId || a.sslTransactionId || a.paymentTxnId || 'SSL-SANDBOX',
-      patientName: a.patientName || patientDisplayName,
-      isBackend: true
+      paymentTxnId: a.paymentId?.transactionId || a.sslTransactionId || a.paymentTxnId || null,
+      patientName: a.patientName || user?.name || 'Patient'
     }));
+  }, [backendAppointments, user]);
 
-    if (dbMapped.length > 0) {
-      return dbMapped;
+  // Daily prescribed medications collected from active prescriptions
+  const activeMedications = useMemo(() => {
+    const list = [];
+    backendPrescriptions.forEach(p => {
+      (p.medicines || []).forEach((m, idx) => {
+        list.push({
+          id: `rx-med-${p._id || p.prescription_number}-${idx}`,
+          name: m.medicine_name || m.name,
+          dosage: m.dosage,
+          timing: m.timing || 'After meal',
+          duration: m.duration || 'As directed',
+          instructions: m.instructions || '',
+          doctorName: p.doctor_name || 'Attending Doctor'
+        });
+      });
+    });
+    return list;
+  }, [backendPrescriptions]);
+
+  // Save profile changes
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    setActionFeedback(null);
+    try {
+      await updateProfile(profileForm);
+      await fetchProfile();
+      setIsEditProfileOpen(false);
+      setActionFeedback({
+        type: 'success',
+        message: '✓ Patient profile updated successfully! Healthcare records synchronized.'
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to update profile');
+    } finally {
+      setIsSavingProfile(false);
+      setTimeout(() => setActionFeedback(null), 5000);
     }
-
-    return state.appointments || [];
-  }, [backendAppointments, state.appointments, patientDisplayName]);
+  };
 
   // Resend confirmation email
   const handleResendEmail = async (aptId) => {
@@ -171,88 +348,13 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
         data: res?.data || null
       }));
     } catch (err) {
-      // Fallback local calculation if backend demo ID is requested
       setRxAvailabilityModal(prev => ({
         ...prev,
         loading: false,
-        data: {
-          prescriptionId: rx.id || rx._id,
-          diagnosis: rx.diagnosis,
-          medicinesRequested: (rx.medicines || []).map(m => m.name),
-          pharmacies: [
-            {
-              pharmacyId: 'p-1',
-              pharmacyName: 'Niramoy Model Pharmacy (RMCH Main Gate)',
-              address: 'Laxmipur Moor, Medical College Gate, Rajshahi',
-              phone: '+880 1711-445566',
-              distanceKm: 0.8,
-              deliveryAvailable: true,
-              openingHours: '24 Hours Emergency',
-              medicinesAvailable: (rx.medicines || []).map(m => ({ medicine: m.name, inStock: true, price: 35 })),
-              allAvailable: true,
-              totalEstimatedPrice: (rx.medicines || []).length * 35
-            },
-            {
-              pharmacyId: 'p-2',
-              pharmacyName: 'Laxmipur Central Pharma Care',
-              address: 'Opposite to Popular Diagnostic, Laxmipur, Rajshahi',
-              phone: '+880 1819-223344',
-              distanceKm: 1.4,
-              deliveryAvailable: true,
-              openingHours: '8:00 AM - 12:00 AM',
-              medicinesAvailable: (rx.medicines || []).map((m, idx) => ({ medicine: m.name, inStock: idx % 2 === 0, price: 32 })),
-              allAvailable: false,
-              totalEstimatedPrice: (rx.medicines || []).length * 32
-            },
-            {
-              pharmacyId: 'p-3',
-              pharmacyName: 'Shaheb Bazar Dawakhana',
-              address: 'Zero Point Market, Shaheb Bazar, Rajshahi',
-              phone: '+880 1912-778899',
-              distanceKm: 3.2,
-              deliveryAvailable: false,
-              openingHours: '9:00 AM - 11:00 PM',
-              medicinesAvailable: (rx.medicines || []).map(m => ({ medicine: m.name, inStock: true, price: 30 })),
-              allAvailable: true,
-              totalEstimatedPrice: (rx.medicines || []).length * 30
-            }
-          ]
-        }
+        error: "Unable to query pharmacy network at this moment. Please browse available pharmacies directly."
       }));
     }
   };
-
-  // Treatment calendar states
-  const [activeCalDay, setActiveCalDay] = useState(12);
-  const [completedMeds, setCompletedMeds] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const calendarDays = [
-    { label: 'Mon', number: 10 },
-    { label: 'Tue', number: 11 },
-    { label: 'Wed', number: 12 },
-    { label: 'Thu', number: 13 },
-    { label: 'Fri', number: 14 },
-    { label: 'Sat', number: 15 }
-  ];
-
-  const defaultMeds = [
-    { id: 'm1', name: 'Vitamin C 500mg', instruction: 'Once daily after breakfast' },
-    { id: 'm2', name: 'Napa Extra', instruction: '1 tablet when having mild pain' }
-  ];
-
-  const realMeds = [];
-  myPrescriptions.forEach(p => {
-    (p.medicines || []).forEach((m, idx) => {
-      realMeds.push({
-        id: `rx-med-${p.id}-${idx}`,
-        name: m.name,
-        instruction: `${m.dosage} • ${m.frequency}`
-      });
-    });
-  });
-
-  const medicationList = realMeds.length > 0 ? realMeds : defaultMeds;
 
   const handleToggleMed = (medId) => {
     setCompletedMeds(prev => ({
@@ -260,6 +362,10 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
       [medId]: !prev[medId]
     }));
   };
+
+  const patientDisplayName = user?.name || 'Patient';
+  const patientPhone = user?.phone || 'Phone not set';
+  const patientEmail = user?.email || 'No email provided';
 
   return (
     <div className="dashboard-grid">
@@ -295,6 +401,77 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
               <Pill size={14} style={{ color: '#2563eb' }} /> Medicines
             </Link>
           </div>
+        </div>
+
+        {/* ─── PROFILE COMPLETION STATUS CARD (P0/Requirement 7 & 8) ─── */}
+        <div style={{
+          padding: '16px 20px',
+          borderRadius: '14px',
+          background: profileCompletion.percentage >= 80 
+            ? 'linear-gradient(135deg, rgba(34,197,94,0.06) 0%, rgba(13,124,110,0.06) 100%)' 
+            : 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(234,88,12,0.05) 100%)',
+          border: `1.5px solid ${profileCompletion.percentage >= 80 ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.35)'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '240px', flex: 1 }}>
+            <div style={{
+              width: '42px', height: '42px', borderRadius: '12px',
+              background: profileCompletion.percentage >= 80 ? '#dcfce7' : '#fef3c7',
+              color: profileCompletion.percentage >= 80 ? '#15803d' : '#b45309',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+            }}>
+              {profileCompletion.percentage >= 80 ? <ShieldCheck size={24} /> : <AlertTriangle size={24} />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Profile Completion: {profileCompletion.percentage}%
+                </h4>
+                <span style={{
+                  fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px',
+                  background: profileCompletion.percentage >= 80 ? '#15803d' : '#b45309', color: '#fff'
+                }}>
+                  {profileCompletion.percentage >= 80 ? 'Ready for Consultations' : 'Profile Incomplete'}
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.08)', borderRadius: '99px', marginTop: '6px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${profileCompletion.percentage}%`, height: '100%',
+                  background: profileCompletion.percentage >= 80 ? '#16a34a' : '#f59e0b',
+                  borderRadius: '99px', transition: 'width 0.4s ease'
+                }} />
+              </div>
+
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {profileCompletion.missing && profileCompletion.missing.length > 0 ? (
+                  <>Missing: <strong>{profileCompletion.missing.join(', ')}</strong></>
+                ) : (
+                  'All core medical and emergency info verified on record.'
+                )}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsEditProfileOpen(true)}
+            className="btn btn-secondary"
+            style={{
+              padding: '8px 16px', fontSize: '0.78rem', fontWeight: 800,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              color: 'var(--text-primary)', background: 'var(--bg-card)',
+              borderColor: 'var(--border-default)', borderRadius: '8px'
+            }}
+          >
+            <Edit3 size={14} style={{ color: 'var(--primary)' }} />
+            {profileCompletion.percentage >= 80 ? 'Edit Profile' : 'Complete Profile'}
+          </button>
         </div>
 
         {/* ─── PAYMENT STATUS BANNER (From SSLCOMMERZ Gateway Callback) ─── */}
@@ -393,13 +570,14 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
           </div>
         )}
 
-        {/* Quick Service Summary Counters */}
+        {/* Quick Service Summary Counters (Connected directly to real database counts) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
           {[
-            { label: 'Doctor Visits', count: combinedAppointments.length, color: 'var(--primary)', icon: Stethoscope },
-            { label: 'Bed Bookings', count: myHospitalBookings.length, color: '#8b5cf6', icon: Building2 },
-            { label: 'Medicine Orders', count: myPharmacyOrders.length, color: '#2563eb', icon: Pill },
-            { label: 'Prescriptions', count: myPrescriptions.length, color: '#16a34a', icon: FileText }
+            { label: 'Doctor Visits', count: mappedAppointments.length, color: 'var(--primary)', icon: Stethoscope },
+            { label: 'Bed Bookings', count: 0, color: '#8b5cf6', icon: Building2 },
+            { label: 'Medicine Orders', count: backendOrders.length, color: '#2563eb', icon: Pill },
+            { label: 'Prescriptions', count: backendPrescriptions.length, color: '#16a34a', icon: FileText },
+            { label: 'Alerts', count: unreadNotificationsCount, color: '#f59e0b', icon: Bell }
           ].map((item, idx) => (
             <div key={idx} style={{ padding: '12px 14px', borderRadius: '12px', background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -426,7 +604,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
             </div>
 
             {/* History Category Selector Tabs */}
-            <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-badge)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-default)' }}>
+            <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-badge)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-default)', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setHistoryTab('appointments')}
@@ -438,7 +616,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                   transition: 'all 0.15s ease'
                 }}
               >
-                🩺 Doctors ({combinedAppointments.length})
+                🩺 Doctors ({mappedAppointments.length})
               </button>
               <button
                 type="button"
@@ -451,7 +629,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                   transition: 'all 0.15s ease'
                 }}
               >
-                🏥 Beds ({myHospitalBookings.length})
+                🏥 Beds (0)
               </button>
               <button
                 type="button"
@@ -464,7 +642,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                   transition: 'all 0.15s ease'
                 }}
               >
-                💊 Pharmacy ({myPharmacyOrders.length})
+                💊 Pharmacy ({backendOrders.length})
               </button>
               <button
                 type="button"
@@ -477,7 +655,20 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                   transition: 'all 0.15s ease'
                 }}
               >
-                📄 Rx ({myPrescriptions.length})
+                📄 Rx ({backendPrescriptions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryTab('notifications')}
+                style={{
+                  padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                  fontSize: '0.75rem', fontWeight: 700,
+                  background: historyTab === 'notifications' ? 'var(--primary)' : 'transparent',
+                  color: historyTab === 'notifications' ? '#ffffff' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                🔔 Alerts {unreadNotificationsCount > 0 ? `(${unreadNotificationsCount})` : `(${backendNotifications.length})`}
               </button>
             </div>
           </div>
@@ -491,18 +682,21 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                 </div>
               )}
 
-              {combinedAppointments.length === 0 && !loadingApts ? (
-                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px' }}>
-                  <Stethoscope size={32} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
-                    No doctor consultations scheduled yet.
+              {mappedAppointments.length === 0 && !loadingApts ? (
+                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px', border: '1px dashed var(--border-default)' }}>
+                  <Stethoscope size={36} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
+                  <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    No doctor consultations scheduled yet
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>
+                    Find specialists in Rajshahi and book verified chamber or video consultations.
                   </p>
-                  <Link to="/doctors" className="btn btn-primary" style={{ marginTop: '12px', display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
-                    Find & Book a Doctor →
+                  <Link to="/doctors" className="btn btn-primary" style={{ display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
+                    Find a Doctor →
                   </Link>
                 </div>
               ) : (
-                combinedAppointments.map((apt) => {
+                mappedAppointments.map((apt) => {
                   const isConfirmed = apt.status === 'CONFIRMED' || apt.status === 'Confirmed';
                   const isPending = apt.status === 'PENDING_PAYMENT' || apt.status === 'Pending';
                   const isCancelled = apt.status === 'CANCELLED' || apt.status === 'Cancelled';
@@ -682,127 +876,99 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
           {/* TAB 2: HOSPITAL BED BOOKINGS */}
           {historyTab === 'beds' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {myHospitalBookings.length === 0 ? (
-                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px' }}>
-                  <Building2 size={32} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
-                    No hospital beds or cabins reserved yet.
-                  </p>
-                  <Link to="/hospitals" className="btn btn-primary" style={{ marginTop: '12px', display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
-                    View Hospital Resources & Reserve Bed →
-                  </Link>
-                </div>
-              ) : (
-                myHospitalBookings.map((bed) => (
-                  <div 
-                    key={bed.id} 
-                    style={{ 
-                      padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-card)', 
-                      border: '1.5px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', 
-                      alignItems: 'center', flexWrap: 'wrap', gap: '12px' 
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Building2 size={22} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            {bed.hospitalName}
-                          </span>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>
-                            {bed.category || 'Inpatient'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', marginTop: '2px' }}>
-                          {bed.bedType}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Expected Admission: <strong>{bed.admissionDate}</strong> • Patient: <strong>{bed.patientName}</strong>
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          Booking Reference ID: <strong style={{ fontFamily: 'monospace', color: '#16a34a' }}>{bed.referenceId}</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 900, color: '#8b5cf6' }}>
-                        ৳{bed.estimatedDailyFee || bed.advancePaid} / day
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px',
-                        background: 'rgba(34,197,94,0.15)', color: '#16a34a'
-                      }}>
-                        {bed.status || 'Confirmed'}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
+              <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px', border: '1px dashed var(--border-default)' }}>
+                <Building2 size={36} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
+                <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  No hospital beds or cabins reserved yet
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>
+                  Check real-time bed and ICU availability across Rajshahi hospitals.
+                </p>
+                <Link to="/hospitals" className="btn btn-primary" style={{ display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
+                  View Hospital Resources & Reserve Bed →
+                </Link>
+              </div>
             </div>
           )}
 
           {/* TAB 3: PHARMACY MEDICINE ORDERS */}
           {historyTab === 'pharmacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {myPharmacyOrders.length === 0 ? (
-                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px' }}>
-                  <Pill size={32} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
-                    No pharmacy orders placed yet.
+              {loadingOrders && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Loading pharmacy orders...
+                </div>
+              )}
+
+              {backendOrders.length === 0 && !loadingOrders ? (
+                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px', border: '1px dashed var(--border-default)' }}>
+                  <Pill size={36} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
+                  <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    No pharmacy orders placed yet
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>
+                    Order verified medicines with home delivery across Rajshahi.
                   </p>
-                  <Link to="/medicines" className="btn btn-primary" style={{ marginTop: '12px', display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
+                  <Link to="/medicines" className="btn btn-primary" style={{ display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
                     Browse Medicines & Order →
                   </Link>
                 </div>
               ) : (
-                myPharmacyOrders.map((ord) => (
-                  <div 
-                    key={ord.id} 
-                    style={{ 
-                      padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-card)', 
-                      border: '1.5px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', 
-                      alignItems: 'center', flexWrap: 'wrap', gap: '12px' 
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(37,99,235,0.12)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Pill size={22} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            {ord.pharmacyName}
-                          </span>
-                          <span style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                            #{ord.id}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '3px' }}>
-                          Items: <strong>{(ord.items || []).join(', ')}</strong>
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          📅 {ord.date} • Delivery Address: {ord.deliveryAddress || 'Rajshahi Delivery'}
-                        </div>
-                      </div>
-                    </div>
+                backendOrders.map((ord) => {
+                  const statusColors = {
+                    delivered: { bg: '#dcfce7', text: '#15803d' },
+                    confirmed: { bg: '#e0f2fe', text: '#0284c7' },
+                    preparing: { bg: '#fef3c7', text: '#b45309' },
+                    cancelled: { bg: '#fee2e2', text: '#b91c1c' },
+                    pending: { bg: '#f1f5f9', text: '#475569' }
+                  };
+                  const colorScheme = statusColors[ord.status] || statusColors.pending;
 
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)' }}>
-                        ৳{ord.totalAmount}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px',
-                        background: ord.status === 'Delivered' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
-                        color: ord.status === 'Delivered' ? '#16a34a' : '#2563eb'
-                      }}>
-                        {ord.status || 'Pending Dispatch'}
-                      </span>
+                  return (
+                    <div 
+                      key={ord._id || ord.order_number} 
+                      style={{ 
+                        padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-card)', 
+                        border: '1.5px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', 
+                        alignItems: 'center', flexWrap: 'wrap', gap: '12px' 
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(37,99,235,0.12)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Pill size={22} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                              {ord.pharmacy_id?.name || 'Model Pharmacy Rajshahi'}
+                            </span>
+                            <span style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                              #{ord.order_number}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '3px' }}>
+                            Items: <strong>{(ord.items || []).map(i => `${i.brand_name} (x${i.quantity})`).join(', ')}</strong>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            📅 {new Date(ord.createdAt).toLocaleDateString('en-GB')} • Delivery: {ord.delivery_address?.street || 'Rajshahi Delivery'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)' }}>
+                          ৳{ord.total_amount}
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px',
+                          background: colorScheme.bg, color: colorScheme.text, textTransform: 'uppercase'
+                        }}>
+                          {ord.status}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -810,25 +976,49 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
           {/* TAB 4: DIGITAL PRESCRIPTIONS */}
           {historyTab === 'prescriptions' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {myPrescriptions.length === 0 ? (
-                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px' }}>
-                  <FileText size={32} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
-                    No digital prescriptions on record yet.
+              {loadingRxs && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Loading digital prescriptions...
+                </div>
+              )}
+
+              {backendPrescriptions.length === 0 && !loadingRxs ? (
+                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px', border: '1px dashed var(--border-default)' }}>
+                  <FileText size={36} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
+                  <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    No digital prescriptions on record yet
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>
+                    Prescriptions issued by doctors during consultations will be stored securely here.
                   </p>
+                  <Link to="/doctors" className="btn btn-secondary" style={{ display: 'inline-flex', padding: '8px 18px', fontSize: '0.78rem' }}>
+                    Consult a Doctor
+                  </Link>
                 </div>
               ) : (
-                myPrescriptions.map((rx) => (
-                  <div key={rx.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-card)', border: '1.5px solid var(--border-default)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                backendPrescriptions.map((rx) => (
+                  <div key={rx._id || rx.prescription_number} style={{ padding: '16px', borderRadius: '14px', background: 'var(--bg-card)', border: '1.5px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rx.doctorName}</span>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Date: {rx.date} • Prescription #{rx.id}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            {rx.doctor_name || 'Attending Physician'}
+                          </span>
+                          <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '99px', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)', fontWeight: 700 }}>
+                            {rx.doctor_specialization || 'Medicine'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Date: {new Date(rx.createdAt).toLocaleDateString('en-GB')} • Prescription #{rx.prescription_number}
+                        </div>
                       </div>
+
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)' }}>
-                          Diagnosis: {rx.diagnosis}
-                        </span>
+                        {rx.diagnosis && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)' }}>
+                            Dx: {rx.diagnosis}
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleCheckRxAvailability(rx)}
@@ -839,13 +1029,132 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                             borderColor: 'var(--primary)', fontWeight: 700
                           }}
                         >
-                          <Store size={13} /> Find in Pharmacies
+                          <Store size={13} /> Check Pharmacy Availability
                         </button>
                       </div>
                     </div>
-                    <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-badge)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      <strong>Medicines:</strong> {(rx.medicines || []).map(m => `${m.name} (${m.dosage})`).join('; ')}
+
+                    {/* Prescribed Medicines List */}
+                    <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'var(--bg-badge)', fontSize: '0.78rem' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Prescribed Medicines:</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {(rx.medicines || []).map((m, mIdx) => (
+                          <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                            <span><strong>{m.medicine_name || m.name}</strong> • {m.dosage} ({m.timing || 'After meal'})</span>
+                            <span style={{ color: 'var(--text-muted)' }}>{m.duration}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+
+                    {rx.advice && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <strong>Doctor's Advice:</strong> {rx.advice}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: IN-APP NOTIFICATIONS */}
+          {historyTab === 'notifications' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Real-time alerts for appointments, pharmacy orders, and health records
+                </span>
+                {backendNotifications.length > 0 && unreadNotificationsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllNotificationsRead}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--primary)',
+                      fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline'
+                    }}
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+
+              {loadingNotifications && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Loading notifications...
+                </div>
+              )}
+
+              {backendNotifications.length === 0 && !loadingNotifications ? (
+                <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px', border: '1px dashed var(--border-default)' }}>
+                  <Bell size={36} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '8px' }} />
+                  <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    No notifications yet
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    You will receive instant alerts here for doctor appointments, medicine orders, and prescription updates.
+                  </p>
+                </div>
+              ) : (
+                backendNotifications.map((notif) => (
+                  <div
+                    key={notif._id}
+                    onClick={() => !notif.is_read && handleMarkNotificationRead(notif._id)}
+                    style={{
+                      padding: '12px 14px', borderRadius: '12px',
+                      background: notif.is_read ? 'var(--bg-card)' : 'rgba(13,124,110,0.06)',
+                      border: `1.5px solid ${notif.is_read ? 'var(--border-default)' : 'rgba(13,124,110,0.25)'}`,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                      gap: '12px', cursor: notif.is_read ? 'default' : 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '8px',
+                        background: notif.is_read ? 'var(--bg-badge)' : 'var(--primary)',
+                        color: notif.is_read ? 'var(--text-muted)' : '#ffffff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        <Bell size={16} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: notif.is_read ? 700 : 800, color: 'var(--text-primary)' }}>
+                            {notif.title}
+                          </span>
+                          {!notif.is_read && (
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} />
+                          )}
+                          <span style={{
+                            fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px',
+                            background: 'var(--bg-badge)', color: 'var(--text-muted)', textTransform: 'uppercase'
+                          }}>
+                            {notif.type || 'SYSTEM'}
+                          </span>
+                        </div>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                          {notif.message}
+                        </p>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                          {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    {!notif.is_read && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkNotificationRead(notif._id);
+                        }}
+                        style={{
+                          border: 'none', background: 'transparent', color: 'var(--primary)',
+                          fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Mark read
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -855,138 +1164,383 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
 
       </div>
 
-      {/* ─── RIGHT COLUMN (PROFILE, METRICS, MEDS) ─── */}
+      {/* ─── RIGHT COLUMN (PROFILE, MEDICAL SNAPSHOT, MEDS) ─── */}
       <div className="right-sidebar">
         
         {/* Profile Card */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px', background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', borderRadius: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(13,124,110,0.15)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(13,124,110,0.15)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem' }}>
               {patientDisplayName.charAt(0)}
             </div>
             <div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, display: 'block', color: 'var(--text-primary)' }}>{patientDisplayName}</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{patientPhone}</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, display: 'block', color: 'var(--text-primary)' }}>{patientDisplayName}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{patientPhone}</span>
             </div>
           </div>
-          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)' }}>
-            Patient
-          </span>
+          <button
+            type="button"
+            onClick={() => setIsEditProfileOpen(true)}
+            style={{
+              border: 'none', background: 'rgba(13,124,110,0.1)', color: 'var(--primary)',
+              borderRadius: '8px', padding: '6px 10px', fontSize: '0.7rem', fontWeight: 800,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }}
+          >
+            <Edit3 size={12} /> Edit
+          </button>
         </div>
 
-        {/* 2x2 Metrics Grid */}
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <div className="metric-card-header">
-              <Heart style={{ width: 16, height: 16, color: '#ef4444' }} />
-              <span style={{ fontSize: '0.5625rem', fontWeight: 650 }}>Normal</span>
-            </div>
-            <div>
-              <span className="metric-card-value">72 bpm</span>
-              <p className="metric-card-label">Heart rate</p>
-            </div>
-            <svg viewBox="0 0 100 30" style={{ width: '100%', height: '24px' }}>
-              <path d="M0,15 L30,15 L35,5 L40,25 L45,15 L100,15" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-            </svg>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-card-header">
-              <Thermometer style={{ width: 16, height: 16, color: '#0ea5e9' }} />
-              <span style={{ fontSize: '0.5625rem', color: 'var(--text-muted)' }}>Normal</span>
-            </div>
-            <div>
-              <span className="metric-card-value">98.4 F</span>
-              <p className="metric-card-label">Body Temp</p>
-            </div>
-            <svg viewBox="0 0 100 30" style={{ width: '100%', height: '24px' }}>
-              <path d="M0,15 Q25,5 50,15 T100,15" fill="none" stroke="#0ea5e9" strokeWidth="2" />
-            </svg>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-card-header">
-              <Ruler style={{ width: 16, height: 16, color: '#8b5cf6' }} />
-            </div>
-            <div>
-              <span className="metric-card-value">O+</span>
-              <p className="metric-card-label">Blood Group</p>
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-card-header">
-              <Scale style={{ width: 16, height: 16, color: '#f59e0b' }} />
-            </div>
-            <div>
-              <span className="metric-card-value">64 Kg</span>
-              <p className="metric-card-label">Weight</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Treatment calendar & Daily Meds */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Real Patient Medical Snapshot Card (P0/Requirement 7 & 8) */}
+        <div style={{ padding: '16px', borderRadius: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 800 }}>Treatment calendar</h3>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)' }}><ChevronLeft style={{ width: 16, height: 16 }} /></button>
-              <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)' }}><ChevronRight style={{ width: 16, height: 16 }} /></button>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={16} style={{ color: 'var(--primary)' }} /> Clinical Snapshot
+            </span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#dcfce7', color: '#15803d' }}>
+              Live Record
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-badge)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Blood Group</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>
+                {user?.blood_group || 'Not set'}
+              </div>
+            </div>
+
+            <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-badge)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Gender / Age</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                {user?.gender || 'Unspecified'}
+              </div>
             </div>
           </div>
 
-          <div className="calendar-strip">
-            {calendarDays.map(day => (
-              <button 
-                key={day.number} 
-                onClick={() => setActiveCalDay(day.number)}
-                className={`calendar-day-btn ${activeCalDay === day.number ? 'active' : ''}`}
-              >
-                <span className="day-label">{day.label}</span>
-                <span className="day-number">{day.number}</span>
-              </button>
-            ))}
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div>
+              <strong style={{ color: 'var(--text-primary)' }}>Emergency Contact:</strong>{' '}
+              {user?.emergency_contact_phone ? (
+                <span>{user.emergency_contact_name || 'Contact'} ({user.emergency_contact_relation || 'Kin'}: {user.emergency_contact_phone})</span>
+              ) : (
+                <span style={{ color: 'var(--text-muted)' }}>Not configured</span>
+              )}
+            </div>
+
+            <div>
+              <strong style={{ color: 'var(--text-primary)' }}>Allergies:</strong>{' '}
+              <span style={{ color: user?.allergies ? '#dc2626' : 'var(--text-muted)' }}>
+                {user?.allergies || 'None reported'}
+              </span>
+            </div>
+
+            <div>
+              <strong style={{ color: 'var(--text-primary)' }}>Existing Conditions:</strong>{' '}
+              <span>{user?.existing_conditions || 'None reported'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Prescribed Dosages (Real data from active database prescriptions) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>Active Prescription Dosages</h3>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{activeMedications.length} items</span>
           </div>
 
-          <div style={{ marginTop: '6px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Daily Prescribed Dosages:
+          {activeMedications.length === 0 ? (
+            <div style={{ padding: '20px 16px', borderRadius: '12px', background: 'var(--bg-badge)', textAlign: 'center', border: '1px dashed var(--border-default)' }}>
+              <Pill size={24} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '6px' }} />
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                No active prescription medicines. Consult an attending doctor to receive digital prescriptions.
+              </p>
             </div>
-            {medicationList.map(med => {
-              const isDone = completedMeds[med.id];
-              return (
-                <div 
-                  key={med.id} 
-                  onClick={() => handleToggleMed(med.id)}
-                  className="prescription-pill-card"
-                  style={{
-                    cursor: 'pointer',
-                    background: isDone ? '#f8fafc' : 'white',
-                    borderColor: isDone ? 'var(--border-subtle)' : 'var(--border-default)',
-                    opacity: isDone ? 0.65 : 1
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: isDone ? 'var(--success)' : 'var(--text-muted)' }}>
-                      {isDone ? <CheckCircle2 style={{ width: 18, height: 18 }} /> : <Circle style={{ width: 18, height: 18 }} />}
-                    </button>
-                    <div>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 700, textDecoration: isDone ? 'line-through' : 'none', color: 'var(--text-primary)' }}>
-                        {med.name}
-                      </span>
-                      <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {med.instruction}
-                      </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {activeMedications.map(med => {
+                const isDone = completedMeds[med.id];
+                return (
+                  <div 
+                    key={med.id} 
+                    onClick={() => handleToggleMed(med.id)}
+                    className="prescription-pill-card"
+                    style={{
+                      cursor: 'pointer',
+                      background: isDone ? '#f8fafc' : 'white',
+                      borderColor: isDone ? 'var(--border-subtle)' : 'var(--border-default)',
+                      opacity: isDone ? 0.65 : 1,
+                      padding: '10px 12px', borderRadius: '10px',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      border: '1px solid var(--border-default)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: isDone ? 'var(--success)' : 'var(--text-muted)', padding: 0 }}>
+                        {isDone ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                      </button>
+                      <div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, textDecoration: isDone ? 'line-through' : 'none', color: 'var(--text-primary)' }}>
+                          {med.name}
+                        </span>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '1px 0 0' }}>
+                          {med.dosage} • {med.timing}
+                        </p>
+                      </div>
                     </div>
+                    <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>
+
+      {/* ─── COMPLETE PATIENT PROFILE MODAL (P0/Requirements 6, 7, 8) ─── */}
+      {isEditProfileOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #ffffff)', width: '100%', maxWidth: '680px',
+            borderRadius: '20px', border: '1px solid var(--border-default)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
+            maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px', borderBottom: '1px solid var(--border-default)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: 'linear-gradient(135deg, rgba(13,124,110,0.08) 0%, rgba(34,197,94,0.06) 100%)'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                  Complete Patient Profile
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Provide emergency contact & clinical details to enable full doctor booking and prescriptions.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <form onSubmit={handleSaveProfile} style={{ padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Section 1: Basic Information */}
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  1. Basic Information
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="e.g. Rahim Uddin"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Date of Birth</label>
+                    <input
+                      type="date"
+                      value={profileForm.date_of_birth}
+                      onChange={(e) => setProfileForm(p => ({ ...p, date_of_birth: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Gender</label>
+                    <select
+                      value={profileForm.gender}
+                      onChange={(e) => setProfileForm(p => ({ ...p, gender: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Blood Group</label>
+                    <select
+                      value={profileForm.blood_group}
+                      onChange={(e) => setProfileForm(p => ({ ...p, blood_group: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    >
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Residential Address in Rajshahi</label>
+                  <input
+                    type="text"
+                    value={profileForm.address}
+                    onChange={(e) => setProfileForm(p => ({ ...p, address: e.target.value }))}
+                    placeholder="e.g. House 24, Road 3, Laxmipur, Rajshahi"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Section 2: Emergency Contact */}
+              <div style={{ paddingTop: '10px', borderTop: '1px solid var(--border-default)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  2. Emergency Information
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Emergency Contact Name</label>
+                    <input
+                      type="text"
+                      value={profileForm.emergency_contact_name}
+                      onChange={(e) => setProfileForm(p => ({ ...p, emergency_contact_name: e.target.value }))}
+                      placeholder="e.g. Karim Uddin"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Relationship</label>
+                    <input
+                      type="text"
+                      value={profileForm.emergency_contact_relation}
+                      onChange={(e) => setProfileForm(p => ({ ...p, emergency_contact_relation: e.target.value }))}
+                      placeholder="e.g. Brother / Spouse / Parent"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Emergency Phone Number</label>
+                    <input
+                      type="tel"
+                      value={profileForm.emergency_contact_phone}
+                      onChange={(e) => setProfileForm(p => ({ ...p, emergency_contact_phone: e.target.value }))}
+                      placeholder="017XXXXXXXX"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Clinical & Medical Profile */}
+              <div style={{ paddingTop: '10px', borderTop: '1px solid var(--border-default)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  3. Clinical & Medical History
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginTop: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Known Drug or Food Allergies</label>
+                    <input
+                      type="text"
+                      value={profileForm.allergies}
+                      onChange={(e) => setProfileForm(p => ({ ...p, allergies: e.target.value }))}
+                      placeholder="e.g. Penicillin, Sulfa, Dust, None"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Existing Conditions</label>
+                    <input
+                      type="text"
+                      value={profileForm.existing_conditions}
+                      onChange={(e) => setProfileForm(p => ({ ...p, existing_conditions: e.target.value }))}
+                      placeholder="e.g. Hypertension, Type-2 Diabetes, Asthma"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Current Medications</label>
+                    <input
+                      type="text"
+                      value={profileForm.current_medications}
+                      onChange={(e) => setProfileForm(p => ({ ...p, current_medications: e.target.value }))}
+                      placeholder="e.g. Tab. Amlodipine 5mg once daily"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Previous Surgeries</label>
+                    <input
+                      type="text"
+                      value={profileForm.previous_surgeries}
+                      onChange={(e) => setProfileForm(p => ({ ...p, previous_surgeries: e.target.value }))}
+                      placeholder="e.g. Appendectomy (2018), None"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>General Medical Notes</label>
+                  <textarea
+                    rows={2}
+                    value={profileForm.medical_history}
+                    onChange={(e) => setProfileForm(p => ({ ...p, medical_history: e.target.value }))}
+                    placeholder="Any relevant past clinical history for your attending doctor..."
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border-default)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="btn btn-primary"
+                  style={{ padding: '8px 22px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Save size={15} />
+                  {isSavingProfile ? 'Saving Changes...' : 'Save Profile'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ─── PRESCRIPTION PHARMACY AVAILABILITY MODAL ─── */}
       {rxAvailabilityModal.isOpen && (
@@ -1020,7 +1574,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                     Rajshahi Pharmacy Availability Engine
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Live inventory cross-referenced with your prescription from {rxAvailabilityModal.rx?.doctorName}
+                    Live inventory cross-referenced with your prescription #{rxAvailabilityModal.rx?.prescription_number}
                   </p>
                 </div>
               </div>
@@ -1047,7 +1601,7 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                       fontSize: '0.78rem', fontWeight: 700, padding: '4px 10px', borderRadius: '8px',
                       background: 'rgba(13,124,110,0.1)', color: 'var(--primary)', border: '1px solid rgba(13,124,110,0.2)'
                     }}>
-                      💊 {m.name} {m.dosage ? `(${m.dosage})` : ''}
+                      💊 {m.medicine_name || m.name} {m.dosage ? `(${m.dosage})` : ''}
                     </span>
                   ))}
                 </div>
@@ -1058,88 +1612,117 @@ export default function PatientDashboard({ initialTab = 'appointments', setActiv
                   <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '8px' }} />
                   <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>Querying verified pharmacies in Rajshahi...</p>
                 </div>
+              ) : rxAvailabilityModal.error ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-badge)', borderRadius: '12px' }}>
+                  <AlertCircle size={28} style={{ color: '#f59e0b', marginBottom: '8px' }} />
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                    {rxAvailabilityModal.error}
+                  </p>
+                  <Link to="/medicines" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.78rem' }}>
+                    Browse Medicines Directory
+                  </Link>
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Available Pharmacies Nearby ({rxAvailabilityModal.data?.pharmacies?.length || 0}):
                   </span>
 
-                  {(rxAvailabilityModal.data?.pharmacies || []).map((ph, idx) => (
-                    <div key={idx} style={{
-                      padding: '14px 16px', borderRadius: '14px', background: 'var(--bg-card)',
-                      border: '1.5px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '8px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                              {ph.pharmacyName}
+                  {(rxAvailabilityModal.data?.pharmacies || []).map((item, idx) => {
+                    const ph = item.pharmacy || item;
+                    const availableItems = item.availableItems || item.medicinesAvailable || [];
+                    const isAllAvailable = item.matchPercentage === 100 || item.allAvailable;
+
+                    return (
+                      <div key={idx} style={{
+                        padding: '14px 16px', borderRadius: '14px', background: 'var(--bg-card)',
+                        border: '1.5px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                {ph.name || ph.pharmacyName || 'Model Pharmacy'}
+                              </span>
+                              {isAllAvailable ? (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#dcfce7', color: '#15803d' }}>
+                                  ✓ All Medicines In Stock
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#fef3c7', color: '#b45309' }}>
+                                  {item.matchPercentage ? `${item.matchPercentage}% Available` : 'Partial Stock'}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <MapPin size={12} /> {ph.address || ph.area || 'Rajshahi'} • <strong style={{ color: 'var(--primary)' }}>{ph.area || 'Rajshahi Central'}</strong>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)' }}>
+                              Rating: ★{ph.rating || 4.8}
                             </span>
-                            {ph.allAvailable ? (
-                              <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#dcfce7', color: '#15803d' }}>
-                                ✓ All Medicines In Stock
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', background: '#fef3c7', color: '#b45309' }}>
-                                Partial Stock
-                              </span>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                              {ph.delivery_available !== false ? '🛵 Home Delivery Available' : '🏃 Pickup Only'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stock detail chips */}
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          {availableItems.map((med, mIdx) => (
+                            <span key={mIdx} style={{
+                              fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px',
+                              background: 'rgba(34,197,94,0.08)',
+                              color: '#16a34a',
+                              border: '1px solid rgba(34,197,94,0.2)',
+                              fontWeight: 700
+                            }}>
+                              ✓ {med.prescribedName || med.matchedBrand || med.medicine} {med.unitPrice ? `(৳${med.unitPrice})` : ''}
+                            </span>
+                          ))}
+                          {(item.missingItems || []).map((mName, mIdx) => (
+                            <span key={`mis-${mIdx}`} style={{
+                              fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px',
+                              background: 'rgba(239,68,68,0.08)',
+                              color: '#dc2626',
+                              border: '1px solid rgba(239,68,68,0.2)',
+                              fontWeight: 700
+                            }}>
+                              ✗ {mName} (Out of stock)
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Pharmacy Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid var(--border-default)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            📞 {ph.phone || '01700000000'} • {ph.is_24_7 ? '24 Hours Emergency' : 'Open Today'}
+                          </span>
+
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {ph.phone && (
+                              <a
+                                href={`tel:${ph.phone}`}
+                                className="btn btn-secondary"
+                                style={{ padding: '5px 10px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <Phone size={12} /> Call
+                              </a>
                             )}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <MapPin size={12} /> {ph.address} • <strong style={{ color: 'var(--primary)' }}>{ph.distanceKm} km away</strong>
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)' }}>
-                            Est. ৳{ph.totalEstimatedPrice}
-                          </span>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            {ph.deliveryAvailable ? '🛵 Home Delivery Available' : '🏃 Pickup Only'}
+                            <Link
+                              to="/medicines"
+                              className="btn btn-primary"
+                              style={{ padding: '5px 12px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <Pill size={12} /> Order Now
+                            </Link>
                           </div>
                         </div>
                       </div>
-
-                      {/* Stock detail chips */}
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
-                        {(ph.medicinesAvailable || []).map((med, mIdx) => (
-                          <span key={mIdx} style={{
-                            fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px',
-                            background: med.inStock ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-                            color: med.inStock ? '#16a34a' : '#dc2626',
-                            border: `1px solid ${med.inStock ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                            fontWeight: 700
-                          }}>
-                            {med.inStock ? '✓' : '✗'} {med.medicine} {med.price ? `(৳${med.price})` : ''}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Pharmacy Actions */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid var(--border-default)' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          📞 {ph.phone} • {ph.openingHours}
-                        </span>
-
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <a
-                            href={`tel:${ph.phone}`}
-                            className="btn btn-secondary"
-                            style={{ padding: '5px 10px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Phone size={12} /> Call
-                          </a>
-                          <Link
-                            to="/medicines"
-                            className="btn btn-primary"
-                            style={{ padding: '5px 12px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Pill size={12} /> Order Now
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

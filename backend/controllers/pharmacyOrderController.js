@@ -136,12 +136,15 @@ exports.getPharmacyOrders = async (req, res, next) => {
     const pharmacy = await Pharmacy.findById(pharmacyId);
     if (!pharmacy) return errorResponse(res, "Pharmacy not found", 404);
 
-    if (
-      req.user.role !== "super_admin" &&
-      String(pharmacy.owner_id) !== String(req.user._id) &&
-      req.user.role !== "pharmacist"
-    ) {
-      return errorResponse(res, "Not authorized to view these orders", 403);
+    const isOwner = (
+      String(pharmacy.owner_id) === String(req.user._id) ||
+      String(pharmacy.owner_user_id) === String(req.user._id) ||
+      String(pharmacy.ownerUserId) === String(req.user._id) ||
+      String(pharmacy._id) === String(req.user.pharmacy_id)
+    );
+
+    if (req.user.role !== "super_admin" && !isOwner) {
+      return errorResponse(res, "Not authorized to view these orders", 403, "FORBIDDEN");
     }
 
     const filter = { pharmacy_id: pharmacyId };
@@ -165,18 +168,25 @@ exports.getPharmacyOrders = async (req, res, next) => {
 exports.getOrderById = async (req, res, next) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id)
-      .populate("pharmacy_id", "name address phone area city rating is_24_7")
+      .populate("pharmacy_id", "name address phone area city rating is_24_7 owner_id owner_user_id ownerUserId")
       .populate("patient_id", "name email mobile phone")
       .populate("prescription_id");
 
     if (!order) return errorResponse(res, "Order not found", 404);
 
     // Permission check
-    const isPatient = String(order.patient_id._id || order.patient_id) === String(req.user._id);
-    const isOwner = req.user.role === "pharmacy_owner" || req.user.role === "pharmacist" || req.user.role === "super_admin";
+    const isPatient = String(order.patient_id?._id || order.patient_id) === String(req.user._id);
+    const pharmacy = order.pharmacy_id;
+    const isPharmacyOwner = pharmacy && (
+      String(pharmacy.owner_id) === String(req.user._id) ||
+      String(pharmacy.owner_user_id) === String(req.user._id) ||
+      String(pharmacy.ownerUserId) === String(req.user._id) ||
+      String(pharmacy._id) === String(req.user.pharmacy_id)
+    );
+    const isAdmin = ["super_admin", "hospital_admin"].includes(req.user.role);
 
-    if (!isPatient && !isOwner) {
-      return errorResponse(res, "Access denied", 403);
+    if (!isPatient && !isPharmacyOwner && !isAdmin) {
+      return errorResponse(res, "Access denied. You are not authorized to view this order.", 403, "FORBIDDEN");
     }
 
     return successResponse(res, order, "Order retrieved successfully");

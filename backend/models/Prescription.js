@@ -27,6 +27,12 @@ const prescriptionSchema = new mongoose.Schema({
     ref: "Doctor",
     default: null
   },
+  appointment_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Appointment",
+    default: null
+  },
+  appointment_number: { type: String, default: "" },
   doctor_name: { type: String, default: "Attending Physician" },
   doctor_specialization: { type: String, default: "General Medicine" },
   doctor_bmdc_reg: { type: String, default: "" },
@@ -54,5 +60,7 @@ const prescriptionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 prescriptionSchema.index({ patient_id: 1, createdAt: -1 });
+prescriptionSchema.index({ appointment_id: 1 });
+prescriptionSchema.index({ doctor_id: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Prescription", prescriptionSchema);

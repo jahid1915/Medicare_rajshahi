@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NiramoyLogo from '../Common/NiramoyLogo';
+import MobileBottomNav from './MobileBottomNav';
 import {
   LayoutDashboard, Sparkles, UserCheck, ShoppingBag,
   FileText, Activity, Users, Lock, LogOut, Sun, Moon,
@@ -103,6 +104,16 @@ export default function DashboardLayout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   return (
     <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Mobile Backdrop */}
@@ -110,9 +121,10 @@ export default function DashboardLayout() {
         <div
           onClick={() => setMobileOpen(false)}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(13, 31, 30, 0.4)',
-            backdropFilter: 'blur(4px)', zIndex: 90
+            position: 'fixed', inset: 0, background: 'rgba(13, 31, 30, 0.5)',
+            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 90
           }}
+          aria-hidden="true"
         />
       )}
 
@@ -141,7 +153,8 @@ export default function DashboardLayout() {
               to="/"
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                textDecoration: 'none', color: 'inherit'
+                textDecoration: 'none', color: 'inherit',
+                minWidth: 0, overflow: 'hidden'
               }}
             >
               <NiramoyLogo size="sm" tagline={getRoleLabel(user?.role)} />
@@ -150,9 +163,15 @@ export default function DashboardLayout() {
             {mobileOpen && (
               <button
                 onClick={() => setMobileOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+                style={{
+                  background: 'var(--color-bg-muted)', border: 'none', cursor: 'pointer',
+                  color: 'var(--color-text-secondary)', width: 36, height: 36,
+                  borderRadius: 'var(--radius-md)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}
+                aria-label="Close sidebar"
               >
-                <X style={{ width: 20, height: 20 }} />
+                <X style={{ width: 18, height: 18 }} />
               </button>
             )}
           </div>
@@ -161,7 +180,7 @@ export default function DashboardLayout() {
           <div style={{
             padding: '12px 14px', borderRadius: 'var(--radius-lg)',
             background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.1)',
-            marginBottom: 'var(--sp-6)'
+            marginBottom: 'var(--sp-6)', minWidth: 0
           }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name || 'User'}
@@ -187,12 +206,13 @@ export default function DashboardLayout() {
                     background: isActive ? 'var(--color-primary)' : 'transparent',
                     color: isActive ? 'white' : 'var(--color-text-secondary)',
                     transition: 'all var(--trans-fast)',
-                    boxShadow: isActive ? '0 4px 12px rgba(13, 124, 110, 0.25)' : 'none'
+                    boxShadow: isActive ? '0 4px 12px rgba(13, 124, 110, 0.25)' : 'none',
+                    minHeight: 44
                   }}
                 >
                   <item.icon style={{ width: 17, height: 17, flexShrink: 0, color: isActive ? 'white' : 'currentColor' }} />
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {isActive && <ChevronRight style={{ width: 14, height: 14, opacity: 0.8 }} />}
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                  {isActive && <ChevronRight style={{ width: 14, height: 14, opacity: 0.8, flexShrink: 0 }} />}
                 </button>
               );
             })}
@@ -207,7 +227,8 @@ export default function DashboardLayout() {
               display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
               borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
               fontSize: 'var(--text-sm)', fontWeight: 500, background: 'transparent',
-              color: 'var(--color-text-secondary)', transition: 'background var(--trans-fast)'
+              color: 'var(--color-text-secondary)', transition: 'background var(--trans-fast)',
+              minHeight: 44
             }}
           >
             <Home style={{ width: 16, height: 16 }} /> Public Site
@@ -218,7 +239,8 @@ export default function DashboardLayout() {
               display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
               borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
               fontSize: 'var(--text-sm)', fontWeight: 600, background: 'rgba(220, 38, 38, 0.05)',
-              color: 'var(--color-error)', transition: 'background var(--trans-fast)'
+              color: 'var(--color-error)', transition: 'background var(--trans-fast)',
+              minHeight: 44
             }}
           >
             <LogOut style={{ width: 16, height: 16 }} /> Sign Out
@@ -228,32 +250,40 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        {/* Mobile Top bar */}
+        {/* Mobile Top bar — visible on small screens via CSS class */}
         <header
           className="dashboard-mobile-bar"
           style={{
             display: 'none', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 18px', background: 'var(--color-surface)',
-            borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 40
+            padding: '12px 16px', background: 'var(--color-surface)',
+            borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 40,
+            minHeight: 56
           }}
         >
-          <Link to="/" style={{ textDecoration: 'none' }}>
+          <Link to="/" style={{ textDecoration: 'none', minWidth: 0 }}>
             <NiramoyLogo size="sm" showTagline={false} />
           </Link>
           <button
             onClick={() => setMobileOpen(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
-            aria-label="Open menu"
+            style={{
+              background: 'var(--color-bg-muted)', border: 'none', cursor: 'pointer',
+              color: 'var(--color-text-primary)', width: 40, height: 40,
+              borderRadius: 'var(--radius-md)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center'
+            }}
+            aria-label="Open navigation menu"
           >
             <Menu style={{ width: 22, height: 22 }} />
           </button>
         </header>
 
         {/* Router Outlet */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--sp-6)' }}>
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 'var(--sp-6)' }}>
           <Outlet />
         </main>
+        <MobileBottomNav />
       </div>
     </div>
   );
 }
+

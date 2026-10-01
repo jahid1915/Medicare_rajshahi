@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, MessageSquare, FileText, Plus, Trash2, CheckCircle2, ShieldCheck, Send } from 'lucide-react';
-import { addAuditLog, getStoredState, saveStoredState } from '../../data/mockUserStore';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, MessageSquare, FileText, Plus, Trash2, CheckCircle2, ShieldCheck, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { prescriptionsAPI, appointmentsAPI } from '../../services/api';
 
 export default function TeleconsultationRoom({ appointment, onCloseRoom }) {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [activeTab, setActiveTab] = useState('call'); // 'call' | 'prescription' | 'chat'
   const [chatMessages, setChatMessages] = useState([
-    { sender: 'doctor', text: 'Hello! I am reviewing your AI handover summary. How are you feeling right now?', time: '07:30 PM' }
+    { sender: 'doctor', text: 'Hello! I am reviewing your consultation notes. How are you feeling right now?', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   ]);
   const [chatInput, setChatInput] = useState('');
 
   // Prescription Form State (Doctor side)
-  const [diagnosis, setDiagnosis] = useState('Tension-type Headache & Upper Spine Muscle Fatigue');
+  const [diagnosis, setDiagnosis] = useState(appointment?.consultationReason || appointment?.symptoms || 'General Clinical Evaluation');
   const [medicines, setMedicines] = useState([
-    { name: 'Napa Extra 500mg', dosage: '1 tab after food', frequency: 'TID (3 times/day)', duration: '5 days' },
-    { name: 'Sumatriptan 50mg', dosage: '1 tab at onset of acute migraine', frequency: 'PRN', duration: '4 tablets' }
+    { name: 'Paracetamol 500mg', dosage: '1 tablet', frequency: '3 times daily after meals', duration: '5 days' }
   ]);
-  const [advice, setAdvice] = useState('Rest in a dark quiet room during acute onset. Drink 2.5L water daily. Limit continuous laptop screen time to 45 mins.');
+  const [advice, setAdvice] = useState('Drink adequate water (2.5L daily). Rest adequately. Follow up if symptoms persist.');
+  const [isSubmittingRx, setIsSubmittingRx] = useState(false);
   const [rxIssued, setRxIssued] = useState(false);
+  const [issuedRxData, setIssuedRxData] = useState(null);
+  const [rxError, setRxError] = useState('');
 
   const handleAddMedicine = () => {
     setMedicines(prev => [...prev, { name: '', dosage: '', frequency: '', duration: '' }]);
@@ -28,41 +30,65 @@ export default function TeleconsultationRoom({ appointment, onCloseRoom }) {
     setMedicines(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleIssuePrescription = () => {
-    const rxId = `rx-${Math.floor(1000 + Math.random() * 9000)}`;
-    const currentState = getStoredState();
+  const handleIssuePrescription = async () => {
+    try {
+      setIsSubmittingRx(true);
+      setRxError('');
 
-    const newRx = {
-      id: rxId,
-      doctorId: appointment?.doctorId || 'doc-1',
-      doctorName: appointment?.doctorName || 'Dr. Sarah Jenkins',
-      date: new Date().toISOString().split('T')[0],
-      patientName: appointment?.patientName || 'Tanvir Hossain',
-      diagnosis,
-      medicines: medicines.filter(m => m.name.trim()),
-      advice,
-      nextFollowUp: '14 Days'
-    };
+      const patientId = appointment?.patientId?._id || appointment?.patientId || appointment?.patient_id;
+      const validMedicines = medicines
+        .filter(m => m.name.trim())
+        .map(m => ({
+          medicine_name: m.name.trim(),
+          dosage: m.dosage.trim() || '1 tablet',
+          duration: m.duration.trim() || '5 days',
+          timing: 'After meal',
+          instructions: m.frequency.trim() || 'As directed'
+        }));
 
-    currentState.prescriptions = [newRx, ...currentState.prescriptions];
-    currentState.timeline = [
-      {
-        id: `tl-${Date.now()}`,
-        date: newRx.date,
-        time: '07:45 PM',
-        type: 'DOCTOR_VISIT',
-        title: `Digital Prescription #${rxId} Issued by ${newRx.doctorName}`,
-        description: `Diagnosis: ${diagnosis}. Prescribed ${newRx.medicines.length} medicines. Auto-imported to Medicine Corner.`,
-        badgeColor: 'success',
-        familyMemberId: appointment?.familyMemberId || 'user-me'
-      },
-      ...currentState.timeline
-    ];
+      if (validMedicines.length === 0) {
+        setRxError('Please add at least one valid medication to the prescription.');
+        setIsSubmittingRx(false);
+        return;
+      }
 
-    saveStoredState(currentState);
-    addAuditLog(newRx.doctorName, 'ISSUED_DIGITAL_PRESCRIPTION', `Rx #${rxId} generated for ${newRx.patientName}`);
+      const payload = {
+        patient_id: patientId,
+        appointment_id: appointment?._id,
+        diagnosis: diagnosis.trim() || 'Clinical Teleconsultation',
+        medicines: validMedicines,
+        advice: advice.trim(),
+        source_type: 'teleconsultation',
+        doctor_name: appointment?.doctorId?.name || appointment?.doctorName || 'Attending Physician',
+        doctor_specialization: appointment?.doctorId?.specialty || appointment?.specialty || 'General Medicine'
+      };
 
-    setRxIssued(true);
+      const res = await prescriptionsAPI.create(payload);
+      if (res && (res.status === 201 || res.data || res.success)) {
+        const createdRx = res.data?.data || res.data || res;
+        setIssuedRxData(createdRx);
+        setRxIssued(true);
+
+        // Update appointment status to COMPLETED
+        if (appointment?._id) {
+          try {
+            await appointmentsAPI.updateStatus(appointment._id, {
+              status: 'COMPLETED',
+              doctor_notes: `Prescription #${createdRx.prescription_number || 'ISSUED'} generated. Diagnosis: ${diagnosis}`
+            });
+          } catch (e) {
+            console.warn('Note: Could not update appointment status directly:', e);
+          }
+        }
+      } else {
+        setRxError(res?.message || 'Failed to issue digital prescription. Please try again.');
+      }
+    } catch (err) {
+      console.error('Prescription issuance failed:', err);
+      setRxError(err.message || 'Error communicating with healthcare server.');
+    } finally {
+      setIsSubmittingRx(false);
+    }
   };
 
   const handleSendChat = () => {
@@ -80,8 +106,8 @@ export default function TeleconsultationRoom({ appointment, onCloseRoom }) {
             <span className="live-pulse-dot"></span> Live Teleconsultation
           </span>
           <div>
-            <h3 className="font-bold text-sm text-slate-100">{appointment?.doctorName || 'Dr. Sarah Jenkins'}</h3>
-            <p className="text-xs text-slate-400">{appointment?.specialty || 'Neurology'} • Patient: {appointment?.patientName || 'Tanvir Hossain'}</p>
+            <h3 className="font-bold text-sm text-slate-100">{appointment?.doctorName || appointment?.doctorId?.name || 'Attending Physician'}</h3>
+            <p className="text-xs text-slate-400">{appointment?.specialty || appointment?.doctorId?.specialty || 'General Consultation'} • Patient: {appointment?.patientName || appointment?.patientId?.name || 'Registered Patient'}</p>
           </div>
         </div>
 
@@ -188,21 +214,34 @@ export default function TeleconsultationRoom({ appointment, onCloseRoom }) {
             <div className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl text-xs">
               <div className="flex justify-between items-start border-b border-slate-800 pb-4">
                 <div>
-                  <h3 className="text-lg font-extrabold text-teal-400 uppercase tracking-wide">MediBridge Digital Prescription</h3>
-                  <p className="text-slate-400 text-xs">Doctor Portal • Teleconsultation Workspace</p>
+                  <h3 className="text-lg font-extrabold text-teal-400 uppercase tracking-wide">Niramoy Digital Prescription Pad</h3>
+                  <p className="text-slate-400 text-xs">Clinical Teleconsultation Record • Serial: {appointment?.serialNumber || appointment?.appointmentId || 'Walk-in / Scheduled'}</p>
                 </div>
                 <div className="text-right text-slate-400">
-                  <div><strong>Doctor:</strong> {appointment?.doctorName || 'Dr. Sarah Jenkins'}</div>
-                  <div><strong>Specialty:</strong> {appointment?.specialty || 'Neurology'}</div>
+                  <div><strong>Doctor:</strong> {appointment?.doctorId?.name || appointment?.doctorName || 'Attending Specialist'}</div>
+                  <div><strong>Patient:</strong> {appointment?.patientId?.name || appointment?.patientName || 'Registered Patient'}</div>
                   <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
                 </div>
               </div>
+
+              {rxError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{rxError}</span>
+                </div>
+              )}
 
               {rxIssued ? (
                 <div className="p-8 text-center space-y-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
                   <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                   <h4 className="text-base font-bold text-slate-100">Digital Prescription Successfully Issued!</h4>
-                  <p className="text-xs text-slate-300">The prescription has been added to the patient's timeline and Medicine Corner for instant ordering.</p>
+                  <div className="inline-block bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 font-mono text-sm text-teal-400 font-bold">
+                    {issuedRxData?.prescription_number || 'RX-GENERATED'}
+                  </div>
+                  <p className="text-xs text-slate-300">The prescription is permanently recorded in MongoDB and available immediately in the Patient Dashboard & Pharmacy Order dispatch.</p>
+                  <button onClick={onCloseRoom} className="btn btn-primary text-xs py-2 px-6 mt-2">
+                    Complete & Exit Consultation
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -294,10 +333,15 @@ export default function TeleconsultationRoom({ appointment, onCloseRoom }) {
 
                   <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
                     <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" /> Digital Sign Verified by BMDC License #89421
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" /> Digital Sign Verified by BMDC License Registered
                     </span>
-                    <button onClick={handleIssuePrescription} className="btn btn-primary text-xs py-2 px-6">
-                      Sign & Issue Prescription
+                    <button
+                      onClick={handleIssuePrescription}
+                      disabled={isSubmittingRx}
+                      className="btn btn-primary text-xs py-2 px-6 flex items-center gap-2"
+                    >
+                      {isSubmittingRx && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {isSubmittingRx ? 'Recording Prescription...' : 'Sign & Issue Prescription'}
                     </button>
                   </div>
                 </div>

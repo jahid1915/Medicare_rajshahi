@@ -152,6 +152,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -162,6 +163,13 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+#root {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 img, video { max-width: 100%; display: block; }
@@ -2047,3 +2055,664 @@ select.input { appearance: none; cursor: pointer; }
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ─── Mobile Bottom Navigation ─── */
+.mobile-bottom-nav {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  body {
+    padding-bottom: 65px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVE SYSTEM
+   Added for full mobile UX — all rules are additive via @media.
+   Desktop layout remains untouched.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── Mobile Utility Classes ──────────────────────────────────── */
+.mobile-stack { display: flex; flex-direction: column; }
+.mobile-full-width { width: 100%; }
+
+/* ─── Responsive Container ────────────────────────────────────── */
+@media (max-width: 480px) {
+  .container { padding: 0 var(--sp-4); }
+  .section { padding: var(--sp-12) 0; }
+  .section-sm { padding: var(--sp-8) 0; }
+}
+
+/* ═══ DASHBOARD MOBILE LAYOUT ═══════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Show the mobile top bar */
+  .dashboard-mobile-bar {
+    display: flex !important;
+  }
+
+  /* Dashboard sidebar: slide from left */
+  .dashboard-layout > aside,
+  .dashboard-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: min(280px, 85vw) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s var(--ease);
+    z-index: 95 !important;
+    overflow-y: auto !important;
+  }
+
+  .dashboard-layout > aside.open,
+  .dashboard-sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  /* Remove sidebar margin on main */
+  .dashboard-main {
+    margin-left: 0 !important;
+  }
+
+  .dashboard-main__content {
+    padding: var(--sp-4) !important;
+  }
+
+  /* Dashboard content area needs bottom padding for bottom nav */
+  .dashboard-layout > div:last-child > main {
+    padding: var(--sp-4) !important;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ═══ MODAL MOBILE FULLSCREEN ═══════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Generic modal overlay positioning for mobile */
+  [role="dialog"] > div,
+  .modal-content,
+  .booking-modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+  }
+}
+
+/* ═══ FORM MOBILE LAYOUT ════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Force single-column for all 2-col and 3-col inline grid forms */
+  .dashboard-layout [style*="gridTemplateColumns: '1fr 1fr'"],
+  .dashboard-layout [style*='gridTemplateColumns: "1fr 1fr"'],
+  .dashboard-layout [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Input minimum font size to prevent iOS zoom */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Full-width buttons on mobile */
+  .btn-lg {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ═══ AUTH MOBILE ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .auth-form-side {
+    padding: var(--sp-6) var(--sp-5) !important;
+  }
+
+  .auth-form-card {
+    max-width: 100% !important;
+  }
+
+  .auth-form-card__title {
+    font-size: 1.4rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-form-side {
+    padding: var(--sp-5) var(--sp-4) !important;
+  }
+}
+
+/* ═══ HERO SECTION MOBILE ═══════════════════════════════════════ */
+@media (max-width: 480px) {
+  .hero {
+    min-height: 85vh;
+  }
+
+  .hero__inner {
+    padding: var(--sp-8) var(--sp-4) !important;
+  }
+
+  .hero__title {
+    font-size: 1.8rem !important;
+  }
+
+  .hero__subtitle {
+    font-size: var(--text-base) !important;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+  }
+
+  .hero__btn-primary,
+  .hero__btn-secondary {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px !important;
+  }
+
+  .hero-search__bar {
+    flex-direction: column;
+    padding: 12px !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .hero-search__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ═══ DOCTOR DISCOVERY MOBILE ═══════════════════════════════════ */
+@media (max-width: 768px) {
+  .doctor-discovery {
+    padding: var(--sp-4) var(--sp-4) !important;
+  }
+
+  .doctor-hero {
+    padding: var(--sp-6) var(--sp-5) !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .doctor-hero h1 {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .doctor-discovery {
+    padding: var(--sp-3) !important;
+  }
+}
+
+/* ═══ DOCTOR PROFILE MOBILE ════════════════════════════════════ */
+@media (max-width: 768px) {
+  .doctor-profile {
+    padding: var(--sp-4) !important;
+  }
+
+  .doctor-profile__layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .doctor-profile__sticky {
+    position: static !important;
+  }
+
+  .profile-card__header {
+    padding: var(--sp-4) !important;
+  }
+
+  .profile-card__body {
+    padding: var(--sp-4) !important;
+  }
+}
+
+/* ═══ LANDING PAGE GRIDS MOBILE ════════════════════════════════ */
+@media (max-width: 640px) {
+  .quick-actions__grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--sp-3) !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--sp-3) !important;
+  }
+
+  .stat-value {
+    font-size: 1.8rem !important;
+  }
+
+  .specialty-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--sp-3) !important;
+  }
+
+  .specialty-card {
+    padding: var(--sp-4) !important;
+  }
+
+  .specialty-card__icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .how-steps {
+    grid-template-columns: 1fr !important;
+  }
+
+  .how-step__num {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+/* ═══ FOOTER MOBILE ═════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .footer {
+    padding-top: var(--sp-10) !important;
+  }
+
+  .footer__inner {
+    padding: 0 var(--sp-4) !important;
+  }
+
+  .footer__grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--sp-6) !important;
+  }
+
+  .footer__bottom {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: var(--sp-3) !important;
+  }
+
+  .footer__disclaimer {
+    text-align: center !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ═══ CTA SECTION MOBILE ═══════════════════════════════════════ */
+@media (max-width: 480px) {
+  .cta-section {
+    padding: var(--sp-16) var(--sp-4) !important;
+  }
+
+  .cta-section__title {
+    font-size: 1.6rem !important;
+  }
+}
+
+/* ═══ PHARMACY CARDS MOBILE ═════════════════════════════════════ */
+@media (max-width: 480px) {
+  .pharmacy-card {
+    border-radius: var(--radius-lg) !important;
+  }
+}
+
+/* ═══ EMPTY STATES MOBILE ══════════════════════════════════════ */
+@media (max-width: 480px) {
+  .empty-state {
+    padding: var(--sp-10) var(--sp-4) !important;
+  }
+
+  .empty-state__title {
+    font-size: var(--text-lg) !important;
+  }
+}
+
+/* ═══ TOUCH TARGET MINIMUM SIZE ═══════════════════════════════ */
+@media (max-width: 768px) {
+  .btn, button {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: 8px 14px;
+  }
+
+  .specialty-pill {
+    min-height: 40px;
+    padding: 8px 16px !important;
+  }
+
+  .sidebar-nav-item {
+    min-height: 44px;
+    padding: 10px 14px !important;
+  }
+
+  .navbar__mobile-link {
+    min-height: 48px;
+    padding: 14px 16px !important;
+  }
+}
+
+/* ═══ NIRAMOY COMPLETE MOBILE RESPONSIVENESS SYSTEM ═══════════════════ */
+
+/* ─── 1. GLOBAL CONTAINER & OVERFLOW PROTECTION ──────────────────────── */
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ─── 2. MOBILE TYPOGRAPHY & TEXT CONTAINMENT ───────────────────────── */
+@media (max-width: 640px) {
+  h1 { font-size: clamp(1.4rem, 5.5vw, 1.9rem) !important; line-height: 1.25 !important; }
+  h2 { font-size: clamp(1.2rem, 4.5vw, 1.55rem) !important; line-height: 1.3 !important; }
+  h3 { font-size: clamp(1.05rem, 3.8vw, 1.35rem) !important; line-height: 1.35 !important; }
+  h4, h5, h6 { font-size: clamp(0.9rem, 3.2vw, 1.15rem) !important; }
+  
+  h1, h2, h3, h4, h5, h6, p, span, div, label, a {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* ─── 3. TOUCH TARGETS (Min 44px for primary mobile interactive elements) ─ */
+@media (max-width: 768px) {
+  button, 
+  .btn,
+  .input,
+  select,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="number"] {
+    min-height: 44px;
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+  }
+
+  .btn-sm {
+    min-height: 38px;
+    font-size: 0.82rem !important;
+  }
+}
+
+/* ─── 4. MOBILE BOTTOM NAVIGATION & SAFE AREAS ───────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background-color: var(--color-surface, #ffffff);
+    border-top: 1px solid var(--color-border, #e2eceb);
+    z-index: 90;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Add safe area bottom padding to content when mobile bottom nav is present */
+  .public-main,
+  .public-main--padded,
+  .dashboard-layout main {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ─── 5. DASHBOARD LAYOUT & MOBILE SIDEBAR ───────────────────────────── */
+@media (max-width: 1024px) {
+  .dashboard-mobile-bar {
+    display: flex !important;
+  }
+
+  .dashboard-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 100 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 0 30px rgba(0,0,0,0.25) !important;
+    max-width: 85vw !important;
+    width: 280px !important;
+  }
+
+  .dashboard-sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .dashboard-layout main {
+    padding: var(--sp-4) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .dashboard-mobile-bar {
+    display: none !important;
+  }
+  
+  .dashboard-sidebar {
+    transform: none !important;
+    position: sticky !important;
+  }
+}
+
+/* ─── 6. PATIENT DASHBOARD ───────────────────────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .patient-dashboard-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    padding-bottom: 4px;
+  }
+  .patient-dashboard-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .patient-dashboard-tabs > button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 8px 14px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ─── 7. DOCTOR DISCOVERY & PROFILES ─────────────────────────────────── */
+.doctor-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-5);
+}
+
+@media (max-width: 640px) {
+  .doctor-directory-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--sp-4) !important;
+  }
+}
+
+.doctor-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .doctor-profile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .specialty-pills-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+  }
+  .specialty-pills-row::-webkit-scrollbar {
+    display: none;
+  }
+  .specialty-pills-row > * {
+    flex-shrink: 0;
+  }
+}
+
+/* ─── 8. PHARMACY DIRECTORY & MEDICINE SEARCH ────────────────────────── */
+.pharmacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .pharmacy-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* ─── 9. HOSPITALS & BEDS ────────────────────────────────────────────── */
+.hospital-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .hospital-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* ─── 10. AUTHENTICATION (SIGN-IN & REGISTER) ────────────────────────── */
+.role-tabs-scroll {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.role-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+.role-tabs-scroll > button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .auth-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .auth-visual {
+    display: none !important;
+  }
+  .auth-form-card {
+    padding: 24px 18px !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ─── 11. GLOBAL MODAL MOBILE ENHANCEMENTS ───────────────────────────── */
+@media (max-width: 640px) {
+  .modal-overlay,
+  [style*="position: 'fixed'"][style*="inset: 0"],
+  [style*="position: fixed"][style*="inset: 0"] {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-content,
+  .booking-modal-content,
+  .bed-booking-modal,
+  [role="dialog"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    max-height: 94dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* ─── 12. TABLES & RESPONSIVE SCROLLING ──────────────────────────────── */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .table-responsive table {
+    min-width: 580px;
+  }
+}
+
+/* ─── 13. INLINE GRID FALLBACK FOR SMALL SCREENS ─────────────────────── */
+@media (max-width: 520px) {
+  .public-main [style*="gridTemplateColumns"],
+  .public-main--padded [style*="gridTemplateColumns"],
+  .dashboard-layout [style*="gridTemplateColumns"],
+  .modal-content [style*="gridTemplateColumns"],
+  [role="dialog"] [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ─── 14. FOOTER & EMERGENCY BAR ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .footer-emergency-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .footer-emergency-bar > span[style*="|"] {
+    display: none !important;
+  }
+}
+
+

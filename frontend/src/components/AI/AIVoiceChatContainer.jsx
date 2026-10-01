@@ -6,7 +6,6 @@ import {
 import { SPECIALTIES, classifyHealthInput } from '../../data/specialties';
 import TriageSafetyBanner from './TriageSafetyBanner';
 import AIHandoverModal from './AIHandoverModal';
-import { addAuditLog } from '../../data/mockUserStore';
 
 export default function AIVoiceChatContainer({ onNavigateToDoctor, userProfile }) {
   const [selectedSpecialty, setSelectedSpecialty] = useState(SPECIALTIES[0]);
@@ -17,7 +16,7 @@ export default function AIVoiceChatContainer({ onNavigateToDoctor, userProfile }
   const [messages, setMessages] = useState([
     {
       id: 1, sender: 'ai',
-      text: `Hello ${userProfile?.name || 'there'}! I'm your MediBridge AI Navigator. Describe any symptoms or health concern — I'll guide you to the right specialist or provide safe entry-level information.`,
+      text: `Hello ${userProfile?.name || 'there'}! I'm your Niramoy AI Health Navigator. Describe any symptoms or health question — I'll provide safe general health information and connect you directly with a verified doctor.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       specialtyName: 'Front-Door Healthcare Navigator'
     }
@@ -74,7 +73,6 @@ export default function AIVoiceChatContainer({ onNavigateToDoctor, userProfile }
     const classification = classifyHealthInput(textToSend);
     let targetSpecialty = selectedSpecialty;
     if (isAutoDetect) { targetSpecialty = classification.specialty; setSelectedSpecialty(targetSpecialty); }
-    addAuditLog(userProfile?.name || 'Patient', 'AI_CHAT_MESSAGE', `Query processed for specialty: ${targetSpecialty.name}`);
 
     setTimeout(() => {
       if (classification.isHighRisk) {

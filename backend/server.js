@@ -86,6 +86,7 @@ app.use("/api/pharmacy",        require("./routes/pharmacies"));
 app.use("/api/medicines",       require("./routes/medicines"));
 app.use("/api/pharmacy-orders", require("./routes/pharmacyOrders"));
 app.use("/api/prescriptions",   require("./routes/prescriptions"));
+app.use("/api/notifications",   require("./routes/notifications"));
 
 // Serve Frontend Static Build if present (Single Fullstack Deployment)
 const frontendDist = path.join(__dirname, "../frontend/dist");
@@ -132,15 +133,18 @@ app.use("*", (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`
+let server;
+if (require.main === module) {
+  server = app.listen(PORT, () => {
+    console.log(`
   ╔═══════════════════════════════════════╗
   ║   Medicare Rajshahi Backend API       ║
   ║   Port: ${PORT}                          ║
   ║   Environment: ${(process.env.NODE_ENV || "development").padEnd(12)}    ║
   ╚═══════════════════════════════════════╝
   `);
-});
+  });
+}
 
 module.exports = app;
 module.exports.server = server;

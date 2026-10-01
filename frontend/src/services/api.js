@@ -3,7 +3,15 @@
  * Central fetch wrapper for all backend API calls
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return "/api";
+  }
+  return "http://localhost:5000/api";
+};
+
+const BASE_URL = getApiBaseUrl();
 
 async function request(method, path, body = null, requireAuth = false) {
   const headers = {};
@@ -41,10 +49,16 @@ export const authAPI = {
   login:    (body) => request("POST", "/auth/login", body),
   logout:   ()     => request("POST", "/auth/logout", {}, true),
   getMe:    ()     => request("GET",  "/auth/me", null, true),
-  requestPatientOtp: (body) => request("POST", "/auth/patient/request-otp", body),
-  verifyPatientOtp:  (body) => request("POST", "/auth/patient/verify-otp", body),
-  resendPatientOtp:  (body) => request("POST", "/auth/patient/resend-otp", body)
+  sendOtp:  (body) => request("POST", "/auth/send-otp", body),
+  verifyOtp:(body) => request("POST", "/auth/verify-otp", body),
+  getProfile: ()   => request("GET",  "/auth/profile", null, true),
+  updateProfile: (body) => request("PUT", "/auth/profile", body, true),
+  // Legacy aliases
+  requestPatientOtp: (body) => request("POST", "/auth/send-otp", body),
+  verifyPatientOtp:  (body) => request("POST", "/auth/verify-otp", body),
+  resendPatientOtp:  (body) => request("POST", "/auth/send-otp", body)
 };
+
 
 // Hospitals API
 export const hospitalsAPI = {
@@ -83,7 +97,8 @@ export const appointmentsAPI = {
     return `${BASE_URL}/appointments/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
   },
   resendEmail: (id)   => request("POST", `/appointments/${id}/resend-email`, {}, true),
-  cancel:      (id, body = {}) => request("POST", `/appointments/${id}/cancel`, body, true)
+  cancel:      (id, body = {}) => request("POST", `/appointments/${id}/cancel`, body, true),
+  updateStatus:(id, body = {}) => request("PATCH", `/appointments/${id}/status`, body, true)
 };
 
 // Payments API (SSLCOMMERZ)
@@ -168,3 +183,14 @@ export const prescriptionsAPI = {
   },
   getById:        (id) => request("GET", `/prescriptions/${id}`, null, true)
 };
+
+// Notifications API
+export const notificationsAPI = {
+  getMyNotifications: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request("GET", `/notifications${qs ? "?" + qs : ""}`, null, true);
+  },
+  markAsRead:    (id) => request("PATCH", `/notifications/${id}/read`, {}, true),
+  markAllAsRead: () => request("PATCH", "/notifications/read-all", {}, true)
+};
+

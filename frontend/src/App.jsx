@@ -42,6 +42,24 @@ const IotTelemetryDashboard = React.lazy(() => import('./components/IoT/IotTelem
 const HospitalResourceDashboard = React.lazy(() => import('./components/HospitalResource/HospitalResourceDashboard'));
 const HospitalSearchPage = React.lazy(() => import('./components/Hospitals/HospitalSearchPage'));
 
+// Public Platform & Resource Pages
+const AboutPage = React.lazy(() => import('./components/Public/AboutPage'));
+const HealthTipsPage = React.lazy(() => import('./components/Public/HealthTipsPage'));
+const ContactPage = React.lazy(() => import('./components/Public/ContactPage'));
+const FacilityDirectoryPage = React.lazy(() => import('./components/Public/FacilityDirectoryPage'));
+const AmbulancePage = React.lazy(() => import('./components/Public/AmbulancePage'));
+const AIPage = React.lazy(() => import('./components/Public/AIPage'));
+const ResearchPage = React.lazy(() => import('./components/Public/ResearchPage'));
+
+// Legal Pages
+const TermsPage = React.lazy(() => import('./components/Legal/TermsPage'));
+const PrivacyPolicyPage = React.lazy(() => import('./components/Legal/PrivacyPolicyPage'));
+const CookiePolicyPage = React.lazy(() => import('./components/Legal/CookiePolicyPage'));
+const MedicalDisclaimerPage = React.lazy(() => import('./components/Legal/MedicalDisclaimerPage'));
+
+// Patient Family Health Timeline
+const FamilyHealthTimeline = React.lazy(() => import('./components/Patient/FamilyHealthTimeline'));
+
 // Placeholder components for routes not yet fully built
 function ComingSoon({ title }) {
   return (
@@ -79,10 +97,31 @@ export default function App() {
               <Route path="medicines" element={<MedicineSearch />} />
               <Route path="cart" element={<MedicineCart />} />
               <Route path="diagnostics" element={<DiagnosticCenterView />} />
-              <Route path="emergency" element={<ComingSoon title="Emergency Services" />} />
-              <Route path="ai-assistant" element={<ComingSoon title="AI Health Assistant" />} />
+              <Route path="facilities" element={<FacilityDirectoryPage />} />
+              <Route path="find-facility" element={<FacilityDirectoryPage />} />
+              <Route path="ambulance" element={<AmbulancePage />} />
+              <Route path="emergency" element={<AmbulancePage />} />
+              <Route path="ai" element={<AIPage />} />
+              <Route path="ai-assistant" element={<AIPage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="health-tips" element={<HealthTipsPage />} />
+              <Route path="contact" element={<ContactPage />} />
+              <Route path="research" element={<ResearchPage />} />
+
+              {/* Legal Pages */}
+              <Route path="terms" element={<TermsPage />} />
+              <Route path="privacy" element={<PrivacyPolicyPage />} />
+              <Route path="cookie-policy" element={<CookiePolicyPage />} />
+              <Route path="disclaimer" element={<MedicalDisclaimerPage />} />
+
+              {/* Auth & Provider Registration Paths */}
               <Route path="signin" element={<SignInPage />} />
               <Route path="register" element={<RegisterPage />} />
+              <Route path="register/doctor" element={<RegisterPage />} />
+              <Route path="register/facility" element={<RegisterPage />} />
+              <Route path="register/diagnostic" element={<RegisterPage />} />
+              <Route path="register/pharmacy" element={<RegisterPage />} />
+              <Route path="register/ambulance" element={<RegisterPage />} />
             </Route>
 
             {/* ═══ PATIENT DASHBOARD (auth required) ═══ */}
@@ -101,7 +140,7 @@ export default function App() {
               <Route path="dashboard/hospital-resources/:hospitalId" element={<HospitalResourceDashboard />} />
               <Route path="dashboard/diagnostics" element={<DiagnosticCenterView />} />
               <Route path="dashboard/payments" element={<ComingSoon title="Payment History" />} />
-              <Route path="dashboard/family" element={<ComingSoon title="Family Health" />} />
+              <Route path="dashboard/family" element={<FamilyHealthTimeline />} />
               <Route path="dashboard/documents" element={<DocumentComparisonView />} />
               <Route path="dashboard/privacy" element={<PrivacyConsentCenter />} />
               <Route path="dashboard/report-explainer" element={<AIReportExplainer />} />

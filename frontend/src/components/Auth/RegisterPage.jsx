@@ -7,7 +7,7 @@ import {
   User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, Loader2,
   Calendar, MapPin, ArrowRight, ShieldCheck, HeartPulse, Clock,
   Building2, Pill, Stethoscope, CheckCircle2, ChevronDown, Check,
-  Briefcase, Award
+  Briefcase, Award, Truck
 } from 'lucide-react';
 
 const ROLE_CONFIG = [
@@ -66,11 +66,25 @@ const ROLE_CONFIG = [
       'Hospital department administration & admission control',
       'Emergency warning broadcast for critical Rajshahi patients'
     ]
+  },
+  {
+    id: 'ambulance_op',
+    label: 'Ambulance',
+    title: 'Emergency Ambulance Fleet Partner',
+    icon: Truck,
+    color: '#dc2626',
+    tagline: 'Register your ambulance service in Rajshahi to receive direct patient requests and hospital transfer dispatch.',
+    redirect: '/dashboard',
+    perks: [
+      'Verified ambulance dispatch listing across Rajshahi Division',
+      'Direct patient and hospital phone dispatch without broker cuts',
+      'Emergency response network inclusion for Rajshahi Medical Zone'
+    ]
   }
 ];
 
 export default function RegisterPage() {
-  const { register, isAuthenticated, user } = useAuth();
+  const { register, sendOtp, verifyOtp, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || null;
@@ -79,6 +93,76 @@ export default function RegisterPage() {
   const [hospitalsList, setHospitalsList] = useState([]);
   const [pharmaciesList, setPharmaciesList] = useState([]);
   const [loadingLists, setLoadingLists] = useState(false);
+
+  // Route-based default role selection
+  useEffect(() => {
+    const path = location.pathname.toLowerCase();
+    if (path.includes('/register/doctor')) setActiveRole('doctor');
+    else if (path.includes('/register/facility')) setActiveRole('hospital_admin');
+    else if (path.includes('/register/diagnostic')) {
+      setActiveRole('hospital_admin');
+      setForm(prev => ({ ...prev, hospital_type: 'clinic', hospital_department: 'Diagnostic & Imaging' }));
+    }
+    else if (path.includes('/register/pharmacy')) setActiveRole('pharmacy_owner');
+    else if (path.includes('/register/ambulance')) setActiveRole('ambulance_op');
+  }, [location.pathname]);
+
+  // Patient Phone OTP Registration States
+  const [patientPhone, setPatientPhone] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [otpStep, setOtpStep] = useState('phone'); // 'phone' | 'verify'
+  const [otpCode, setOtpCode] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Resend Countdown Timer
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  const handlePatientSendOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError('');
+    if (!patientPhone.trim()) {
+      setError('Please enter your 11-digit mobile phone number (e.g. 017XXXXXXXX).');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      await sendOtp({ phone: patientPhone.trim() });
+      setOtpStep('verify');
+      setOtpCountdown(60);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP code.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handlePatientVerifyOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError('');
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const data = await verifyOtp({
+        phone: patientPhone.trim(),
+        otp: otpCode.trim(),
+        name: patientName.trim() || undefined
+      });
+      navigate(from || '/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Invalid or expired verification code.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', confirmPassword: '',
@@ -89,7 +173,9 @@ export default function RegisterPage() {
     // Pharmacy Owner
     pharmacy_id: '', pharmacy_name: '', pharmacy_area: 'Laxmipur', pharmacy_address: '', pharmacy_license: '',
     // Hospital Authority
-    hospital_id: '', hospital_name: '', hospital_type: 'private', hospital_address: '', hospital_department: ''
+    hospital_id: '', hospital_name: '', hospital_type: 'private', hospital_address: '', hospital_department: '',
+    // Ambulance Provider
+    ambulance_type: 'Basic Ambulance (BLS)', vehicle_number: '', ambulance_area: 'Laxmipur'
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -127,6 +213,7 @@ export default function RegisterPage() {
   const setField = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
   const currentRoleConfig = ROLE_CONFIG.find(r => r.id === activeRole) || ROLE_CONFIG[0];
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -168,7 +255,6 @@ export default function RegisterPage() {
         // Patient fields
         date_of_birth: activeRole === 'patient' && form.date_of_birth ? form.date_of_birth : undefined,
         gender: activeRole === 'patient' && form.gender ? form.gender : undefined,
-        address: form.address ? form.address.trim() : undefined,
         blood_group: activeRole === 'patient' && form.blood_group ? form.blood_group : undefined,
 
         // Doctor fields
@@ -189,6 +275,9 @@ export default function RegisterPage() {
         hospital_type: activeRole === 'hospital_admin' && form.hospital_type ? form.hospital_type : undefined,
         hospital_address: activeRole === 'hospital_admin' && form.hospital_address ? form.hospital_address.trim() : undefined,
         hospital_department: activeRole === 'hospital_admin' && form.hospital_department ? form.hospital_department.trim() : undefined,
+
+        // Ambulance Provider fields
+        address: activeRole === 'ambulance_op' ? `${form.ambulance_area || 'Rajshahi'}, Plate: ${form.vehicle_number || 'N/A'}` : (form.address ? form.address.trim() : undefined)
       };
 
       const res = await register(payload);
@@ -259,7 +348,7 @@ export default function RegisterPage() {
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
               Select Account Type
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
               {ROLE_CONFIG.map(r => {
                 const isSelected = activeRole === r.id;
                 const Icon = r.icon;
@@ -293,12 +382,157 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form" noValidate>
-            {/* ═══ COMMON FIELDS ═══ */}
-            <div className="auth-field">
-              <label htmlFor="reg-name">
-                {activeRole === 'doctor' ? 'Doctor Full Name *' : activeRole === 'pharmacy_owner' ? 'Owner / Pharmacist Name *' : activeRole === 'hospital_admin' ? 'Official Authority Name *' : 'Full Name *'}
-              </label>
+          {/* ═══ PATIENT PHONE OTP REGISTRATION ═══ */}
+          {activeRole === 'patient' ? (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '18px', fontSize: '0.82rem', color: 'var(--color-text-primary)' }}>
+                <strong>📱 Quick Patient Signup (দ্রুত রোগী নিবন্ধন):</strong>
+                <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-secondary)' }}>
+                  Sign up instantly using your mobile number. No password or lengthy forms required. You can complete your medical profile anytime from your dashboard.
+                </p>
+              </div>
+
+              {otpStep === 'phone' ? (
+                <form onSubmit={handlePatientSendOtp} className="auth-form" noValidate>
+                  <div className="auth-field">
+                    <label htmlFor="patient-reg-name">Full Name (আপনার পুরো নাম - ঐচ্ছিক)</label>
+                    <div className="auth-input-wrap">
+                      <User style={{ width: 16, height: 16 }} />
+                      <input
+                        id="patient-reg-name"
+                        type="text"
+                        placeholder="e.g. Rahim Uddin"
+                        value={patientName}
+                        onChange={e => setPatientName(e.target.value)}
+                        disabled={otpLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label htmlFor="patient-reg-phone">Mobile Phone Number (মোবাইল নম্বর) *</label>
+                    <div className="auth-input-wrap">
+                      <Phone style={{ width: 16, height: 16 }} />
+                      <input
+                        id="patient-reg-phone"
+                        type="tel"
+                        placeholder="e.g. 017XXXXXXXX"
+                        value={patientPhone}
+                        onChange={e => setPatientPhone(e.target.value)}
+                        autoComplete="tel"
+                        required
+                        disabled={otpLoading}
+                        style={{ fontSize: '1rem', letterSpacing: '0.5px' }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+                      A 6-digit OTP will be dispatched via MIM SMS to your mobile phone.
+                    </span>
+                  </div>
+
+                  <button
+                    id="btn-patient-reg-send-otp"
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-3)', gap: 8 }}
+                    disabled={otpLoading}
+                  >
+                    {otpLoading ? (
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Sending OTP…</>
+                    ) : (
+                      <>
+                        Send Verification Code (ওটিপি পাঠান)
+                        <ArrowRight style={{ width: 16, height: 16 }} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handlePatientVerifyOtp} className="auth-form" noValidate>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2eceb', borderRadius: '12px', padding: '12px', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#475569' }}>
+                        Code sent to: <strong>{patientPhone}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpStep('phone'); setOtpCode(''); setError(''); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label htmlFor="patient-reg-otp">Enter 6-Digit Verification Code (৬ সংখ্যার ওটিপি)</label>
+                    <div className="auth-input-wrap">
+                      <Lock style={{ width: 16, height: 16 }} />
+                      <input
+                        id="patient-reg-otp"
+                        type="text"
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={otpCode}
+                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        autoFocus
+                        required
+                        disabled={otpLoading}
+                        style={{
+                          fontSize: '1.4rem', letterSpacing: '6px', textAlign: 'center', fontWeight: 800,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    id="btn-patient-reg-verify-otp"
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
+                    disabled={otpLoading || otpCode.length !== 6}
+                  >
+                    {otpLoading ? (
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Verifying…</>
+                    ) : (
+                      <>
+                        Verify & Create Account (অ্যাকাউন্ট তৈরি করুন)
+                        <CheckCircle2 style={{ width: 16, height: 16 }} />
+                      </>
+                    )}
+                  </button>
+
+                  <div style={{ marginTop: 14, textAlign: 'center' }}>
+                    {otpCountdown > 0 ? (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                        Resend code in <strong>{otpCountdown}s</strong>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePatientSendOtp}
+                        disabled={otpLoading}
+                        style={{
+                          background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)',
+                          fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
+                        }}
+                      >
+                        Resend Verification Code (পুনরায় কোড পাঠান)
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+              {/* ═══ COMMON FIELDS ═══ */}
+              <div className="auth-field">
+                <label htmlFor="reg-name">
+                  {activeRole === 'doctor' ? 'Doctor Full Name *' : activeRole === 'pharmacy_owner' ? 'Owner / Pharmacist Name *' : activeRole === 'hospital_admin' ? 'Official Authority Name *' : 'Full Name *'}
+                </label>
+
               <div className="auth-input-wrap">
                 <User style={{ width: 16, height: 16 }} />
                 <input
@@ -596,6 +830,59 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* ═══ ROLE-SPECIFIC: AMBULANCE OPERATOR ═══ */}
+            {activeRole === 'ambulance_op' && (
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 'var(--radius-xl)', padding: '16px 18px', margin: '4px 0 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: '13px', color: '#dc2626', marginBottom: 12 }}>
+                  <Truck style={{ width: 16, height: 16 }} /> Ambulance Fleet & Operator Details
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div className="auth-field">
+                    <label htmlFor="amb-type">Ambulance Category *</label>
+                    <select
+                      id="amb-type"
+                      value={form.ambulance_type}
+                      onChange={e => setField('ambulance_type', e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--color-border)', background: 'white', fontSize: 'var(--text-sm)' }}
+                    >
+                      <option value="Basic Ambulance (BLS)">Basic Life Support (BLS)</option>
+                      <option value="AC Ambulance">AC Ambulance</option>
+                      <option value="ICU Ambulance">ICU / Cardiac Ambulance</option>
+                      <option value="Specialized Ambulance">Specialized / Neonatal Transfer</option>
+                    </select>
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="amb-plate">Vehicle Reg. / Plate No. *</label>
+                    <input
+                      id="amb-plate"
+                      type="text"
+                      placeholder="e.g. Rajshahi-CHA-71-2299"
+                      value={form.vehicle_number}
+                      onChange={e => setField('vehicle_number', e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--color-border)', fontSize: 'var(--text-sm)' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-field">
+                  <label htmlFor="amb-area">Base Station / Area in Rajshahi *</label>
+                  <select
+                    id="amb-area"
+                    value={form.ambulance_area}
+                    onChange={e => setField('ambulance_area', e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--color-border)', background: 'white', fontSize: 'var(--text-sm)' }}
+                  >
+                    <option value="Laxmipur">Laxmipur (RMCH Gate)</option>
+                    <option value="Boalia">Boalia / Saheb Bazar</option>
+                    <option value="Rajpara">Rajpara</option>
+                    <option value="Motihar">Motihar / University Mor</option>
+                    <option value="Shah Makhdum">Shah Makhdum / Airport Road</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* ═══ ROLE-SPECIFIC: PATIENT PROFILE ═══ */}
             {activeRole === 'patient' && (
               <>
@@ -714,6 +1001,20 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Institutional Verification Notice */}
+            {activeRole !== 'patient' && (
+              <div style={{
+                background: 'var(--color-primary-50, #f0faf9)', border: '1px solid var(--color-primary-100, #ccebe8)',
+                borderRadius: '12px', padding: '12px 14px', margin: '14px 0 8px 0',
+                display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '0.8rem', color: 'var(--color-text-secondary, #2f4847)'
+              }}>
+                <ShieldCheck size={18} style={{ color: 'var(--color-primary, #0d7c6e)', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong>Institutional Verification Process:</strong> All healthcare provider registrations undergo administrative verification (BMDC check, DGDA drug license, or operator documents) prior to public badge activation.
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               id="register-submit"
@@ -733,9 +1034,11 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+          )}
+
 
           <p className="auth-footer" style={{ marginTop: 20 }}>
-            By registering, you agree to Niramoy's terms and privacy safeguards for Rajshahi healthcare network.
+            By registering, you agree to Niramoy's <Link to="/terms" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Terms of Service</Link>, <Link to="/privacy" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Privacy Policy</Link>, and <Link to="/disclaimer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Medical Disclaimer</Link>.
           </p>
         </div>
       </div>

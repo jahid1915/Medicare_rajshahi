@@ -6,7 +6,8 @@ const {
   getMyAppointments,
   getAppointmentPdf,
   resendConfirmationEmail,
-  cancelAppointment
+  cancelAppointment,
+  updateAppointmentStatus
 } = require("../controllers/appointmentController");
 const { protect } = require("../middleware/auth");
 
@@ -16,6 +17,7 @@ router.get("/",                     getMyAppointments);
 router.get("/my",                  getMyAppointments);
 router.post("/",                    createAppointment);
 router.get("/:id",                  getAppointment);
+router.patch("/:id/status",         updateAppointmentStatus);
 router.get("/:id/pdf",              getAppointmentPdf);
 router.post("/:id/resend-email",    resendConfirmationEmail);
 router.post("/:id/cancel",          cancelAppointment);

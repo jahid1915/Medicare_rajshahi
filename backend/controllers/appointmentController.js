@@ -175,31 +175,77 @@ exports.createAppointment = async (req, res, next) => {
  */
 exports.getMyAppointments = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 20, status, date, upcoming, doctorId } = req.query;
 
-    const filter = {
-      $or: [
-        { patientId: req.user.id },
-        { patient_id: req.user.id }
-      ]
-    };
+    let filter = {};
+    const isDoctor = ["doctor", "specialist_doctor"].includes(req.user.role);
+    const isAdmin = ["super_admin", "hospital_admin"].includes(req.user.role);
 
-    if (req.user.email) {
-      filter.$or.push({ patientEmail: req.user.email });
-      filter.$or.push({ patientEmail: req.user.email.toLowerCase() });
+    if (isDoctor) {
+      const Doctor = require("../models/Doctor");
+      const docQuery = [{ user_id: req.user._id || req.user.id }];
+      if (req.user.doctor_id) docQuery.push({ _id: req.user.doctor_id });
+      if (req.user.name && req.user.name.trim()) {
+        docQuery.push({ name: new RegExp("^" + req.user.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") });
+      }
+      const docProfiles = await Doctor.find({ $or: docQuery }).select("_id");
+
+      const doctorIds = [req.user._id || req.user.id, ...docProfiles.map(d => d._id)];
+      if (doctorId && isAdmin) {
+        doctorIds.push(doctorId);
+      }
+
+      filter = {
+        $or: [
+          { doctorId: { $in: doctorIds } },
+          { doctor_id: { $in: doctorIds } }
+        ]
+      };
+    } else if (isAdmin && doctorId) {
+      filter = {
+        $or: [
+          { doctorId: doctorId },
+          { doctor_id: doctorId }
+        ]
+      };
+    } else {
+      filter = {
+        $or: [
+          { patientId: req.user.id },
+          { patient_id: req.user.id }
+        ]
+      };
+
+      if (req.user.email) {
+        filter.$or.push({ patientEmail: req.user.email });
+        filter.$or.push({ patientEmail: req.user.email.toLowerCase() });
+      }
     }
 
     if (status && status !== "all") {
       filter.status = status;
     }
 
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      filter.appointmentDate = { $gte: startOfDay, $lte: endOfDay };
+    } else if (upcoming === "true") {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      filter.appointmentDate = { $gte: now };
+    }
+
     const total = await Appointment.countDocuments(filter);
     const appointments = await Appointment.find(filter)
       .populate("doctorId", "name specialty qualifications imageUrl designation workplace")
       .populate("doctor_id", "name specialty qualifications imageUrl designation workplace")
-      .populate("branchId", "name address city phone")
-      .populate("branch_id", "name address city phone")
+      .populate("branchId", "name address city phone roomNumber")
+      .populate("branch_id", "name address city phone roomNumber")
       .populate("paymentId", "amount status transaction_id payment_number paid_at")
+      .populate("patientId", "name phone email date_of_birth gender blood_group allergies existing_conditions medical_history emergency_contact_phone")
       .sort({ appointmentDate: -1, createdAt: -1 })
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
@@ -226,11 +272,29 @@ exports.getAppointment = async (req, res, next) => {
     if (!appt) return errorResponse(res, "Appointment not found", 404);
 
     const isPatient = (appt.patientId && appt.patientId._id.toString() === req.user.id) ||
-                      (appt.patient_id && appt.patient_id.toString() === req.user.id);
-    const isStaff = ["doctor", "super_admin", "hospital_admin"].includes(req.user.role);
+                      (appt.patient_id && appt.patient_id.toString() === req.user.id) ||
+                      (appt.patientEmail && req.user.email && appt.patientEmail.toLowerCase() === req.user.email.toLowerCase());
 
-    if (!isPatient && !isStaff) {
-      return errorResponse(res, "Access denied", 403);
+    let isAuthorizedDoctor = false;
+    if (["doctor", "specialist_doctor"].includes(req.user.role)) {
+      const Doctor = require("../models/Doctor");
+      const docQuery = [{ user_id: req.user._id || req.user.id }];
+      if (req.user.doctor_id) docQuery.push({ _id: req.user.doctor_id });
+      if (req.user.name && req.user.name.trim()) {
+        docQuery.push({ name: new RegExp("^" + req.user.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") });
+      }
+      const docProfiles = await Doctor.find({ $or: docQuery }).select("_id");
+      const validDocIds = [req.user.id.toString(), ...docProfiles.map(d => d._id.toString())];
+      const apptDocId = (appt.doctorId?._id || appt.doctorId || appt.doctor_id?._id || appt.doctor_id)?.toString();
+      if (apptDocId && validDocIds.includes(apptDocId)) {
+        isAuthorizedDoctor = true;
+      }
+    }
+
+    const isAdmin = ["super_admin", "hospital_admin"].includes(req.user.role);
+
+    if (!isPatient && !isAuthorizedDoctor && !isAdmin) {
+      return errorResponse(res, "Access denied. You are not authorized to view this appointment.", 403, "FORBIDDEN");
     }
 
     return successResponse(res, appt, "Appointment details fetched");
@@ -258,10 +322,27 @@ exports.getAppointmentPdf = async (req, res, next) => {
     const isPatient = (appt.patientId && appt.patientId._id.toString() === req.user.id) ||
                       (appt.patient_id && appt.patient_id.toString() === req.user.id) ||
                       (appt.patientEmail && req.user.email && appt.patientEmail.toLowerCase() === req.user.email.toLowerCase());
-    const isStaff = ["doctor", "super_admin", "hospital_admin"].includes(req.user.role);
 
-    if (!isPatient && !isStaff) {
-      return errorResponse(res, "Access denied to download this appointment voucher", 403);
+    let isAuthorizedDoctor = false;
+    if (["doctor", "specialist_doctor"].includes(req.user.role)) {
+      const Doctor = require("../models/Doctor");
+      const docQuery = [{ user_id: req.user._id || req.user.id }];
+      if (req.user.doctor_id) docQuery.push({ _id: req.user.doctor_id });
+      if (req.user.name && req.user.name.trim()) {
+        docQuery.push({ name: new RegExp("^" + req.user.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") });
+      }
+      const docProfiles = await Doctor.find({ $or: docQuery }).select("_id");
+      const validDocIds = [req.user.id.toString(), ...docProfiles.map(d => d._id.toString())];
+      const apptDocId = (appt.doctorId?._id || appt.doctorId || appt.doctor_id?._id || appt.doctor_id)?.toString();
+      if (apptDocId && validDocIds.includes(apptDocId)) {
+        isAuthorizedDoctor = true;
+      }
+    }
+
+    const isAdmin = ["super_admin", "hospital_admin"].includes(req.user.role);
+
+    if (!isPatient && !isAuthorizedDoctor && !isAdmin) {
+      return errorResponse(res, "Access denied to download this appointment voucher", 403, "FORBIDDEN");
     }
 
     const doctor = appt.doctorId || appt.doctor_id;
@@ -369,3 +450,38 @@ exports.cancelAppointment = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * PATCH /api/appointments/:id/status
+ * Doctor or Admin updates appointment status, notes, or marks completed
+ */
+exports.updateAppointmentStatus = async (req, res, next) => {
+  try {
+    const { status, doctor_notes, symptoms, ai_triage_summary } = req.body;
+    const appt = await Appointment.findById(req.params.id);
+    if (!appt) return errorResponse(res, "Appointment not found", 404);
+
+    const isDoctor = ["doctor", "specialist_doctor"].includes(req.user.role);
+    const isAdmin = ["super_admin", "hospital_admin"].includes(req.user.role);
+
+    if (!isDoctor && !isAdmin) {
+      return errorResponse(res, "Access denied. Only attending physicians or administrators can update appointment clinical state.", 403);
+    }
+
+    if (status) {
+      appt.status = status;
+      if (status === "COMPLETED") {
+        appt.completed_at = new Date();
+      }
+    }
+    if (doctor_notes !== undefined) appt.doctor_notes = doctor_notes;
+    if (symptoms !== undefined) appt.symptoms = symptoms;
+    if (ai_triage_summary !== undefined) appt.ai_triage_summary = ai_triage_summary;
+
+    await appt.save();
+    return successResponse(res, appt, "Appointment status and clinical record updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+

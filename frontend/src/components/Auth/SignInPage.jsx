@@ -40,7 +40,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function SignInPage() {
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, sendOtp, verifyOtp, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || null;
@@ -51,11 +51,65 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Phone OTP States for Patients
+  const [patientAuthMode, setPatientAuthMode] = useState('otp'); // 'otp' | 'password'
+  const [otpStep, setOtpStep] = useState('phone'); // 'phone' | 'verify'
+  const [patientPhone, setPatientPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Resend Countdown Timer
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  const handleRequestOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError('');
+    if (!patientPhone.trim()) {
+      setError('Please enter your 11-digit mobile phone number (e.g. 017XXXXXXXX).');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      await sendOtp({ phone: patientPhone.trim() });
+      setOtpStep('verify');
+      setOtpCountdown(60);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP code.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError('');
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const data = await verifyOtp({ phone: patientPhone.trim(), otp: otpCode.trim() });
+      navigate(from || getDashboardForRole(data.user.role), { replace: true });
+    } catch (err) {
+      setError(err.message || 'Invalid or expired verification code.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate(from || getDashboardForRole(user.role), { replace: true });
     }
   }, [isAuthenticated, user, navigate, from]);
+
 
   if (isAuthenticated && user) {
     return null;
@@ -139,7 +193,7 @@ export default function SignInPage() {
           </p>
 
           {/* Role Tabs */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '18px', padding: '4px', background: 'var(--color-surface, #f8fafc)', borderRadius: '12px', border: '1px solid var(--color-border, #e2eceb)' }}>
+          <div className="role-tabs-scroll" style={{ display: 'flex', gap: '6px', marginBottom: '18px', padding: '4px', background: 'var(--color-surface, #f8fafc)', borderRadius: '12px', border: '1px solid var(--color-border, #e2eceb)' }}>
             {ROLE_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -168,45 +222,39 @@ export default function SignInPage() {
 
           {/* Role specific info box */}
           {activeTab === 'patient' ? (
-            <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '16px', fontSize: '0.78rem', color: 'var(--color-text-primary)' }}>
-              <strong>Patient Sign-in (রোগী লগইন):</strong> Enter your <strong>Mobile Number</strong> (e.g. 01711223344) and <strong>Password</strong> to access your dashboard and service history.
+            <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '16px', fontSize: '0.82rem', color: 'var(--color-text-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <strong>📱 Phone OTP Sign-in (মোবাইল ওটিপি লগইন)</strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPatientAuthMode(m => m === 'otp' ? 'password' : 'otp');
+                    setError('');
+                  }}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)',
+                    fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
+                  }}
+                >
+                  {patientAuthMode === 'otp' ? 'Use Password Instead' : 'Use Phone OTP'}
+                </button>
+              </div>
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
+                {patientAuthMode === 'otp'
+                  ? 'Enter your mobile number to receive a secure 6-digit verification code via SMS.'
+                  : 'Enter your registered phone/email and account password.'}
+              </p>
             </div>
           ) : (
             <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(2,132,199,0.08)', border: '1px solid rgba(2,132,199,0.2)', marginBottom: '16px', fontSize: '0.78rem', color: '#0369a1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <strong>Professional Sign-in:</strong> Doctors, Hospitals, and Pharmacies require verified registration.
+                <strong>Professional Sign-in:</strong> Doctors, Hospitals, and Pharmacies require verified credentials.
               </div>
               <Link to={`/register?role=${activeTab}`} style={{ color: '#0284c7', fontWeight: 800, textDecoration: 'underline', flexShrink: 0, marginLeft: '8px' }}>
                 Sign Up →
               </Link>
             </div>
           )}
-
-          {/* Quick Demo Logins Bar */}
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '10px 12px', marginBottom: 18 }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-              ⚡ One-Click Demo Credentials:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {DEMO_ACCOUNTS.map((d, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => fillDemo(d)}
-                  style={{
-                    padding: '3px 8px', borderRadius: 99,
-                    border: form.identifier === d.identifier ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
-                    background: form.identifier === d.identifier ? 'rgba(13,124,110,0.1)' : 'white',
-                    color: form.identifier === d.identifier ? 'var(--color-primary)' : 'var(--color-text-primary)',
-                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {from && (
             <div className="auth-info" style={{ marginBottom: 'var(--sp-5)' }}>
@@ -221,78 +269,203 @@ export default function SignInPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form" noValidate>
-            <div className="auth-field">
-              <label htmlFor="identifier">
-                {activeTab === 'patient' 
-                  ? 'Mobile Number or Email (মোবাইল নম্বর বা ইমেইল)' 
-                  : 'Email Address or Phone'}
-              </label>
-              <div className="auth-input-wrap">
-                {activeTab === 'patient' ? (
-                  <Phone style={{ width: 16, height: 16 }} />
-                ) : (
-                  <Mail style={{ width: 16, height: 16 }} />
-                )}
-                <input
-                  id="identifier"
-                  type="text"
-                  placeholder={
-                    activeTab === 'patient'
-                      ? "e.g., 01711223344 or patient@gmail.com"
-                      : "you@example.com or phone"
-                  }
-                  value={form.identifier}
-                  onChange={e => setForm({ ...form, identifier: e.target.value })}
-                  autoComplete="username"
-                  required
-                  aria-label="Mobile Number or Email"
-                />
-              </div>
-            </div>
+          {/* ═══ PATIENT PHONE OTP FLOW ═══ */}
+          {activeTab === 'patient' && patientAuthMode === 'otp' ? (
+            <div>
+              {otpStep === 'phone' ? (
+                <form onSubmit={handleRequestOtp} className="auth-form" noValidate>
+                  <div className="auth-field">
+                    <label htmlFor="patient-phone">Mobile Phone Number (মোবাইল নম্বর)</label>
+                    <div className="auth-input-wrap">
+                      <Phone style={{ width: 16, height: 16 }} />
+                      <input
+                        id="patient-phone"
+                        type="tel"
+                        placeholder="e.g. 017XXXXXXXX"
+                        value={patientPhone}
+                        onChange={e => setPatientPhone(e.target.value)}
+                        autoComplete="tel"
+                        required
+                        disabled={otpLoading}
+                        style={{ fontSize: '1rem', letterSpacing: '0.5px' }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+                      A 6-digit OTP will be dispatched via MIM SMS to your mobile phone.
+                    </span>
+                  </div>
 
-            <div className="auth-field">
-              <label htmlFor="password">Password (পাসওয়ার্ড)</label>
-              <div className="auth-input-wrap">
-                <Lock style={{ width: 16, height: 16 }} />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  autoComplete="current-password"
-                  required
-                  aria-label="Password"
-                />
-                <button
-                  type="button"
-                  className="auth-pw-toggle"
-                  onClick={() => setShowPassword(v => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              id="sign-in-submit"
-              type="submit"
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
-              disabled={loading}
-            >
-              {loading ? (
-                <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Signing in…</>
+                  <button
+                    id="btn-send-otp"
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-3)', gap: 8 }}
+                    disabled={otpLoading}
+                  >
+                    {otpLoading ? (
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Sending OTP…</>
+                    ) : (
+                      <>
+                        Send Verification Code (ওটিপি পাঠান)
+                        <ArrowRight style={{ width: 16, height: 16 }} />
+                      </>
+                    )}
+                  </button>
+                </form>
               ) : (
-                <>
-                  Sign In as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
-                  <ArrowRight style={{ width: 16, height: 16 }} />
-                </>
+                <form onSubmit={handleVerifyOtp} className="auth-form" noValidate>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2eceb', borderRadius: '12px', padding: '12px', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#475569' }}>
+                        Code sent to: <strong>{patientPhone}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpStep('phone'); setOtpCode(''); setError(''); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label htmlFor="patient-otp">Enter 6-Digit Verification Code (৬ সংখ্যার ওটিপি)</label>
+                    <div className="auth-input-wrap">
+                      <Lock style={{ width: 16, height: 16 }} />
+                      <input
+                        id="patient-otp"
+                        type="text"
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={otpCode}
+                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        autoFocus
+                        required
+                        disabled={otpLoading}
+                        style={{
+                          fontSize: '1.4rem', letterSpacing: '6px', textAlign: 'center', fontWeight: 800,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    id="btn-verify-otp"
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
+                    disabled={otpLoading || otpCode.length !== 6}
+                  >
+                    {otpLoading ? (
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Verifying…</>
+                    ) : (
+                      <>
+                        Verify & Sign In (যাচাই করে প্রবেশ করুন)
+                        <CheckCircle2 style={{ width: 16, height: 16 }} />
+                      </>
+                    )}
+                  </button>
+
+                  <div style={{ marginTop: 14, textAlign: 'center' }}>
+                    {otpCountdown > 0 ? (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                        Resend code in <strong>{otpCountdown}s</strong>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRequestOtp}
+                        disabled={otpLoading}
+                        style={{
+                          background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)',
+                          fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
+                        }}
+                      >
+                        Resend Verification Code (পুনরায় কোড পাঠান)
+                      </button>
+                    )}
+                  </div>
+                </form>
               )}
-            </button>
-          </form>
+            </div>
+          ) : (
+            /* ═══ PASSWORD AUTH FLOW (Staff & Optional Patient Password) ═══ */
+            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+              <div className="auth-field">
+                <label htmlFor="identifier">
+                  {activeTab === 'patient' 
+                    ? 'Mobile Number or Email (মোবাইল নম্বর বা ইমেইল)' 
+                    : 'Email Address or Phone'}
+                </label>
+                <div className="auth-input-wrap">
+                  {activeTab === 'patient' ? (
+                    <Phone style={{ width: 16, height: 16 }} />
+                  ) : (
+                    <Mail style={{ width: 16, height: 16 }} />
+                  )}
+                  <input
+                    id="identifier"
+                    type="text"
+                    placeholder={
+                      activeTab === 'patient'
+                        ? "e.g., 01711223344 or patient@gmail.com"
+                        : "you@example.com or phone"
+                    }
+                    value={form.identifier}
+                    onChange={e => setForm({ ...form, identifier: e.target.value })}
+                    autoComplete="username"
+                    required
+                    aria-label="Mobile Number or Email"
+                  />
+                </div>
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="password">Password (পাসওয়ার্ড)</label>
+                <div className="auth-input-wrap">
+                  <Lock style={{ width: 16, height: 16 }} />
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    autoComplete="current-password"
+                    required
+                    aria-label="Password"
+                  />
+                  <button
+                    type="button"
+                    className="auth-pw-toggle"
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                id="sign-in-submit"
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 24px', fontSize: 'var(--text-base)', marginTop: 'var(--sp-2)', gap: 8 }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Signing in…</>
+                ) : (
+                  <>
+                    Sign In as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
+                    <ArrowRight style={{ width: 16, height: 16 }} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
 
           {activeTab !== 'patient' && (
             <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>

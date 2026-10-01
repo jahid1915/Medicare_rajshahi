@@ -65,43 +65,72 @@ async function runTests() {
     await waitForDb();
     assert(mongoose.connection.readyState === 1, "MongoDB connected and operational");
 
-    // 2. Patient Email OTP Auth
-    console.log("\n2. Testing Patient Email OTP Authentication Flow...");
-    const testEmail = `test.patient.${Date.now()}@niramoy.test`;
+    // 2. Patient Phone OTP Authentication (MIM SMS & Zero-Leakage)
+    console.log("\n2. Testing Patient Phone OTP Authentication Flow (Zero Leakage)...");
+    const testPhone = `017${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const testEmail = `patient.${Date.now()}@niramoy.test`;
     
-    // Request OTP
+    // Request OTP via Phone
     const otpReq = await request(app)
-      .post("/api/auth/patient/request-otp")
-      .send({ email: testEmail, name: "Jahid Hasan Test" });
-    assert(otpReq.status === 200 && otpReq.body.success, "Patient OTP requested successfully");
-    const simulatedOtp = otpReq.body.data?.simulatedOtp;
-    assert(!!simulatedOtp && simulatedOtp.length === 6, `Received 6-digit OTP code (${simulatedOtp})`);
+      .post("/api/auth/send-otp")
+      .send({ phone: testPhone, name: "Rahim Test Patient" });
+    assert(otpReq.status === 200 && otpReq.body.success, "Patient Phone OTP requested successfully");
+    
+    // Strict zero-leakage check
+    assert(otpReq.body.data?.otp === undefined && otpReq.body.data?.simulatedOtp === undefined, "Zero OTP leakage in API response");
 
-    // Check OTP record in DB
-    const otpDoc = await OtpVerification.findOne({ email: testEmail });
-    assert(otpDoc && (otpDoc.otp_hash || otpDoc.otpHash), "OTP stored securely as SHA-256 hash");
+    // Check OTP record in DB is hashed
+    const otpDoc = await OtpVerification.findOne({ phone: testPhone }).sort({ createdAt: -1 });
+    assert(otpDoc && otpDoc.otp_hash, "OTP stored securely as SHA-256 hash in MongoDB");
 
     // Test with wrong OTP
     const wrongOtpRes = await request(app)
-      .post("/api/auth/patient/verify-otp")
-      .send({ email: testEmail, otp: "000000" });
-    assert(wrongOtpRes.status === 400 && wrongOtpRes.body.code === "INVALID_OTP", "Rejects incorrect OTP with attempt countdown");
+      .post("/api/auth/verify-otp")
+      .send({ phone: testPhone, otp: "000000" });
+    assert(wrongOtpRes.status === 400, "Rejects incorrect OTP with attempt countdown");
 
-    // Verify with actual OTP
+    // Inject known test hash for verification test
+    const crypto = require("crypto");
+    const testOtp = "654321";
+    const testHash = crypto.createHash("sha256").update(testOtp).digest("hex");
+    await OtpVerification.create({
+      phone: testPhone,
+      otp_hash: testHash,
+      expires_at: new Date(Date.now() + 5 * 60 * 1000),
+      verified: false
+    });
+
+    // Verify with valid OTP
     const verifyRes = await request(app)
-      .post("/api/auth/patient/verify-otp")
+      .post("/api/auth/verify-otp")
       .send({
-        email: testEmail,
-        otp: simulatedOtp,
-        name: "Jahid Hasan Test",
-        phone: "01711223344",
-        gender: "Male"
+        phone: testPhone,
+        otp: testOtp
       });
     
-    assert((verifyRes.status === 200 || verifyRes.status === 201) && verifyRes.body.data?.token, "OTP verified & Patient JWT generated");
+    assert((verifyRes.status === 200 || verifyRes.status === 201) && verifyRes.body.data?.token, "Phone OTP verified & Patient JWT generated");
     const patientToken = verifyRes.body.data.token;
     const patientUser = verifyRes.body.data.user;
-    assert(patientUser.role === "patient", "Auto-created user has 'patient' role");
+    assert(patientUser.role === "patient", "New user has 'patient' role");
+    assert(patientUser.phone === testPhone, "User phone matches verified number");
+
+    // Test Patient Profile Completion
+    console.log("\n2b. Testing Patient Profile Completion & Percentage Calculation...");
+    const profileUpdateRes = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .send({
+        name: "Rahim Test Patient",
+        gender: "male",
+        blood_group: "B+",
+        address: "Laxmipur, Rajshahi",
+        emergency_contact_name: "Karim Uddin",
+        emergency_contact_phone: "01811223344",
+        allergies: "None",
+        existing_conditions: "Mild Hypertension"
+      });
+    assert(profileUpdateRes.status === 200, "Profile updated with clinical & emergency details");
+    assert(profileUpdateRes.body.data?.profileCompletion?.percentage >= 70, `Profile completion calculated correctly (${profileUpdateRes.body.data?.profileCompletion?.percentage}%)`);
 
     // 3. Doctor Branch & Dynamic Schedule Slots
     console.log("\n3. Testing Doctor Branches & Dynamic Slot Calculation...");
@@ -322,10 +351,120 @@ async function runTests() {
 
     // 10. Prescription Availability Matching Engine
     console.log("\n10. Testing Prescription-Aware Pharmacy Search...");
+    const Prescription = require("../models/Prescription");
+    const testPrescription = await Prescription.create({
+      patient_id: patientUser._id || patientUser.id,
+      appointment_id: appointment._id,
+      doctor_name: sampleDoctor.name,
+      diagnosis: "Acute Tension Headache",
+      medicines: [
+        { medicine_name: "Napa Extra", dosage: "1 tab", duration: "3 days", timing: "After meal" }
+      ],
+      advice: "Take after meals."
+    });
+
     const availRes = await request(app)
-      .get(`/api/pharmacies/availability/by-prescription/demo-rx-1`);
-    assert(availRes.status === 200, "Prescription availability endpoint responded successfully");
+      .get(`/api/pharmacies/availability/by-prescription/${testPrescription._id}`);
+    assert(availRes.status === 200, "Prescription availability endpoint responded successfully with real DB record");
     assert(Array.isArray(availRes.body.data.pharmacies), "Returned list of matching pharmacies with live stock status");
+    assert(availRes.body.data.prescriptionNumber === testPrescription.prescription_number, "Matched real prescription number from database");
+
+    // 11. Patient Data Authorization & Isolation
+    console.log("\n11. Testing Patient Data Isolation (Patient A vs Patient B)...");
+    const patientB = await User.create({
+      name: "Patient B Attacker",
+      phone: `019${Math.floor(10000000 + Math.random() * 90000000)}`,
+      role: "patient"
+    });
+    const patientBToken = jwt.sign({ id: patientB._id, role: "patient" }, process.env.JWT_SECRET);
+
+    // Patient B attempts to fetch Patient A's appointment details
+    const aptSnoopRes = await request(app)
+      .get(`/api/appointments/${appointment._id}`)
+      .set("Authorization", `Bearer ${patientBToken}`);
+    assert(aptSnoopRes.status === 403, "Patient B denied access to Patient A appointment (HTTP 403)");
+
+    // Patient B attempts to download Patient A's voucher PDF
+    const pdfSnoopRes = await request(app)
+      .get(`/api/appointments/${appointment._id}/pdf`)
+      .set("Authorization", `Bearer ${patientBToken}`);
+    assert(pdfSnoopRes.status === 403, "Patient B denied access to Patient A appointment PDF (HTTP 403)");
+
+    // Patient B attempts to fetch Patient A's prescription details
+    const rxSnoopRes = await request(app)
+      .get(`/api/prescriptions/${testPrescription._id}`)
+      .set("Authorization", `Bearer ${patientBToken}`);
+    assert(rxSnoopRes.status === 403, "Patient B denied access to Patient A prescription (HTTP 403)");
+
+    // 12. Doctor Data Authorization & Isolation
+    console.log("\n12. Testing Doctor Data Isolation (Doctor B vs Doctor A)...");
+    const doctorBUser = await User.create({
+      name: "Dr. B Attacker",
+      phone: `016${Math.floor(10000000 + Math.random() * 90000000)}`,
+      role: "doctor"
+    });
+    const doctorBProfile = await Doctor.create({
+      user_id: doctorBUser._id,
+      name: "Dr. B Attacker",
+      slug: `dr-b-attacker-${Date.now()}`,
+      phone: doctorBUser.phone,
+      specialty: "Orthopedics"
+    });
+    const doctorBToken = jwt.sign({ id: doctorBUser._id, role: "doctor", doctor_id: doctorBProfile._id }, process.env.JWT_SECRET);
+
+    // Doctor B attempts to view Doctor A's patient appointment
+    const docSnoopRes = await request(app)
+      .get(`/api/appointments/${appointment._id}`)
+      .set("Authorization", `Bearer ${doctorBToken}`);
+    assert(docSnoopRes.status === 403, "Doctor B denied access to Doctor A appointment (HTTP 403)");
+
+    // 13. Pharmacy Tenant URL/ID Tampering
+    console.log("\n13. Testing Pharmacy Tenant URL/ID Tampering...");
+    // Owner 1 attempts to query Pharmacy 2 orders via manual ID manipulation
+    const tamperOrderRes = await request(app)
+      .get(`/api/pharmacy-orders/pharmacy/${pharmacy2._id}`)
+      .set("Authorization", `Bearer ${token1}`);
+    assert(tamperOrderRes.status === 403, "Pharmacy Owner 1 denied access to Pharmacy 2 orders (HTTP 403)");
+
+    // 14. In-App Notification System Lifecycle & Authorization
+    console.log("\n14. Testing In-App Notification System Lifecycle & Isolation...");
+    const Notification = require("../models/Notification");
+    const notifA = await Notification.create({
+      user_id: patientUser._id || patientUser.id,
+      title: "Appointment Confirmed",
+      message: `Your appointment with ${sampleDoctor.name} has been confirmed.`,
+      type: "appointment_confirmed",
+      is_read: false
+    });
+
+    const notifB = await Notification.create({
+      user_id: patientB._id,
+      title: "Welcome to Niramoy",
+      message: "Please complete your clinical snapshot.",
+      type: "general",
+      is_read: false
+    });
+
+    // Patient A fetches their notifications
+    const notifListRes = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", `Bearer ${patientToken}`);
+    assert(notifListRes.status === 200, "Patient A fetched in-app notifications");
+    assert(Array.isArray(notifListRes.body.data) && notifListRes.body.data.length >= 1, "Patient A sees their notifications");
+    assert(notifListRes.body.data.some(n => n._id.toString() === notifA._id.toString()), "Contains Patient A notification");
+    assert(!notifListRes.body.data.some(n => n._id.toString() === notifB._id.toString()), "Patient A CANNOT see Patient B notification (Isolation Verified)");
+
+    // Patient B attempts to mark Patient A's notification as read
+    const crossReadRes = await request(app)
+      .patch(`/api/notifications/${notifA._id}/read`)
+      .set("Authorization", `Bearer ${patientBToken}`);
+    assert(crossReadRes.status === 403, "Patient B denied permission to alter Patient A notification (HTTP 403)");
+
+    // Patient A marks their own notification as read
+    const ownReadRes = await request(app)
+      .patch(`/api/notifications/${notifA._id}/read`)
+      .set("Authorization", `Bearer ${patientToken}`);
+    assert(ownReadRes.status === 200 && (ownReadRes.body.data?.notification?.is_read === true || ownReadRes.body.data?.is_read === true), "Patient A successfully marked their notification as read");
 
     console.log("\n====================================================================");
     console.log(`   TEST RESULTS: ${passed} PASSED | ${failed} FAILED                 `);

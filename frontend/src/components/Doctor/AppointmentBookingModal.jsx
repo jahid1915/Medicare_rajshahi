@@ -52,7 +52,7 @@ function DoctorAvatarThumb({ src, name }) {
 
 export default function AppointmentBookingModal({ doctor, onClose, onBookingSuccess }) {
   const navigate = useNavigate();
-  const { user, requestPatientOtp, verifyPatientOtp, resendPatientOtp } = useAuth();
+  const { user, sendOtp, verifyOtp } = useAuth();
 
   // Doctor Details
   const doctorId = doctor?._id || doctor?.id || doctor?.slug;
@@ -94,7 +94,6 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
 
   // OTP states
   const [otpCode, setOtpCode] = useState('');
-  const [simulatedOtp, setSimulatedOtp] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
@@ -237,10 +236,6 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
       setAuthError('Please enter your full name.');
       return;
     }
-    if (!patientForm.email.trim() || !patientForm.email.includes('@')) {
-      setAuthError('Please enter a valid email address.');
-      return;
-    }
     if (!patientForm.phone.trim() || patientForm.phone.trim().length < 11) {
       setAuthError('Please enter a valid 11-digit mobile phone number.');
       return;
@@ -250,29 +245,25 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
       return;
     }
 
-    // If user is already authenticated with the same email, go straight to summary
-    if (user && user.email.toLowerCase() === patientForm.email.trim().toLowerCase()) {
+    // If user is already authenticated, go straight to summary
+    if (user) {
       setStep('summary');
       return;
     }
 
-    // Otherwise, dispatch email OTP
+    // Otherwise, dispatch Phone OTP via MIM SMS
     setAuthLoading(true);
     try {
-      const res = await requestPatientOtp({
-        email: patientForm.email.trim(),
+      await sendOtp({
         phone: patientForm.phone.trim(),
         name: patientForm.name.trim(),
         purpose: 'PATIENT_SIGNUP'
       });
-      const generatedOtp = res?.simulatedOtp || res?.otp || '';
-      setSimulatedOtp(generatedOtp);
-      if (generatedOtp) setOtpCode(generatedOtp); // Convenient auto-fill for sandbox testability
       setCountdown(60);
       setCanResend(false);
       setStep('otp_verify');
     } catch (err) {
-      setAuthError(err.message || 'Failed to dispatch verification code. Please try again.');
+      setAuthError(err.message || 'Failed to dispatch SMS verification code. Please try again.');
     } finally {
       setAuthLoading(false);
     }
@@ -284,22 +275,21 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
     setAuthError('');
 
     if (!otpCode.trim() || otpCode.trim().length !== 6) {
-      setAuthError('Please enter the 6-digit OTP code.');
+      setAuthError('Please enter the 6-digit OTP code received on your phone.');
       return;
     }
 
     setAuthLoading(true);
     try {
-      await verifyPatientOtp({
-        email: patientForm.email.trim(),
+      await verifyOtp({
+        phone: patientForm.phone.trim(),
         otp: otpCode.trim(),
         name: patientForm.name.trim(),
-        phone: patientForm.phone.trim(),
         gender: patientForm.gender,
-        date_of_birth: patientForm.age ? undefined : undefined,
         address: patientForm.address,
-        emergency_contact: patientForm.emergencyContact,
-        blood_group: patientForm.bloodGroup
+        emergency_contact_phone: patientForm.emergencyContact,
+        blood_group: patientForm.bloodGroup,
+        email: patientForm.email ? patientForm.email.trim() : undefined
       });
 
       // Auto-logged in! Transition immediately to Appointment Summary
@@ -317,18 +307,15 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
     setAuthLoading(true);
     setAuthError('');
     try {
-      const res = await resendPatientOtp({
-        email: patientForm.email.trim(),
+      await sendOtp({
         phone: patientForm.phone.trim(),
-        name: patientForm.name.trim()
+        name: patientForm.name.trim(),
+        purpose: 'PATIENT_SIGNUP'
       });
-      const generatedOtp = res?.simulatedOtp || res?.otp || '';
-      setSimulatedOtp(generatedOtp);
-      if (generatedOtp) setOtpCode(generatedOtp);
       setCountdown(60);
       setCanResend(false);
     } catch (err) {
-      setAuthError(err.message || 'Failed to resend code');
+      setAuthError(err.message || 'Failed to resend SMS code');
     } finally {
       setAuthLoading(false);
     }
@@ -403,18 +390,24 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: window.innerWidth <= 640 ? '0' : '16px'
     }}>
-      <div style={{
-        background: '#ffffff', borderRadius: '24px', width: '100%', maxWidth: '640px',
-        maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-        border: '1px solid var(--border-default, #e2eceb)', display: 'flex', flexDirection: 'column'
+      <div className="booking-modal-content" style={{
+        background: '#ffffff', borderRadius: window.innerWidth <= 640 ? '0' : '24px',
+        width: '100%', maxWidth: window.innerWidth <= 640 ? '100%' : '640px',
+        maxHeight: window.innerWidth <= 640 ? '100%' : '92vh',
+        height: window.innerWidth <= 640 ? '100%' : 'auto',
+        overflowY: 'auto', boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+        border: window.innerWidth <= 640 ? 'none' : '1px solid var(--border-default, #e2eceb)',
+        display: 'flex', flexDirection: 'column'
       }}>
         {/* ─── Modal Header ─── */}
         <div style={{
-          padding: '20px 24px', borderBottom: '1px solid #f1f5f9',
+          padding: window.innerWidth <= 480 ? '14px 16px' : '20px 24px', borderBottom: '1px solid #f1f5f9',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, rgba(13,124,110,0.06), #ffffff)'
+          background: 'linear-gradient(135deg, rgba(13,124,110,0.06), #ffffff)',
+          gap: '8px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <DoctorAvatarThumb src={doctorImg} name={doctorName} />
@@ -822,7 +815,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
             </form>
           )}
 
-          {/* ═════ STEP 3: EMAIL OTP VERIFICATION ═════ */}
+          {/* ═════ STEP 3: PHONE OTP VERIFICATION ═════ */}
           {step === 'otp_verify' && (
             <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <div style={{
@@ -830,14 +823,14 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #0d7c6e)',
                 margin: '0 auto 16px'
               }}>
-                <Mail size={28} />
+                <Smartphone size={28} />
               </div>
 
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-                Verify Your Email
+                Verify Mobile Phone
               </h3>
               <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.5 }}>
-                We have dispatched a 6-digit one-time verification password to <strong style={{ color: '#0f172a' }}>{patientForm.email}</strong>.
+                We have dispatched a 6-digit one-time verification SMS to <strong style={{ color: '#0f172a' }}>{patientForm.phone}</strong>.
               </p>
 
               {authError && (
@@ -873,20 +866,20 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                   }}
                 >
                   {authLoading && <Loader2 size={16} className="animate-spin" />}
-                  Verify & Auto Login
+                  Verify & Confirm Serial
                 </button>
               </form>
 
               <div style={{ marginTop: '20px', fontSize: '0.8rem', color: '#64748b' }}>
                 {countdown > 0 ? (
-                  <span>Resend verification code in <strong>{countdown}s</strong></span>
+                  <span>Resend SMS code in <strong>{countdown}s</strong></span>
                 ) : (
                   <button
                     type="button"
                     onClick={handleResendOtp}
                     style={{ background: 'none', border: 'none', color: 'var(--primary, #0d7c6e)', fontWeight: 800, cursor: 'pointer' }}
                   >
-                    Resend OTP Code
+                    Resend SMS Code
                   </button>
                 )}
               </div>
@@ -896,7 +889,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                 onClick={() => setStep('patient_info')}
                 style={{ marginTop: '16px', background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.78rem', cursor: 'pointer' }}
               >
-                Change email address
+                Change mobile number
               </button>
             </div>
           )}

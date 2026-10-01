@@ -3,14 +3,15 @@ const mongoose = require("mongoose");
 const otpVerificationSchema = new mongoose.Schema({
   email: {
     type: String,
-    required: true,
     lowercase: true,
     trim: true,
-    index: true
+    index: true,
+    default: null
   },
   phone: {
     type: String,
-    trim: true
+    trim: true,
+    index: true
   },
   otp_hash: {
     type: String,
@@ -22,8 +23,7 @@ const otpVerificationSchema = new mongoose.Schema({
   },
   expires_at: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   attempt_count: {
     type: Number,
@@ -49,7 +49,10 @@ const otpVerificationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Compound index to quickly find active verification requests
+// Compound indexes to quickly find active verification requests
+otpVerificationSchema.index({ phone: 1, purpose: 1, verified: 1 });
 otpVerificationSchema.index({ email: 1, purpose: 1, verified: 1 });
+otpVerificationSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("OtpVerification", otpVerificationSchema);
+

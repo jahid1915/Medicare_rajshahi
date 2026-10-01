@@ -6,7 +6,8 @@ import {
   Shield, Clock, Activity, Users, Sparkles, HeartHandshake
 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 
+  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
 
 /* ─── Specialty emoji/icon map ─── */
 const SPECIALTY_META = {

@@ -282,7 +282,7 @@ export default function HospitalSearchPage({ onViewHospital }) {
           </button>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
+        <div className="hospital-grid" style={{ display: "grid", gap: "16px" }}>
           {filtered.map(h => (
             <HospitalCard key={h.id} hospital={h} onView={handleHospitalSelect} />
           ))}

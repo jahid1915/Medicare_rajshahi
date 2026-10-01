@@ -57,7 +57,6 @@ export default function MedicineCart() {
     area: "Laxmipur"
   });
   const [guestOtp, setGuestOtp] = useState("");
-  const [guestSimulatedOtp, setGuestSimulatedOtp] = useState("");
   const [guestError, setGuestError] = useState("");
   const [guestLoading, setGuestLoading] = useState(false);
 
@@ -248,17 +247,14 @@ export default function MedicineCart() {
 
     setGuestLoading(true);
     try {
-      const res = await sendOtp({
+      await sendOtp({
         phone: guestForm.phone.trim(),
         email: guestForm.email.trim(),
         purpose: "Medicine Order Verification"
       });
-      setGuestSimulatedOtp(res?.otp || "391745");
       setGuestStep("otp");
     } catch (err) {
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGuestSimulatedOtp(fallbackOtp);
-      setGuestStep("otp");
+      setGuestError(err.message || "Failed to dispatch SMS verification code. Please check your mobile number.");
     } finally {
       setGuestLoading(false);
     }
@@ -301,23 +297,7 @@ export default function MedicineCart() {
       // Execute order placement under the newly logged in patient account
       await executeOrderPlacement(targetGroup, updatedForm);
     } catch (err) {
-      if (guestOtp.trim() === guestSimulatedOtp || guestOtp.trim() === "123456") {
-        const pId = guestGroup.pharmacyId;
-        const currentForm = getFormState(pId);
-        const updatedForm = {
-          ...currentForm,
-          recipient_name: guestForm.name.trim(),
-          phone: guestForm.phone.trim(),
-          street: guestForm.street.trim(),
-          area: guestForm.area
-        };
-        updateFormState(pId, updatedForm);
-        const targetGroup = guestGroup;
-        setGuestGroup(null);
-        await executeOrderPlacement(targetGroup, updatedForm);
-      } else {
-        setGuestError(err.message || "Invalid OTP code. Please try again.");
-      }
+      setGuestError(err.message || "Invalid or expired verification code. Please try again.");
     } finally {
       setGuestLoading(false);
     }
@@ -893,26 +873,6 @@ export default function MedicineCart() {
                     Sent to <strong style={{ color: "var(--color-text, #142422)" }}>{guestForm.phone}</strong> & <strong style={{ color: "var(--color-text, #142422)" }}>{guestForm.email}</strong>.
                   </p>
                 </div>
-
-                {guestSimulatedOtp && (
-                  <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                    <div>
-                      <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#16a34a" }}>
-                        📩 Niramoy Tele-SMS Gateway
-                      </div>
-                      <div style={{ fontSize: "0.82rem", color: "var(--color-text, #142422)", marginTop: "2px" }}>
-                        Order OTP: <span style={{ fontFamily: "monospace", fontSize: "1.05rem", fontWeight: 900, letterSpacing: "2px", color: "var(--color-primary, #0d7c6e)" }}>{guestSimulatedOtp}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setGuestOtp(guestSimulatedOtp)}
-                      style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: 800, background: "var(--color-primary, #0d7c6e)", color: "#ffffff", border: "none", cursor: "pointer" }}
-                    >
-                      Auto-Fill Code
-                    </button>
-                  </div>
-                )}
 
                 {guestError && (
                   <div style={{ padding: "10px", borderRadius: "8px", background: "rgba(239,68,68,0.1)", color: "#dc2626", fontSize: "0.78rem" }}>

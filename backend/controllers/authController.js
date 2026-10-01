@@ -144,133 +144,172 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// Helper: SHA-256 hash of OTP
-const hashOtp = (otp) => crypto.createHash("sha256").update(otp.trim()).digest("hex");
+const { normalizePhoneNumber, sendOtpSms } = require("../services/smsService");
 
-// In-memory OTP cache for fallback backwards compatibility
-const otpCache = new Map();
+// Helper: SHA-256 hash of OTP
+const hashOtp = (otp) => crypto.createHash("sha256").update(String(otp).trim()).digest("hex");
 
 /**
- * POST /api/auth/patient/request-otp
- * Generates 6-digit OTP, stores secure hash with 5-minute TTL, enforces 60s rate limit, and emails OTP
+ * POST /api/auth/send-otp (and alias /patient/request-otp, /patient/resend-otp)
+ * Phone-first OTP generation:
+ * 1. Validates phone number (Bangladeshi 01XXXXXXXXX)
+ * 2. Enforces 60-second cooldown per phone/email
+ * 3. Invalidates previous active OTPs
+ * 4. Stores SHA-256 hash with 5-minute TTL
+ * 5. Dispatches SMS via MIM SMS
+ * 6. Returns ONLY success/failure — NEVER exposes OTP in response
  */
-exports.requestPatientOtp = async (req, res, next) => {
+exports.sendOtp = async (req, res, next) => {
   try {
-    const { email, phone, name, purpose = "PATIENT_SIGNUP" } = req.body;
+    const { phone, email, purpose = "PATIENT_SIGNUP" } = req.body;
 
-    if (!email || !email.includes("@")) {
-      return errorResponse(res, "A valid email address is required to receive the verification OTP", 422);
+    if (!phone && !email) {
+      return errorResponse(res, "Mobile phone number is required to receive verification code", 422);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    let normalizedPhone = null;
+    let cleanEmail = null;
 
-    // Enforce 60-second resend rate limit
-    const existingOtp = await OtpVerification.findOne({ email: cleanEmail }).sort({ createdAt: -1 });
-    if (existingOtp && existingOtp.last_resend_at) {
-      const elapsedMs = Date.now() - new Date(existingOtp.last_resend_at).getTime();
+    if (phone) {
+      const norm = normalizePhoneNumber(phone);
+      if (!norm.isValid) {
+        return errorResponse(res, "Please provide a valid 11-digit Bangladeshi mobile number (e.g., 017XXXXXXXX)", 422, "INVALID_PHONE");
+      }
+      normalizedPhone = norm.local;
+    }
+
+    if (email) {
+      cleanEmail = email.trim().toLowerCase();
+    }
+
+    // Rate-limiting check: enforce 60s cooldown on the target identifier
+    const searchFilter = normalizedPhone ? { phone: normalizedPhone } : { email: cleanEmail };
+    const latestOtp = await OtpVerification.findOne(searchFilter).sort({ createdAt: -1 });
+
+    if (latestOtp && latestOtp.last_resend_at) {
+      const elapsedMs = Date.now() - new Date(latestOtp.last_resend_at).getTime();
       if (elapsedMs < 60000) {
         const remainingSecs = Math.ceil((60000 - elapsedMs) / 1000);
         return errorResponse(
           res,
-          `Please wait ${remainingSecs} seconds before requesting a new OTP.`,
+          `Please wait ${remainingSecs} seconds before requesting a new verification code.`,
           429,
           "RATE_LIMITED"
         );
       }
     }
 
-    // Generate random 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Invalidate any existing unused OTPs for this phone/email to prevent replay
+    await OtpVerification.updateMany(
+      { ...searchFilter, verified: false },
+      { $set: { verified: true } }
+    );
+
+    // Generate secure 6-digit cryptographic OTP (100000 - 999999)
+    const otp = crypto.randomInt(100000, 999999).toString();
     const otp_hash = hashOtp(otp);
     const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
 
     await OtpVerification.create({
-      email: cleanEmail,
-      phone: phone ? phone.trim() : undefined,
+      phone: normalizedPhone || undefined,
+      email: cleanEmail || undefined,
       otp_hash,
       purpose,
       expires_at,
       attempt_count: 0,
-      resend_count: existingOtp ? (existingOtp.resend_count || 0) + 1 : 0,
+      resend_count: latestOtp ? (latestOtp.resend_count || 0) + 1 : 0,
       last_resend_at: new Date(),
-      verified: false,
-      metadata: { name: name || "" }
+      verified: false
     });
 
-    // Send professional HTML email
-    await sendOtpEmail({
-      email: cleanEmail,
-      otp,
-      purpose: "Niramoy Healthcare Patient Authentication"
-    });
+    // Dispatch OTP: SMS primary, Email fallback if email-only
+    if (normalizedPhone) {
+      await sendOtpSms({ phone: normalizedPhone, otp, expiryMinutes: 5 });
+    } else if (cleanEmail) {
+      await sendOtpEmail({
+        email: cleanEmail,
+        otp,
+        purpose: "Niramoy Healthcare Authentication"
+      });
+    }
 
-    // Also populate in-memory cache for legacy handlers
-    otpCache.set(cleanEmail, { otp, expiresAt: Date.now() + 5 * 60 * 1000, phone, email: cleanEmail });
-
+    // Return strictly sanitized response — ZERO OTP exposure
     return successResponse(res, {
-      email: cleanEmail,
+      destination: normalizedPhone || cleanEmail,
+      channel: normalizedPhone ? "sms" : "email",
       expires_in_seconds: 300,
       resend_available_in_seconds: 60,
-      simulatedOtp: otp, // Provided for live demonstration & one-click auto-fill
-      message: "Verification code sent to your email"
+      message: normalizedPhone 
+        ? `Verification code sent via SMS to ${normalizedPhone.slice(0, 3)}****${normalizedPhone.slice(-3)}`
+        : `Verification code sent to your email`
     }, "Verification code dispatched successfully");
   } catch (err) {
     next(err);
   }
 };
 
+exports.requestPatientOtp = exports.sendOtp;
+exports.resendPatientOtp = exports.sendOtp;
+
 /**
- * POST /api/auth/patient/verify-otp
- * Validates OTP hash, enforces 5-attempt limit, auto-provisions or logs in patient, issues JWT
+ * POST /api/auth/verify-otp (and alias /patient/verify-otp)
+ * Phone-first OTP verification:
+ * 1. Checks 6-digit format
+ * 2. Checks active record, expiry, max 5 attempts
+ * 3. Compares SHA-256 hash server-side
+ * 4. Marks OTP used
+ * 5. Finds or creates minimal Patient account (phone, role, ID, timestamps)
+ * 6. Returns JWT and authenticated user (without password)
  */
-exports.verifyPatientOtp = async (req, res, next) => {
+exports.verifyOtp = async (req, res, next) => {
   try {
-    const {
-      email,
-      otp,
-      name,
-      phone,
-      gender,
-      date_of_birth,
-      address,
-      emergency_contact,
-      blood_group
-    } = req.body;
+    const { phone, email, otp } = req.body;
 
-    if (!email || !otp) {
-      return errorResponse(res, "Email and 6-digit OTP are required", 422);
+    if (!otp) {
+      return errorResponse(res, "Verification code is required", 422);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = String(otp).trim();
-
-    if (cleanOtp.length !== 6) {
-      return errorResponse(res, "OTP must be exactly 6 digits", 422, "INVALID_FORMAT");
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      return errorResponse(res, "Verification code must be exactly 6 digits", 422, "INVALID_FORMAT");
     }
 
-    // Lookup latest active OTP verification record
-    const record = await OtpVerification.findOne({
-      email: cleanEmail,
-      verified: false
-    }).sort({ createdAt: -1 });
+    let searchFilter = null;
+    let normalizedPhone = null;
+
+    if (phone) {
+      const norm = normalizePhoneNumber(phone);
+      if (!norm.isValid) {
+        return errorResponse(res, "Invalid mobile phone number", 422, "INVALID_PHONE");
+      }
+      normalizedPhone = norm.local;
+      searchFilter = { phone: normalizedPhone, verified: false };
+    } else if (email) {
+      searchFilter = { email: email.trim().toLowerCase(), verified: false };
+    } else {
+      return errorResponse(res, "Mobile phone number or email is required", 422);
+    }
+
+    // Lookup latest active OTP record
+    const record = await OtpVerification.findOne(searchFilter).sort({ createdAt: -1 });
 
     if (!record) {
-      return errorResponse(res, "No active OTP request found. Please request a new verification code.", 400, "NO_ACTIVE_OTP");
+      return errorResponse(res, "No active verification code found. Please request a new code.", 400, "NO_ACTIVE_OTP");
     }
 
     // Check expiration (5 minutes TTL)
     if (new Date() > new Date(record.expires_at)) {
-      return errorResponse(res, "Verification code has expired. Please request a new one.", 400, "EXPIRED_OTP");
+      return errorResponse(res, "Verification code has expired. Please request a new code.", 400, "EXPIRED_OTP");
     }
 
     // Check attempt count (max 5 attempts)
     if (record.attempt_count >= 5) {
-      return errorResponse(res, "Maximum verification attempts exceeded (5/5). Please request a fresh OTP.", 429, "MAX_ATTEMPTS_EXCEEDED");
+      return errorResponse(res, "Maximum verification attempts exceeded. Please request a fresh code.", 429, "MAX_ATTEMPTS_EXCEEDED");
     }
 
-    // Validate hash
+    // Validate hash server-side
     const inputHash = hashOtp(cleanOtp);
-    const isMatch = inputHash === record.otp_hash || (process.env.NODE_ENV !== "production" && cleanOtp === "123456");
+    const isMatch = inputHash === record.otp_hash;
 
     if (!isMatch) {
       record.attempt_count += 1;
@@ -278,54 +317,44 @@ exports.verifyPatientOtp = async (req, res, next) => {
       const remaining = 5 - record.attempt_count;
       return errorResponse(
         res,
-        `Invalid verification code. You have ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+        `Incorrect verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
         400,
         "INVALID_OTP"
       );
     }
 
-    // Mark OTP record verified
+    // Mark OTP used
     record.verified = true;
     await record.save();
 
-    // Check if patient user already exists by email or phone
-    const searchConditions = [{ email: cleanEmail }];
-    if (phone && phone.trim()) {
-      searchConditions.push({ phone: phone.trim() });
-    }
+    // Find or create patient
+    const userSearch = [];
+    if (normalizedPhone) userSearch.push({ phone: normalizedPhone });
+    if (email) userSearch.push({ email: email.trim().toLowerCase() });
 
-    let user = await User.findOne({ $or: searchConditions });
+    let user = await User.findOne({ $or: userSearch });
     let isNewUser = false;
 
     if (!user) {
-      // Auto-create patient account without requiring a password
+      // Minimal verified patient creation: phone, ID, role: 'patient', timestamps
       user = await User.create({
-        name: (name || cleanEmail.split("@")[0]).trim(),
-        email: cleanEmail,
-        phone: phone ? phone.trim() : undefined,
+        name: req.body.name ? req.body.name.trim() : "Patient",
+        phone: normalizedPhone || undefined,
+        email: email ? email.trim().toLowerCase() : undefined,
         role: "patient",
-        gender: gender || undefined,
-        date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
-        address: address ? address.trim() : undefined,
-        emergency_contact: emergency_contact ? emergency_contact.trim() : undefined,
-        blood_group: blood_group || undefined,
         is_verified: true,
-        is_email_verified: true,
         is_active: true
       });
       isNewUser = true;
     } else {
-      // Update existing patient profile fields if supplied
-      if (name && !user.name) user.name = name.trim();
-      if (phone && !user.phone) user.phone = phone.trim();
-      if (gender && !user.gender) user.gender = gender;
-      if (address && !user.address) user.address = address.trim();
-      if (emergency_contact && !user.emergency_contact) user.emergency_contact = emergency_contact.trim();
-      if (blood_group && !user.blood_group) user.blood_group = blood_group;
-
       user.is_verified = true;
-      user.is_email_verified = true;
       user.last_login = new Date();
+      // If patient had no phone, save it
+      if (normalizedPhone && !user.phone) user.phone = normalizedPhone;
+      // If user supplied name during OTP verification
+      if (req.body.name && (user.name === "Patient" || !user.name)) {
+        user.name = req.body.name.trim();
+      }
       await user.save({ validateBeforeSave: false });
     }
 
@@ -333,10 +362,10 @@ exports.verifyPatientOtp = async (req, res, next) => {
 
     await AuditLog.create({
       actor_id: user._id,
-      actor_name: user.name,
+      actor_name: user.name || "Patient",
       actor_role: user.role,
-      action: isNewUser ? "PATIENT_AUTO_SIGNUP_OTP" : "PATIENT_AUTO_LOGIN_OTP",
-      detail: `Patient authenticated via Email OTP.`
+      action: isNewUser ? "PATIENT_SIGNUP_PHONE_OTP" : "PATIENT_LOGIN_PHONE_OTP",
+      detail: `Patient authenticated via Phone OTP (${user.phone || user.email})`
     });
 
     const populatedUser = await User.findById(user._id);
@@ -344,23 +373,116 @@ exports.verifyPatientOtp = async (req, res, next) => {
     return successResponse(res, {
       user: populatedUser,
       token,
-      isNewUser
-    }, isNewUser ? "Patient account created and authenticated" : "Logged in successfully", isNewUser ? 201 : 200);
+      isNewUser,
+      profileCompletion: populatedUser.calculateProfileCompletion ? populatedUser.calculateProfileCompletion() : null
+    }, isNewUser ? "Patient account created successfully" : "Logged in successfully", isNewUser ? 201 : 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.verifyPatientOtp = exports.verifyOtp;
+exports.verifyPatientCheckout = exports.verifyOtp;
+
+/**
+ * GET /api/auth/profile
+ * Returns authenticated user profile with completion percentage and missing fields
+ */
+exports.getProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .populate("hospital_id", "name short_name area address type")
+      .populate("pharmacy_id", "name area address phone");
+
+    if (!user) return errorResponse(res, "User not found", 404);
+
+    const completion = user.calculateProfileCompletion ? user.calculateProfileCompletion() : null;
+
+    return successResponse(res, {
+      user,
+      profileCompletion: completion
+    }, "Profile retrieved successfully");
   } catch (err) {
     next(err);
   }
 };
 
 /**
- * POST /api/auth/patient/resend-otp
+ * PUT /api/auth/profile
+ * Updates patient profile fields without blocking basic healthcare browsing
  */
-exports.resendPatientOtp = exports.requestPatientOtp;
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return errorResponse(res, "User not found", 404);
 
-// POST /api/auth/send-otp (Backwards-compatible endpoint)
-exports.sendOtp = exports.requestPatientOtp;
+    const {
+      name,
+      date_of_birth,
+      gender,
+      blood_group,
+      address,
+      profile_picture,
+      preferred_language,
+      // Emergency Info
+      emergency_contact,
+      emergency_contact_name,
+      emergency_contact_relation,
+      emergency_contact_phone,
+      // Medical Info
+      allergies,
+      existing_conditions,
+      previous_surgeries,
+      current_medications,
+      medical_history,
+      // Optional
+      email
+    } = req.body;
 
-// POST /api/auth/verify-patient-checkout (Backwards-compatible endpoint)
-exports.verifyPatientCheckout = exports.verifyPatientOtp;
+    if (name !== undefined) user.name = name.trim();
+    if (date_of_birth !== undefined) user.date_of_birth = date_of_birth ? new Date(date_of_birth) : undefined;
+    if (gender !== undefined) user.gender = gender;
+    if (blood_group !== undefined) user.blood_group = blood_group.trim();
+    if (address !== undefined) user.address = address.trim();
+    if (profile_picture !== undefined) user.profile_picture = profile_picture;
+    if (preferred_language !== undefined) user.preferred_language = preferred_language;
+
+    // Emergency details
+    if (emergency_contact_name !== undefined) user.emergency_contact_name = emergency_contact_name.trim();
+    if (emergency_contact_relation !== undefined) user.emergency_contact_relation = emergency_contact_relation.trim();
+    if (emergency_contact_phone !== undefined) user.emergency_contact_phone = emergency_contact_phone.trim();
+    if (emergency_contact !== undefined) user.emergency_contact = emergency_contact.trim();
+
+    // Medical details
+    if (allergies !== undefined) user.allergies = typeof allergies === "string" ? allergies.trim() : JSON.stringify(allergies);
+    if (existing_conditions !== undefined) user.existing_conditions = typeof existing_conditions === "string" ? existing_conditions.trim() : JSON.stringify(existing_conditions);
+    if (previous_surgeries !== undefined) user.previous_surgeries = typeof previous_surgeries === "string" ? previous_surgeries.trim() : JSON.stringify(previous_surgeries);
+    if (current_medications !== undefined) user.current_medications = typeof current_medications === "string" ? current_medications.trim() : JSON.stringify(current_medications);
+    if (medical_history !== undefined) user.medical_history = typeof medical_history === "string" ? medical_history.trim() : JSON.stringify(medical_history);
+
+    // Optional email update (check duplication)
+    if (email && email.trim() && email.trim().toLowerCase() !== user.email) {
+      const cleanEmail = email.trim().toLowerCase();
+      const existing = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
+      if (existing) {
+        return errorResponse(res, "This email is already in use by another account", 409, "DUPLICATE_EMAIL");
+      }
+      user.email = cleanEmail;
+    }
+
+    await user.save();
+
+    const completion = user.calculateProfileCompletion ? user.calculateProfileCompletion() : null;
+
+    return successResponse(res, {
+      user,
+      profileCompletion: completion
+    }, "Profile updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 // POST /api/auth/login
 exports.login = async (req, res, next) => {
