@@ -2,6 +2,7 @@ const Doctor = require("../models/Doctor");
 const DoctorBranch = require("../models/DoctorBranch");
 const DoctorSchedule = require("../models/DoctorSchedule");
 const Appointment = require("../models/Appointment");
+const { supabaseAdmin, isSupabaseConfigured } = require("../config/supabase");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 
 /**
@@ -57,10 +58,27 @@ exports.getDoctorBranches = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Resolve doctor by ID or Slug
+    // Resolve doctor by ID, Supabase UUID, or Slug
     let doctor = null;
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
       doctor = await Doctor.findById(id);
+    } else if (id.match(/^[0-9a-fA-F-]{36}$/)) {
+      if (isSupabaseConfigured()) {
+        const { data: sDoc } = await supabaseAdmin.from("doctors").select("*").eq("id", id).limit(1);
+        if (sDoc && sDoc.length > 0) {
+          if (sDoc[0].legacy_mongodb_id) doctor = await Doctor.findById(sDoc[0].legacy_mongodb_id);
+          if (!doctor) {
+            doctor = {
+              _id: sDoc[0].legacy_mongodb_id || sDoc[0].id,
+              id: sDoc[0].id,
+              name: sDoc[0].name,
+              slug: sDoc[0].slug,
+              consultation_fee: sDoc[0].consultation_fee,
+              workplace: sDoc[0].workplace
+            };
+          }
+        }
+      }
     }
     if (!doctor) {
       doctor = await Doctor.findOne({ slug: id.toLowerCase() });
@@ -68,6 +86,39 @@ exports.getDoctorBranches = async (req, res, next) => {
 
     if (!doctor) {
       return errorResponse(res, "Doctor not found", 404);
+    }
+
+    // 1. Authoritative check: Supabase doctor_branches
+    if (isSupabaseConfigured()) {
+      const supaDocUUID = (doctor.id && /^[0-9a-fA-F-]{36}$/.test(doctor.id)) ? doctor.id : (id.match(/^[0-9a-fA-F-]{36}$/) ? id : null);
+      if (supaDocUUID) {
+        const { data: sBranches } = await supabaseAdmin
+          .from("doctor_branches")
+          .select("*")
+          .eq("doctor_id", supaDocUUID)
+          .eq("active", true);
+
+        if (sBranches && sBranches.length > 0) {
+          return successResponse(res, {
+            doctor: {
+              id: doctor.id || doctor._id,
+              name: doctor.name,
+              specialty: doctor.specialty,
+              workplace: doctor.workplace
+            },
+            branches: sBranches.map(b => ({
+              _id: b.id,
+              id: b.id,
+              name: b.name,
+              address: b.address,
+              phone: b.phone,
+              roomNumber: b.room_number,
+              consultationFee: b.consultation_fee || doctor.consultation_fee || 800,
+              active: b.active
+            }))
+          }, "Doctor branches fetched");
+        }
+      }
     }
 
     let branches = await DoctorBranch.find({ doctorId: doctor._id, active: true });
@@ -174,22 +225,61 @@ exports.getAvailableSlots = async (req, res, next) => {
     let doctor = null;
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
       doctor = await Doctor.findById(id);
+    } else if (id.match(/^[0-9a-fA-F-]{36}$/)) {
+      if (isSupabaseConfigured()) {
+        const { data: sDoc } = await supabaseAdmin.from("doctors").select("*").eq("id", id).limit(1);
+        if (sDoc && sDoc.length > 0) {
+          if (sDoc[0].legacy_mongodb_id) doctor = await Doctor.findById(sDoc[0].legacy_mongodb_id);
+          if (!doctor) {
+            doctor = {
+              _id: sDoc[0].legacy_mongodb_id || sDoc[0].id,
+              id: sDoc[0].id,
+              name: sDoc[0].name,
+              slug: sDoc[0].slug,
+              consultation_fee: sDoc[0].consultation_fee
+            };
+          }
+        }
+      }
     }
     if (!doctor) {
       doctor = await Doctor.findOne({ slug: id.toLowerCase() });
     }
     if (!doctor) return errorResponse(res, "Doctor not found", 404);
 
-    const branch = await DoctorBranch.findById(branchId);
+    let branch = null;
+    if (branchId.match(/^[0-9a-fA-F]{24}$/)) {
+      branch = await DoctorBranch.findById(branchId);
+    } else if (branchId.match(/^[0-9a-fA-F-]{36}$/)) {
+      if (isSupabaseConfigured()) {
+        const { data: sBr } = await supabaseAdmin.from("doctor_branches").select("*").eq("id", branchId).limit(1);
+        if (sBr && sBr.length > 0) {
+          if (sBr[0].legacy_mongodb_id) branch = await DoctorBranch.findById(sBr[0].legacy_mongodb_id);
+          if (!branch) {
+            branch = {
+              _id: sBr[0].legacy_mongodb_id || sBr[0].id,
+              id: sBr[0].id,
+              name: sBr[0].name,
+              address: sBr[0].address,
+              phone: sBr[0].phone,
+              consultationFee: sBr[0].consultation_fee
+            };
+          }
+        }
+      }
+    }
     if (!branch) return errorResponse(res, "Branch not found", 404);
 
     const dayOfWeek = queryDate.getDay(); // 0 = Sun, 1 = Mon ...
-    const schedule = await DoctorSchedule.findOne({
-      doctorId: doctor._id,
-      branchId: branch._id,
-      dayOfWeek,
-      active: true
-    });
+    let schedule = null;
+    if (doctor._id && branch._id && typeof doctor._id === "object") {
+      schedule = await DoctorSchedule.findOne({
+        doctorId: doctor._id,
+        branchId: branch._id,
+        dayOfWeek,
+        active: true
+      });
+    }
 
     const startTime = schedule?.startTime || "05:00 PM";
     const endTime = schedule?.endTime || "09:00 PM";
@@ -229,6 +319,51 @@ exports.getAvailableSlots = async (req, res, next) => {
     const now = new Date();
     const bookedSlotsMap = new Map();
 
+    // 1. Authoritative check: Supabase PostgreSQL
+    if (isSupabaseConfigured()) {
+      let supaDocUUID = null;
+      if (doctor._id) {
+        const { data: sDoc } = await supabaseAdmin
+          .from("doctors")
+          .select("id")
+          .eq("legacy_mongodb_id", doctor._id.toString())
+          .limit(1);
+        if (sDoc && sDoc.length > 0) supaDocUUID = sDoc[0].id;
+      }
+      if (!supaDocUUID && id && /^[0-9a-fA-F-]{36}$/.test(id)) {
+        supaDocUUID = id;
+      }
+
+      if (supaDocUUID) {
+        let supaQuery = supabaseAdmin
+          .from("appointments")
+          .select("time_slot, start_time, status, appointment_id, id, branch_id")
+          .eq("doctor_id", supaDocUUID)
+          .eq("appointment_date", date)
+          .in("status", ["CONFIRMED", "confirmed", "PENDING_PAYMENT", "awaiting_payment"]);
+
+        if (branch.id && /^[0-9a-fA-F-]{36}$/.test(branch.id)) {
+          supaQuery = supaQuery.eq("branch_id", branch.id);
+        }
+
+        const { data: supaAppts } = await supaQuery;
+
+        if (supaAppts) {
+          for (const sa of supaAppts) {
+            const sTime = sa.time_slot || sa.start_time;
+            if (sTime) {
+              const isConfirmed = sa.status === "CONFIRMED" || sa.status === "confirmed";
+              bookedSlotsMap.set(sTime.toUpperCase().trim(), {
+                status: isConfirmed ? "BOOKED" : "HELD",
+                appointmentId: sa.appointment_id || sa.id
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Legacy Mongo appointments check
     for (const appt of existingAppointments) {
       const slotTime = appt.time_slot || appt.startTime;
       if (!slotTime) continue;
@@ -244,8 +379,9 @@ exports.getAvailableSlots = async (req, res, next) => {
         continue;
       }
 
+      const isConfirmed = appt.status === "CONFIRMED" || appt.status === "confirmed";
       bookedSlotsMap.set(slotTime.toUpperCase().trim(), {
-        status: appt.status === "CONFIRMED" || appt.status === "confirmed" ? "BOOKED" : "HELD",
+        status: isConfirmed ? "BOOKED" : "HELD",
         appointmentId: appt.appointmentId || appt._id
       });
     }

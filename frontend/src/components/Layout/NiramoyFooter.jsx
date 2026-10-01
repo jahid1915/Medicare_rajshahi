@@ -74,7 +74,7 @@ export default function NiramoyFooter() {
           </div>
 
           {/* Column 1: Company */}
-          <div className="footer-links-col">
+          <div className="footer-links-col footer-col-company">
             <h3 className="footer-col-title">Company</h3>
             <div className="footer-links-list">
               <Link to="/about" onClick={handleNavClick} className="footer-nav-link">About us</Link>
@@ -84,7 +84,7 @@ export default function NiramoyFooter() {
           </div>
 
           {/* Column 2: Services */}
-          <div className="footer-links-col">
+          <div className="footer-links-col footer-col-services">
             <h3 className="footer-col-title">Services</h3>
             <div className="footer-links-list">
               <Link to="/doctors" onClick={handleNavClick} className="footer-nav-link">Doctors</Link>
@@ -96,7 +96,7 @@ export default function NiramoyFooter() {
           </div>
 
           {/* Column 3: Legal */}
-          <div className="footer-links-col">
+          <div className="footer-links-col footer-col-legal">
             <h3 className="footer-col-title">Legal</h3>
             <div className="footer-links-list">
               <Link to="/terms" onClick={handleNavClick} className="footer-nav-link">Terms of Service</Link>
@@ -277,30 +277,56 @@ export default function NiramoyFooter() {
         /* Responsive Breakpoints */
         @media (max-width: 992px) {
           .footer-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 36px;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 36px 24px;
           }
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .niramoy-simple-footer {
             padding-top: 40px;
             padding-bottom: 28px;
           }
 
           .footer-grid {
-            grid-template-columns: 1fr;
-            gap: 32px;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px 16px;
+          }
+
+          .footer-brand-col {
+            grid-column: 1 / -1;
+            margin-bottom: 6px;
+          }
+
+          .footer-col-company {
+            grid-column: 1;
+          }
+
+          .footer-col-services {
+            grid-column: 2;
+          }
+
+          .footer-col-legal {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+          }
+
+          .footer-col-legal .footer-links-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
           }
 
           .footer-nav-link {
-            font-size: 0.95rem;
-            padding: 4px 0;
+            font-size: 0.92rem;
+            padding: 3px 0;
           }
 
           .footer-bottom-row {
-            margin-top: 36px;
-            padding-top: 20px;
+            margin-top: 32px;
+            padding-top: 18px;
           }
         }
       `}</style>

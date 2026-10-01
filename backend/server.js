@@ -13,27 +13,86 @@ dotenv.config();
 
 const app = express();
 
-// Connect Database
-connectDB();
+// Connect Database (Catches connection error without unhandled promise rejection)
+connectDB().catch((err) => {
+  console.warn("⚠️ Initial DB connection attempt deferred:", err.message);
+});
 
-// Security Middleware (Relax CSP for frontend assets & scripts)
-app.use(helmet({ contentSecurityPolicy: false }));
-const allowedOrigins = [
+// Middleware to ensure DB connection is active before servicing API requests
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/api") && req.path !== "/api/health" && req.path !== "/health") {
+    try {
+      await connectDB();
+    } catch (err) {
+      return res.status(503).json({
+        success: false,
+        message: "Database service temporarily unavailable. Please retry in a few moments.",
+        code: "DATABASE_UNAVAILABLE"
+      });
+    }
+  }
+  next();
+});
+
+// Security Headers via Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://vercel.live", "https://va.vercel-scripts.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.google.com", "https://*.gstatic.com", "https://*.sslcommerz.com"],
+      connectSrc: ["'self'", "https://*.vercel.app", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com", "https://vitals.vercel-insights.com", "http://localhost:*", "ws://localhost:*"],
+      frameSrc: ["'self'", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com"],
+      upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: {
+    policy: "strict-origin-when-cross-origin"
+  }
+}));
+
+// CORS Origin Configuration
+const configuredOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:3001",
-  process.env.FRONTEND_URL
-].filter(Boolean);
+  process.env.FRONTEND_URL,
+  ...(process.env.ADDITIONAL_ORIGINS ? process.env.ADDITIONAL_ORIGINS.split(",") : [])
+].filter(Boolean).map(o => o.trim().replace(/\/+$/, ""));
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Mobile apps, Postman, server-to-server curl
+  if (configuredOrigins.includes(origin)) return true;
+  // Allow all Vercel deployment URLs (*.vercel.app)
+  if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) return true;
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps, curl, postman)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
-    return callback(null, true); // Permissive in dev to avoid blocking
+    if (process.env.NODE_ENV !== "production") {
+      // In development mode, allow localhost variants
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked: Origin '${origin}' is not authorized by Niramoy security policy`));
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
 // Body Parser

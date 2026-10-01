@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { BASE_URL } from '../services/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
+const API_BASE = BASE_URL;
 const TOKEN_KEY = 'niramoy_token';
 const USER_KEY = 'niramoy_user';
 

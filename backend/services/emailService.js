@@ -102,7 +102,7 @@ async function sendOtpEmail({ email, otp, purpose = "Patient Sign-In & Verificat
     });
 
     if (process.env.NODE_ENV !== "production") {
-      console.log(`[Email Service] Sent OTP to: ${email} (MessageId: ${info.messageId || "simulated"})`);
+      console.log(`[Email Service] Sent OTP to: ${email} | [DEV OTP]: ${otp} (MessageId: ${info.messageId || "simulated"})`);
     }
 
     return { success: true, messageId: info.messageId };

@@ -87,13 +87,36 @@ function ScrollToTop() {
   return null;
 }
 
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '60vh',
+      gap: 16
+    }} role="status" aria-live="polite">
+      <div style={{
+        width: 44,
+        height: 44,
+        border: '3px solid #e2eceb',
+        borderTopColor: '#0d7c6e',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      <span style={{ fontSize: '0.875rem', color: '#47615f', fontWeight: 600 }}>Loading healthcare services...</span>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
       <AuthProvider>
         <CartProvider>
-          <React.Suspense fallback={<div style={{padding: 40, textAlign: "center"}}>Loading module...</div>}>
+          <React.Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ═══ PUBLIC ROUTES (No auth required) ═══ */}
             <Route element={<PublicLayout />}>

@@ -183,8 +183,18 @@ appointmentSchema.pre("save", function(next) {
 });
 
 // Indexes for high performance and fast slot availability checks
+appointmentSchema.index(
+  { doctorId: 1, branchId: 1, appointmentDate: 1, time_slot: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["CONFIRMED", "confirmed", "PENDING_PAYMENT", "awaiting_payment"] }
+    }
+  }
+);
 appointmentSchema.index({ doctorId: 1, branchId: 1, appointmentDate: 1, time_slot: 1, status: 1 });
 appointmentSchema.index({ patientId: 1, appointmentDate: -1 });
 appointmentSchema.index({ status: 1, holdExpiresAt: 1 });
 
 module.exports = mongoose.model("Appointment", appointmentSchema);
+

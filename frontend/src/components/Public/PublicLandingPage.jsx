@@ -5,9 +5,9 @@ import {
   ArrowRight, CheckCircle2, Star, MapPin, Phone,
   Shield, Clock, Activity, Users, Sparkles, HeartHandshake, HelpCircle
 } from 'lucide-react';
+import { BASE_URL } from '../../services/api';
 
-const API = import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
+const API = BASE_URL;
 
 /* ─── Specialty emoji/icon map ─── */
 const SPECIALTY_META = {
@@ -60,8 +60,11 @@ function StatNumber({ value, suffix = '' }) {
   return <span ref={ref}>{display.toLocaleString()}{suffix}</span>;
 }
 
-/* ─── HealthOrb — CSS 3D Visual ─── */
-function HealthOrb() {
+/* ─── HealthOrb — CSS 3D Visual with Floating Live Healthcare Counters ─── */
+function HealthOrb({ stats }) {
+  const doctorCount = stats?.total || 350;
+  const hospitalCount = stats?.workplaces || 80;
+
   return (
     <div className="health-orb" aria-hidden="true">
       {/* Pulse ring */}
@@ -88,14 +91,26 @@ function HealthOrb() {
           animation: `float ${3.5 + i * 0.7}s ease-in-out ${i * 0.4}s infinite alternate`
         }} />
       ))}
-      {/* Floating stat badges */}
-      <div className="health-orb__stat" style={{ top: -10, right: -30, animation: 'float 3.5s ease-in-out infinite' }}>
-        <Activity style={{ width: 12, height: 12, color: '#10b981' }} />
-        351 Doctors
+
+      {/* Floating Live Healthcare Stats (Doctor, Hospital, Pharmacy, Ambulance) */}
+      <div className="health-orb__stat" style={{ top: '-15px', left: '-25px', animation: 'floatUp 3.8s ease-in-out infinite alternate' }}>
+        <span className="health-orb__stat-icon">🩺</span>
+        <span><strong className="health-orb__stat-number">{doctorCount}+</strong> Doctors</span>
       </div>
-      <div className="health-orb__stat" style={{ bottom: 20, left: -40, animation: 'float 4.5s ease-in-out 1s infinite' }}>
-        <Star style={{ width: 12, height: 12, color: '#f59e0b', fill: '#f59e0b' }} />
-        Verified
+
+      <div className="health-orb__stat" style={{ top: '15px', right: '-35px', animation: 'floatUp 4.6s ease-in-out 0.7s infinite alternate' }}>
+        <span className="health-orb__stat-icon">🏥</span>
+        <span><strong className="health-orb__stat-number">{hospitalCount}+</strong> Hospitals</span>
+      </div>
+
+      <div className="health-orb__stat" style={{ bottom: '25px', left: '-35px', animation: 'floatUp 4.2s ease-in-out 1.3s infinite alternate' }}>
+        <span className="health-orb__stat-icon">💊</span>
+        <span><strong className="health-orb__stat-number">120+</strong> Pharmacies</span>
+      </div>
+
+      <div className="health-orb__stat" style={{ bottom: '-15px', right: '-25px', animation: 'floatUp 3.5s ease-in-out 0.4s infinite alternate' }}>
+        <span className="health-orb__stat-icon">🚑</span>
+        <span><strong className="health-orb__stat-number">24/7</strong> Ambulance</span>
       </div>
     </div>
   );
@@ -105,6 +120,7 @@ function HealthOrb() {
 export default function PublicLandingPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [stats, setStats] = useState(null);
   const [specialties, setSpecialties] = useState([]);
   const [featuredDoctors, setFeaturedDoctors] = useState([]);
@@ -132,8 +148,11 @@ export default function PublicLandingPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (search.trim()) navigate(`/doctors?search=${encodeURIComponent(search.trim())}`);
-    else navigate('/doctors');
+    const params = new URLSearchParams();
+    if (search.trim()) params.append('search', search.trim());
+    if (locationFilter.trim()) params.append('location', locationFilter.trim());
+    const qs = params.toString();
+    navigate(`/doctors${qs ? `?${qs}` : ''}`);
   };
 
   const STAT_ITEMS = [
@@ -146,95 +165,68 @@ export default function PublicLandingPage() {
   return (
     <div className="landing-page">
 
-      {/* ═══════════════════ HERO ════════════════════ */}
+      {/* ═══════════════════ HERO (Parts 6, 7, 8, 9, 10) ════════════════════ */}
       <section className="hero" aria-label="Hero">
         <div className="hero__bg-grid" />
         <div className="hero__inner">
           <div className="hero__content">
-            <div className="hero__tag">
-              <CheckCircle2 style={{ width: 12, height: 12 }} />
-              Rajshahi Division Healthcare Platform
+            <div className="hero__tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.12)', color: '#5eead4', fontSize: '0.78rem', fontWeight: 700, width: 'fit-content', marginBottom: '14px', backdropFilter: 'blur(8px)' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5eead4' }} />
+              NIRAMOY HEALTHCARE
             </div>
 
-            <h1 className="hero__title">
-              Healthcare,{' '}
-              <span className="hero__title-muted">Made Simple.</span>
+            <h1 className="hero__title" style={{ fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.03em', color: '#ffffff', margin: '0 0 10px 0' }}>
+              Your Healthcare,{' '}
+              <span style={{ color: '#5eead4', display: 'inline-block' }}>Simplified.</span>
             </h1>
 
-            <p className="hero__subtitle">
-              Find trusted doctors, discover nearby pharmacies, manage appointments,
-              and take better care of your health — all in one place.
+            <p className="hero__subtitle" style={{ maxWidth: 460, fontSize: '1.02rem', lineHeight: 1.5, color: 'rgba(255,255,255,0.85)', margin: '0 0 20px 0' }}>
+              Connect with verified specialist physicians, check real-time chamber availability, and confirm your appointment with ease.
             </p>
 
-            <div className="hero__actions">
-              <Link to="/doctors" className="hero__btn-primary">
-                <Stethoscope style={{ width: 18, height: 18 }} />
-                Find a Doctor
-              </Link>
-              <Link to="/pharmacies" className="hero__btn-secondary">
-                Explore Niramoy
-                <ArrowRight style={{ width: 16, height: 16 }} />
-              </Link>
-            </div>
+            {/* Focused Doctor Search Bar (Part 8 & 9) */}
+            <form onSubmit={handleSearch} className="hero-doctor-search">
+              <div className="hero-doctor-search__bar">
+                <div className="hero-doctor-search__field">
+                  <Stethoscope className="hero-doctor-search__icon" size={18} />
+                  <input
+                    type="text"
+                    className="hero-doctor-search__input"
+                    placeholder="Search doctor or specialty (e.g. Cardiology, Dr. Sourav)..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    aria-label="Search doctor or specialty"
+                  />
+                </div>
 
-            {/* Search Bar - DaktariSheba Style Hero Search */}
-            <form onSubmit={handleSearch} className="hero-search" style={{ margin: 0, marginTop: 'var(--sp-5)' }}>
-              <div className="hero-search__bar">
-                <Search style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.7)', flexShrink: 0 }} />
-                <input
-                  type="text"
-                  className="hero-search__input"
-                  placeholder="Search doctors, specialties, hospitals…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  aria-label="Search doctors and specialties"
-                />
-                <button type="submit" className="hero-search__btn">
-                  <span>Search</span>
-                  <ArrowRight style={{ width: 14, height: 14 }} />
+                <div className="hero-doctor-search__divider" />
+
+                <div className="hero-doctor-search__field hero-doctor-search__location">
+                  <MapPin className="hero-doctor-search__icon" size={16} />
+                  <input
+                    type="text"
+                    className="hero-doctor-search__input"
+                    placeholder="Area / Location (Rajshahi)"
+                    value={locationFilter}
+                    onChange={e => setLocationFilter(e.target.value)}
+                    aria-label="Area or location"
+                  />
+                </div>
+
+                <button type="submit" className="hero-doctor-search__btn">
+                  <Search size={16} />
+                  <span>Find Doctor</span>
                 </button>
               </div>
+              <div className="hero-doctor-search__hint">
+                Popular: Cardiology, Gynecology, Pediatrics, Medicine, Orthopedics, ENT
+              </div>
             </form>
-
-            {/* Quick Service Category Pills right below Hero Search */}
-            <div className="hero-quick-categories">
-              <Link to="/doctors" className="hero-quick-pill">
-                <span>🩺</span> Find Doctors
-              </Link>
-              <Link to="/pharmacies" className="hero-quick-pill">
-                <span>💊</span> Pharmacies
-              </Link>
-              <Link to="/hospitals" className="hero-quick-pill">
-                <span>🏥</span> Hospitals
-              </Link>
-              <Link to="/ambulance" className="hero-quick-pill">
-                <span>🚑</span> Ambulance
-              </Link>
-              <Link to="/ai" className="hero-quick-pill">
-                <span>🤖</span> AI Assistant
-              </Link>
-            </div>
-
-            {/* Trust indicators */}
-            <div className="hero__trust" style={{ marginTop: 'var(--sp-4)' }}>
-              <div className="hero__trust-item">
-                <CheckCircle2 style={{ width: 13, height: 13, color: '#5eead4' }} />
-                Verified Healthcare Professionals
-              </div>
-              <div className="hero__trust-item">
-                <Clock style={{ width: 13, height: 13, color: '#5eead4' }} />
-                Easy Appointment Access
-              </div>
-              <div className="hero__trust-item">
-                <Shield style={{ width: 13, height: 13, color: '#5eead4' }} />
-                Trusted Health Information
-              </div>
-            </div>
           </div>
 
-          {/* 3D Health Orb */}
+          {/* 3D Health Orb (Focal Visual) */}
           <div className="hero__visual">
-            <HealthOrb />
+            <HealthOrb stats={stats} />
           </div>
         </div>
       </section>

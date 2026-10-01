@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { getHospitals, getHospitalById, getHospitalResources, updateResourceAvailability } = require("../controllers/hospitalController");
+const { getHospitals, getHospitalById, getDepartments, getHospitalResources, updateResourceAvailability } = require("../controllers/hospitalController");
 const { protect, authorize, ownHospitalOnly } = require("../middleware/auth");
 
-router.get("/",     getHospitals);
-router.get("/:id",  getHospitalById);
+router.get("/",            getHospitals);
+router.get("/departments", getDepartments);
+router.get("/:id",         getHospitalById);
 router.get("/:hospitalId/resources", getHospitalResources);
 router.get("/:hospitalId/resources/availability", getHospitalResources);
 

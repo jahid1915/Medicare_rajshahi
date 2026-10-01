@@ -3,44 +3,126 @@
  * Central fetch wrapper for all backend API calls
  */
 
-const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+export const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    let url = import.meta.env.VITE_API_BASE_URL.trim();
+    // Enforce HTTPS in production browser to eliminate Mixed Content security blocks
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://") && !url.includes("localhost") && !url.includes("127.0.0.1")) {
+      url = url.replace(/^http:\/\//i, "https://");
+    }
+    return url.replace(/\/+$/, "");
+  }
   if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
     return "/api";
   }
   return "http://localhost:5000/api";
 };
 
-const BASE_URL = getApiBaseUrl();
+export const BASE_URL = getApiBaseUrl();
 
-async function request(method, path, body = null, requireAuth = false) {
-  const headers = {};
-  if (!(body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
+// ── In-Memory Fast Cache for Static / Meta Data ─────────────────────────────
+const cacheStore = new Map();
+const inFlightRequests = new Map();
+
+// URLs eligible for client-side caching (e.g. metadata, specialties, static lists)
+const CACHEABLE_PATTERNS = [
+  /\/meta\//,
+  /\/specialties/,
+  /\/categories/,
+  /\/hospitals(\?|$)/,
+  /\/doctors\/meta\//
+];
+
+function isCacheable(method, path) {
+  if (method !== "GET") return false;
+  return CACHEABLE_PATTERNS.some(pattern => pattern.test(path));
+}
+
+async function request(method, path, body = null, requireAuth = false, customTtlMs = 180000) {
+  const cacheKey = `${method}:${path}`;
+
+  // 1. Check in-memory cache for GET requests
+  if (isCacheable(method, path)) {
+    const cached = cacheStore.get(cacheKey);
+    if (cached && Date.now() < cached.expires) {
+      return cached.data;
+    }
   }
 
-  const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  // 2. In-flight request deduplication (prevent firing identical simultaneous calls)
+  if (method === "GET" && inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
   }
 
-  const options = { method, headers };
-  if (body) {
-    options.body = (body instanceof FormData) ? body : JSON.stringify(body);
+  const fetchPromise = (async () => {
+    const headers = {};
+    if (!(body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s safety timeout
+
+    try {
+      const options = { method, headers, signal: controller.signal };
+      if (body) {
+        options.body = (body instanceof FormData) ? body : JSON.stringify(body);
+      }
+
+      const response = await fetch(`${BASE_URL}${path}`, options);
+      clearTimeout(timeoutId);
+
+      const contentType = response.headers.get("content-type") || "";
+      let data;
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const rawText = await response.text();
+        data = {
+          success: response.ok,
+          message: response.ok ? rawText : `Server returned HTTP ${response.status}: ${response.statusText || "Service Unavailable"}`
+        };
+      }
+
+      if (!response.ok) {
+        const err = new Error(data.message || "API Error");
+        err.code = data.code;
+        err.statusCode = response.status;
+        err.errors = data.errors || [];
+        throw err;
+      }
+
+      // Store in memory cache
+      if (isCacheable(method, path)) {
+        cacheStore.set(cacheKey, { data, expires: Date.now() + customTtlMs });
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        const timeoutErr = new Error("Network request timed out. Please check your connection and retry.");
+        timeoutErr.code = "TIMEOUT";
+        throw timeoutErr;
+      }
+      throw err;
+    } finally {
+      if (method === "GET") {
+        inFlightRequests.delete(cacheKey);
+      }
+    }
+  })();
+
+  if (method === "GET") {
+    inFlightRequests.set(cacheKey, fetchPromise);
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, options);
-  const data = await response.json();
-
-  if (!response.ok) {
-    const err = new Error(data.message || "API Error");
-    err.code = data.code;
-    err.statusCode = response.status;
-    err.errors = data.errors || [];
-    throw err;
-  }
-
-  return data;
+  return fetchPromise;
 }
 
 // Auth API
@@ -86,16 +168,15 @@ export const doctorsAPI = {
 
 // Appointments API
 export const appointmentsAPI = {
-  create:      (body) => request("POST", "/appointments", body, true),
-  getById:     (id)   => request("GET",  `/appointments/${id}`, null, true),
-  getMine:     (params = {}) => {
+  create:              (body) => request("POST", "/appointments", body, true),
+  requestEmailOtp:     (body) => request("POST", "/appointments/request-email-otp", body),
+  confirmWithEmailOtp: (body) => request("POST", "/appointments/confirm-with-email-otp", body),
+  getById:             (id)   => request("GET",  `/appointments/${id}`, null, true),
+  getMine:             (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request("GET", `/appointments/my${qs ? "?" + qs : ""}`, null, true);
   },
-  getPdfUrl:   (id)   => {
-    const token = localStorage.getItem("niramoy_token") || localStorage.getItem("medicare_token") || localStorage.getItem("token");
-    return `${BASE_URL}/appointments/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-  },
+  getPdfUrl:   (id)   => `${BASE_URL}/appointments/${id}/pdf`,
   resendEmail: (id)   => request("POST", `/appointments/${id}/resend-email`, {}, true),
   cancel:      (id, body = {}) => request("POST", `/appointments/${id}/cancel`, body, true),
   updateStatus:(id, body = {}) => request("PATCH", `/appointments/${id}/status`, body, true)

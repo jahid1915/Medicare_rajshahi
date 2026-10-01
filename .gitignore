@@ -27,3 +27,9 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Audit & temporary reports
+*.report.json
+*.report.csv
+medicbd_import_report.*
+mongodb-audit-report.*

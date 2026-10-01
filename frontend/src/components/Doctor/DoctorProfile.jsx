@@ -7,9 +7,9 @@ import {
   Calendar, ShieldCheck, HeartPulse, Info
 } from 'lucide-react';
 import AppointmentBookingModal from './AppointmentBookingModal';
+import { BASE_URL } from '../../services/api';
 
-const API = import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
+const API = BASE_URL;
 
 // ─── Fee Helper ───────────────────────────────────────────────────────────
 function getConsultationFee(doctor) {
@@ -62,9 +62,15 @@ function DoctorAvatar({ src, name, size = 110 }) {
 
 // ─── Chamber Sub-Card ─────────────────────────────────────────────────────
 function ChamberCard({ chamber, index }) {
-  const mapUrl = chamber.address
+  const mapUrl = chamber.google_map || (chamber.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(chamber.address + ', Rajshahi, Bangladesh')}`
-    : null;
+    : null);
+
+  const phoneNumbers = chamber.appointment_numbers?.length > 0
+    ? chamber.appointment_numbers
+    : (chamber.appointment ? [chamber.appointment] : []);
+
+  const visitingHours = chamber.visiting_hours || chamber.visiting_hour;
 
   return (
     <div style={{
@@ -140,31 +146,48 @@ function ChamberCard({ chamber, index }) {
           </div>
         )}
 
-        {/* Visiting Hours */}
-        {chamber.visiting_hours && (
+        {/* Visiting Hours & Closed Day Row */}
+        {(visitingHours || chamber.closed_day) && (
           <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10,
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 10,
             padding: '12px 14px', borderRadius: 'var(--radius-md)',
             background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.12)'
           }}>
-            <Clock style={{ width: 16, height: 16, color: 'var(--color-primary)', marginTop: 2, flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Visiting Hours & Schedule</div>
-              <div style={{ fontSize: '0.88rem', color: 'var(--color-text)', fontWeight: 700, marginTop: 2 }}>
-                {chamber.visiting_hours}
+            {visitingHours && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <Clock style={{ width: 16, height: 16, color: 'var(--color-primary)', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Visiting Hours & Schedule</div>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--color-text)', fontWeight: 700, marginTop: 2 }}>
+                    {visitingHours}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {chamber.closed_day && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: 'var(--radius-full)',
+                background: '#fef2f2', border: '1px solid #fecaca',
+                color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700, alignSelf: 'flex-start'
+              }}>
+                <Clock style={{ width: 12, height: 12 }} />
+                <span>Closed: {chamber.closed_day}</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* Appointment Numbers */}
-        {chamber.appointment_numbers?.length > 0 && (
+        {phoneNumbers.length > 0 && (
           <div>
             <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
-              Appointment Numbers (Click to Call)
+              Call for Appointment Serial (সিরিয়ালের জন্য কল করুন)
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {chamber.appointment_numbers.map((num, j) => (
+              {phoneNumbers.map((num, j) => (
                 <a
                   key={j}
                   href={`tel:${num}`}
@@ -177,7 +200,7 @@ function ChamberCard({ chamber, index }) {
                   }}
                 >
                   <Phone style={{ width: 14, height: 14, color: '#16a34a' }} />
-                  <span>{num}</span>
+                  <span>Call {num}</span>
                 </a>
               ))}
             </div>
@@ -197,6 +220,7 @@ export default function DoctorProfile() {
   const [copied, setCopied] = useState(false);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   useEffect(() => {
     async function fetchDoctor() {
@@ -257,10 +281,26 @@ export default function DoctorProfile() {
     );
   }
 
-  const primaryPhone = doctor.chambers?.[0]?.appointment_numbers?.[0];
-  const qualificationsList = doctor.qualifications
-    ? doctor.qualifications.split(/[,;]+/).map(q => q.trim()).filter(Boolean)
-    : [];
+  const primaryPhone = doctor.chambers?.[0]?.appointment_numbers?.[0] || doctor.chambers?.[0]?.appointment;
+  const qualificationsList = doctor.degrees?.length > 0
+    ? doctor.degrees
+    : (doctor.qualifications ? doctor.qualifications.split(/[,;]+/).map(q => q.trim()).filter(Boolean) : []);
+
+  const allSpecialties = Array.from(new Set([
+    doctor.specialty,
+    ...(doctor.specialties || [])
+  ])).filter(Boolean);
+
+  const medicalFocusList = Array.from(new Set(doctor.medical_focus || [])).filter(f => f && !allSpecialties.includes(f));
+
+  const biographyText = doctor.biography || '';
+  const isBioLong = biographyText.length > 280;
+  const displayedBio = isBioLong && !bioExpanded
+    ? biographyText.slice(0, 280) + '...'
+    : biographyText;
+
+  const sourceName = doctor.source_metadata?.name || doctor.source || 'Directory Sources';
+  const sourceProfileUrl = doctor.source_metadata?.profile_url || doctor.profileUrl;
 
   return (
     <div style={{ maxWidth: 1140, margin: '0 auto', padding: 'var(--sp-6) var(--sp-4)', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -311,9 +351,6 @@ export default function DoctorProfile() {
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', display: 'none', md: 'inline' }}>
-            ID: {doctor._id?.slice(-6)}
-          </span>
           <button
             onClick={handleShare}
             style={{
@@ -359,7 +396,7 @@ export default function DoctorProfile() {
                 <span>Specialized Field: {doctor.specialty}</span>
               </div>
 
-              {doctor.verified && (
+              {doctor.verified ? (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '5px 12px', borderRadius: '99px',
@@ -368,6 +405,16 @@ export default function DoctorProfile() {
                   fontSize: '0.75rem', fontWeight: 700
                 }}>
                   <CheckCircle2 style={{ width: 14, height: 14 }} /> Verified Practitioner
+                </div>
+              ) : (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: '99px',
+                  background: 'var(--color-bg)', color: 'var(--color-text-secondary)',
+                  border: '1px solid var(--color-border)',
+                  fontSize: '0.75rem', fontWeight: 600
+                }}>
+                  <BadgeCheck style={{ width: 14, height: 14, color: 'var(--color-primary)' }} /> Registered Directory Profile
                 </div>
               )}
             </div>
@@ -389,6 +436,24 @@ export default function DoctorProfile() {
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary)', marginBottom: 6 }}>
                   {doctor.specialty}
                 </div>
+
+                {/* Multiple Specialty Badges */}
+                {allSpecialties.length > 1 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {allSpecialties.slice(1).map((sp, idx) => (
+                      <span
+                        key={idx}
+                        style={{
+                          fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-dark)',
+                          background: 'var(--color-primary-50)', padding: '2px 8px', borderRadius: '99px',
+                          border: '1px solid rgba(13, 124, 110, 0.15)'
+                        }}
+                      >
+                        {sp}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Designation */}
                 {doctor.designation && (
@@ -461,7 +526,51 @@ export default function DoctorProfile() {
             </div>
           </div>
 
-          {/* ── CARD 2: SPECIALIZATION & CLINICAL EXPERTISE CARD ── */}
+          {/* ── CARD 2: ABOUT THE DOCTOR (Biography) ── */}
+          {biographyText && (
+            <div style={{
+              background: '#fff', borderRadius: 'var(--radius-xl)',
+              border: '1.5px solid var(--color-border)', padding: '24px',
+              boxShadow: 'var(--shadow-xs)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--color-border-light)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-primary-50)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User style={{ width: 18, height: 18 }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 2 }}>
+                    About the Doctor (ডাক্তার সম্পর্কে)
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    Professional background, consultation profile, and clinical service
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.7,
+                whiteSpace: 'pre-line'
+              }}>
+                {displayedBio}
+              </div>
+
+              {isBioLong && (
+                <button
+                  type="button"
+                  onClick={() => setBioExpanded(e => !e)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--color-primary)',
+                    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                    padding: '8px 0 0 0', display: 'inline-flex', alignItems: 'center', gap: 4
+                  }}
+                >
+                  {bioExpanded ? 'Show Less ↑' : 'Read Full Biography ↓'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── CARD 3: SPECIALIZATION & CLINICAL MEDICAL FOCUS ── */}
           <div style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
             border: '1.5px solid var(--color-border)', padding: '24px',
@@ -469,17 +578,42 @@ export default function DoctorProfile() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid var(--color-border-light)' }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-primary-50)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Stethoscope style={{ width: 18, height: 18 }} />
+                <HeartPulse style={{ width: 18, height: 18 }} />
               </div>
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 2 }}>
                   Specialization & Medical Focus
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  Primary clinical domain and healthcare services
+                  Clinical specialties, treated conditions, and expertise areas
                 </p>
               </div>
             </div>
+
+            {/* Medical Focus Chips */}
+            {medicalFocusList.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 8, letterSpacing: '0.04em' }}>
+                  Areas of Clinical Focus & Treatments
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {medicalFocusList.map((focusItem, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: '99px',
+                        background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.18)',
+                        color: 'var(--color-primary-dark)', fontSize: '0.8rem', fontWeight: 700
+                      }}
+                    >
+                      <Stethoscope style={{ width: 13, height: 13, color: 'var(--color-primary)' }} />
+                      {focusItem}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14
@@ -496,7 +630,7 @@ export default function DoctorProfile() {
                   {doctor.specialty}
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-                  Providing specialized patient consultations, expert diagnosis, and tailored treatment plans in Rajshahi.
+                  Providing specialized patient consultations, expert clinical assessment, and tailored treatment plans in Rajshahi.
                 </p>
               </div>
 
@@ -513,13 +647,13 @@ export default function DoctorProfile() {
                   {doctor.bmdcRegistration ? `BMDC #${doctor.bmdcRegistration}` : 'Verified Clinical Practitioner'}
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>
-                  Registered with Bangladesh Medical & Dental Council (BMDC) with active practicing license.
+                  Registered with Bangladesh Medical & Dental Council (BMDC) with active practicing credentials.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* ── CARD 3: ACADEMIC QUALIFICATIONS & TRAINING CARD ── */}
+          {/* ── CARD 4: ACADEMIC QUALIFICATIONS & TRAINING CARD ── */}
           <div style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
             border: '1.5px solid var(--color-border)', padding: '24px',
@@ -531,10 +665,10 @@ export default function DoctorProfile() {
               </div>
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 2 }}>
-                  Qualifications & Training
+                  Education & Training (শিক্ষা ও প্রশিক্ষণ)
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  Degrees, higher medical training, and clinical fellowships
+                  Medical degrees, post-graduate credentials, and clinical fellowships
                 </p>
               </div>
             </div>
@@ -543,7 +677,7 @@ export default function DoctorProfile() {
             {qualificationsList.length > 0 && (
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 8, letterSpacing: '0.04em' }}>
-                  Degrees & Credentials
+                  Degrees & Qualifications
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {qualificationsList.map((degree, idx) => (
@@ -558,6 +692,31 @@ export default function DoctorProfile() {
                     >
                       <CheckCircle2 style={{ width: 13, height: 13, color: 'var(--color-primary)' }} />
                       {degree}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fellowships */}
+            {doctor.fellowships?.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 8, letterSpacing: '0.04em' }}>
+                  Clinical Fellowships & Memberships
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {doctor.fellowships.map((fellow, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 14px', borderRadius: 'var(--radius-md)',
+                        background: '#fefce8', border: '1.5px solid #fef08a',
+                        color: '#854d0e', fontSize: '0.85rem', fontWeight: 700
+                      }}
+                    >
+                      <Award style={{ width: 13, height: 13, color: '#ca8a04' }} />
+                      {fellow}
                     </span>
                   ))}
                 </div>
@@ -590,7 +749,7 @@ export default function DoctorProfile() {
                 <Building2 style={{ width: 20, height: 20, color: 'var(--color-primary)', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-primary)' }}>
-                    Current Workplace / Hospital
+                    Current Workplace / Primary Hospital
                   </div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text)', marginTop: 2 }}>
                     {doctor.workplace}
@@ -605,7 +764,7 @@ export default function DoctorProfile() {
             )}
           </div>
 
-          {/* ── CARD 4: CHAMBERS & VISITING SCHEDULE CARD SYSTEM ── */}
+          {/* ── CARD 5: CHAMBERS & VISITING SCHEDULE CARD SYSTEM ── */}
           <div style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
             border: '1.5px solid var(--color-border)', padding: '24px',
@@ -618,10 +777,10 @@ export default function DoctorProfile() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 2 }}>
-                    Chambers & Visiting Schedules
+                    Chambers & Visiting Schedules (চেম্বার ও সময়সূচী)
                   </h3>
                   <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                    Visiting hours and contact numbers for direct appointments
+                    Visiting hours, locations and direct phone lines for appointments
                   </p>
                 </div>
               </div>
@@ -653,12 +812,58 @@ export default function DoctorProfile() {
             )}
           </div>
 
+          {/* ── CARD 6: PATIENT REVIEWS & FEEDBACK ── */}
+          <div style={{
+            background: '#fff', borderRadius: 'var(--radius-xl)',
+            border: '1.5px solid var(--color-border)', padding: '24px',
+            boxShadow: 'var(--shadow-xs)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--color-border-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-warning-bg)', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Star style={{ width: 18, height: 18, fill: '#f59e0b', stroke: '#f59e0b' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 2 }}>
+                    Patient Reviews & Ratings
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    Verified patient consultation feedback
+                  </p>
+                </div>
+              </div>
+
+              {doctor.rating > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#b45309' }}>★ {doctor.rating.toFixed(1)}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>({doctor.reviewCount} reviews)</span>
+                </div>
+              )}
+            </div>
+
+            {doctor.reviews_data?.reviews?.length > 0 && doctor.rating > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {doctor.reviews_data.reviews.map((rev, idx) => (
+                  <div key={idx} style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text)', margin: 0 }}>{rev}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', background: 'var(--color-bg)', borderRadius: 'var(--radius-lg)' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                  No patient reviews have been posted yet. Feedback is collected after verified chamber consultations.
+                </p>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* ═════════ RIGHT COLUMN: STICKY ACTION CARDS ═════════ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* ── CARD 5: QUICK APPOINTMENT ACTION CARD (Sticky) ── */}
+          {/* ── CARD 7: QUICK APPOINTMENT ACTION CARD (Sticky) ── */}
           <div style={{
             background: 'linear-gradient(180deg, #ffffff 0%, var(--color-primary-50) 100%)',
             borderRadius: 'var(--radius-xl)', border: '1.5px solid var(--color-primary-100)',
@@ -675,7 +880,7 @@ export default function DoctorProfile() {
               Book an Appointment
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 14 }}>
-              Call the chamber coordinator or visit during consulting hours to secure your serial.
+              Book a verified serial online or call the chamber coordinator directly during consulting hours.
             </p>
 
             {/* Consultation Fee Highlight */}
@@ -765,7 +970,7 @@ export default function DoctorProfile() {
             )}
 
             {/* Chamber summary */}
-            {doctor.chambers?.[0]?.visiting_hours && (
+            {(doctor.chambers?.[0]?.visiting_hours || doctor.chambers?.[0]?.visiting_hour) && (
               <div style={{
                 padding: '12px 14px', borderRadius: 'var(--radius-md)',
                 background: '#fff', border: '1px solid rgba(13, 124, 110, 0.15)',
@@ -774,13 +979,13 @@ export default function DoctorProfile() {
                 <Clock style={{ width: 14, height: 14, color: 'var(--color-primary)', marginTop: 2, flexShrink: 0 }} />
                 <div>
                   <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Main Schedule</div>
-                  <div style={{ fontWeight: 700, marginTop: 2 }}>{doctor.chambers[0].visiting_hours}</div>
+                  <div style={{ fontWeight: 700, marginTop: 2 }}>{doctor.chambers[0].visiting_hours || doctor.chambers[0].visiting_hour}</div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ── CARD 6: CONSULTATION CHECKLIST CARD ── */}
+          {/* ── CARD 8: CONSULTATION CHECKLIST CARD ── */}
           <div style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
             border: '1.5px solid var(--color-border)', padding: '20px',
@@ -805,7 +1010,7 @@ export default function DoctorProfile() {
             </ul>
           </div>
 
-          {/* ── CARD 7: SOURCE & VERIFICATION CARD ── */}
+          {/* ── CARD 9: SOURCE & VERIFICATION CARD ── */}
           <div style={{
             background: '#fff', borderRadius: 'var(--radius-xl)',
             border: '1.5px solid var(--color-border)', padding: '18px',
@@ -815,16 +1020,16 @@ export default function DoctorProfile() {
               <Info style={{ width: 15, height: 15, color: 'var(--color-text-muted)', marginTop: 2, flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                  Source: {doctor.source || 'BDDoctorDirectory'}
+                  Source: {sourceName}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                  {doctor.lastScraped
-                    ? `Verified: ${new Date(doctor.lastScraped).toLocaleDateString('en-BD', { year: 'numeric', month: 'short', day: 'numeric' })}`
-                    : 'Rajshahi Healthcare Verified Directory'}
+                  {doctor.source_metadata?.last_imported_at || doctor.lastScraped
+                    ? `Verified Directory: ${new Date(doctor.source_metadata?.last_imported_at || doctor.lastScraped).toLocaleDateString('en-BD', { year: 'numeric', month: 'short', day: 'numeric' })}`
+                    : 'Rajshahi Healthcare Directory'}
                 </div>
-                {doctor.profileUrl && (
+                {sourceProfileUrl && (
                   <a
-                    href={doctor.profileUrl}
+                    href={sourceProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -835,6 +1040,11 @@ export default function DoctorProfile() {
                   >
                     View Original Directory Profile <ExternalLink style={{ width: 10, height: 10 }} />
                   </a>
+                )}
+                {doctor.profile_claim && (
+                  <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: 6 }}>
+                    Status: {doctor.profile_claim}
+                  </div>
                 )}
               </div>
             </div>

@@ -21,145 +21,9 @@ import { useAuth } from "../../context/AuthContext";
 import InventoryManager from "./InventoryManager";
 import OrderManager from "./OrderManager";
 
-const DEFAULT_DASHBOARD_INVENTORY = [
-  {
-    _id: "inv-1",
-    medicine_id: {
-      _id: "med-1",
-      brand_name: "Napa Extra",
-      generic_name: "Paracetamol + Caffeine",
-      category: "Analgesic & Antipyretic",
-      dosage_form: "Tablet",
-      strength: "500mg + 65mg"
-    },
-    unit_price: 30,
-    stock_quantity: 24, // low stock
-    demand_trend: "Surging"
-  },
-  {
-    _id: "inv-2",
-    medicine_id: {
-      _id: "med-2",
-      brand_name: "Seclo 20",
-      generic_name: "Omeprazole",
-      category: "Gastrointestinal",
-      dosage_form: "Capsule",
-      strength: "20mg"
-    },
-    unit_price: 70,
-    stock_quantity: 180,
-    demand_trend: "Stable"
-  },
-  {
-    _id: "inv-3",
-    medicine_id: {
-      _id: "med-3",
-      brand_name: "Zithrin 500",
-      generic_name: "Azithromycin",
-      category: "Antibiotic",
-      dosage_form: "Tablet",
-      strength: "500mg",
-      requires_prescription: true
-    },
-    unit_price: 120,
-    stock_quantity: 18, // critical
-    demand_trend: "Surging"
-  },
-  {
-    _id: "inv-4",
-    medicine_id: {
-      _id: "med-4",
-      brand_name: "ORSaline-N",
-      generic_name: "Oral Rehydration Salts",
-      category: "Emergency & Critical",
-      dosage_form: "Sachet",
-      strength: "Standard WHO"
-    },
-    unit_price: 6,
-    stock_quantity: 450,
-    demand_trend: "Surging"
-  },
-  {
-    _id: "inv-5",
-    medicine_id: {
-      _id: "med-5",
-      brand_name: "Fexo 120",
-      generic_name: "Fexofenadine HCl",
-      category: "Antihistamine",
-      dosage_form: "Tablet",
-      strength: "120mg"
-    },
-    unit_price: 90,
-    stock_quantity: 95,
-    demand_trend: "Stable"
-  }
-];
+const DEFAULT_DASHBOARD_INVENTORY = [];
 
-const DEFAULT_ORDERS = [
-  {
-    _id: "ord-101",
-    order_number: "ORD-RX-K9281A",
-    createdAt: new Date(Date.now() - 1000 * 60 * 15),
-    status: "pending",
-    prescription_required: true,
-    prescription_verified: false,
-    prescription_image: "rx_scan_patient.png",
-    payment_method: "cash_on_delivery",
-    payment_status: "pending",
-    total_amount: 390,
-    delivery_address: {
-      recipient_name: "Tanvir Ahmed",
-      phone: "01712-334455",
-      street: "House 18, Road 2, Medical Staff Quarter",
-      area: "Laxmipur"
-    },
-    items: [
-      { brand_name: "Zithrin 500", strength: "500mg", quantity: 2, unit_price: 120, total_price: 240 },
-      { brand_name: "Napa Extra", strength: "500mg + 65mg", quantity: 3, unit_price: 30, total_price: 90 }
-    ]
-  },
-  {
-    _id: "ord-102",
-    order_number: "ORD-RX-M8832C",
-    createdAt: new Date(Date.now() - 1000 * 60 * 45),
-    status: "preparing",
-    prescription_required: false,
-    prescription_verified: true,
-    payment_method: "bkash",
-    payment_status: "paid",
-    total_amount: 210,
-    delivery_address: {
-      recipient_name: "Shamima Akhter",
-      phone: "01819-556677",
-      street: "Kazihata Colony, Lane 4",
-      area: "Kazihata"
-    },
-    items: [
-      { brand_name: "Seclo 20", strength: "20mg", quantity: 2, unit_price: 70, total_price: 140 },
-      { brand_name: "ORSaline-N", strength: "WHO", quantity: 5, unit_price: 6, total_price: 30 }
-    ]
-  },
-  {
-    _id: "ord-103",
-    order_number: "ORD-RX-P4419E",
-    createdAt: new Date(Date.now() - 1000 * 60 * 180),
-    status: "delivered",
-    prescription_required: false,
-    prescription_verified: true,
-    payment_method: "cash_on_delivery",
-    payment_status: "paid",
-    total_amount: 150,
-    delivery_address: {
-      recipient_name: "Dr. Rakib Hasan",
-      phone: "01911-223344",
-      street: "Zero Point, Shaheb Bazar",
-      area: "Shaheb Bazar"
-    },
-    items: [
-      { brand_name: "Ceevit 250mg", strength: "250mg", quantity: 4, unit_price: 25, total_price: 100 }
-    ]
-  }
-];
+const DEFAULT_ORDERS = [];
 
 export default function PharmacyOwnerDashboard() {
   const { user } = useAuth();
@@ -179,7 +43,7 @@ export default function PharmacyOwnerDashboard() {
       const res = await pharmaciesAPI.getMyPharmacy();
       if (res.data && res.data.pharmacy) {
         setPharmacy(res.data.pharmacy);
-        setInventory(res.data.inventory || DEFAULT_DASHBOARD_INVENTORY);
+        setInventory(res.data.inventory || []);
       } else {
         useFallbackPharmacy();
       }
@@ -191,16 +55,20 @@ export default function PharmacyOwnerDashboard() {
   };
 
   const useFallbackPharmacy = () => {
-    setPharmacy({
-      _id: "pharm-laxmipur",
-      name: "Niramoy Model Pharmacy - Laxmipur",
-      area: "Laxmipur",
-      address: "Holding 142, Medical College Main Gate Road, Laxmipur, Rajshahi",
-      phone: "+880 1711-445566",
-      is_24_7: true,
-      delivery_fee: 30,
-      free_delivery_above: 400
-    });
+    if (user?.pharmacy_id && typeof user.pharmacy_id === 'object') {
+      setPharmacy(user.pharmacy_id);
+    } else {
+      setPharmacy({
+        _id: null,
+        name: user?.name ? `${user.name}'s Pharmacy` : "My Pharmacy Console",
+        area: "Rajshahi",
+        address: "Rajshahi",
+        phone: user?.phone || "",
+        is_24_7: true,
+        delivery_fee: 30,
+        free_delivery_above: 400
+      });
+    }
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus, note) => {

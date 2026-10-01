@@ -7,19 +7,27 @@ const {
   getAppointmentPdf,
   resendConfirmationEmail,
   cancelAppointment,
-  updateAppointmentStatus
+  updateAppointmentStatus,
+  requestBookingEmailOtp,
+  confirmBookingWithEmailOtp
 } = require("../controllers/appointmentController");
-const { protect } = require("../middleware/auth");
+const { protect, optionalAuth } = require("../middleware/auth");
 
-router.use(protect); // All appointment endpoints require authentication
+// ─── Public / Email OTP Appointment Endpoints ──────────────────────────────
+router.post("/request-email-otp", requestBookingEmailOtp);
+router.post("/confirm-with-email-otp", optionalAuth, confirmBookingWithEmailOtp);
+router.get("/:id/pdf", optionalAuth, getAppointmentPdf);
+
+// ─── Authenticated Routes ──────────────────────────────────────────────────
+router.use(protect);
 
 router.get("/",                     getMyAppointments);
-router.get("/my",                  getMyAppointments);
+router.get("/my",                   getMyAppointments);
 router.post("/",                    createAppointment);
 router.get("/:id",                  getAppointment);
 router.patch("/:id/status",         updateAppointmentStatus);
-router.get("/:id/pdf",              getAppointmentPdf);
 router.post("/:id/resend-email",    resendConfirmationEmail);
 router.post("/:id/cancel",          cancelAppointment);
 
 module.exports = router;
+

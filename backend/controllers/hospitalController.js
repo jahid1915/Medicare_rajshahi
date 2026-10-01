@@ -33,6 +33,16 @@ exports.getHospitals = async (req, res, next) => {
   }
 };
 
+// GET /api/hospitals/departments
+exports.getDepartments = async (req, res, next) => {
+  try {
+    const departments = await Hospital.distinct("departments", { is_active: true });
+    return successResponse(res, departments.filter(Boolean), "Hospital departments fetched");
+  } catch (err) {
+    next(err);
+  }
+};
+
 // GET /api/hospitals/:id
 exports.getHospitalById = async (req, res, next) => {
   try {

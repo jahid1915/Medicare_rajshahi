@@ -6,9 +6,9 @@ import {
   Building2, Stethoscope, CheckCircle2, SlidersHorizontal, Calendar
 } from 'lucide-react';
 import AppointmentBookingModal from './AppointmentBookingModal';
+import { BASE_URL } from '../../services/api';
 
-const API = import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? "/api" : "http://localhost:5000/api");
+const API = BASE_URL;
 const LIMIT = 12;
 
 // ─── Fee Helper ───────────────────────────────────────────────────────────
@@ -104,6 +104,8 @@ function DoctorCard({ doctor, onBook }) {
   const primaryChamber = doctor.chambers?.[0];
   const chamberCount = doctor.chambers?.length || 0;
   const fee = getConsultationFee(doctor);
+  const primaryPhone = primaryChamber?.appointment_numbers?.[0] || primaryChamber?.appointment;
+  const visitingHours = primaryChamber?.visiting_hours || primaryChamber?.visiting_hour;
 
   return (
     <div
@@ -172,6 +174,24 @@ function DoctorCard({ doctor, onBook }) {
               </p>
             )}
 
+            {/* Medical Focus Chips */}
+            {doctor.medical_focus?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                {doctor.medical_focus.slice(0, 2).map((mf, mi) => (
+                  <span
+                    key={mi}
+                    style={{
+                      fontSize: '0.62rem', fontWeight: 700, color: 'var(--color-primary-dark)',
+                      background: 'rgba(13, 124, 110, 0.08)', padding: '1px 6px', borderRadius: '4px',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140
+                    }}
+                  >
+                    {mf}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {doctor.workplace && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                 <Building2 style={{ width: 12, height: 12, color: 'var(--color-primary)', flexShrink: 0 }} />
@@ -231,11 +251,11 @@ function DoctorCard({ doctor, onBook }) {
                 }}>+{chamberCount - 1} more</span>
               )}
             </div>
-            {primaryChamber.visiting_hours && (
+            {visitingHours && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
                 <Clock style={{ width: 11, height: 11, color: 'var(--color-primary)', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                  {primaryChamber.visiting_hours}
+                  {visitingHours}
                 </span>
               </div>
             )}
@@ -283,9 +303,9 @@ function DoctorCard({ doctor, onBook }) {
           <Calendar style={{ width: 13, height: 13 }} /> Book Online
         </button>
 
-        {primaryChamber?.appointment_numbers?.[0] && (
+        {primaryPhone && (
           <a
-            href={`tel:${primaryChamber.appointment_numbers[0]}`}
+            href={`tel:${primaryPhone}`}
             style={{
               padding: '8px 10px', borderRadius: 'var(--radius-md)',
               background: '#f0fdf4', border: '1.5px solid #86efac',
@@ -551,11 +571,12 @@ export default function DoctorDiscovery() {
         </button>
 
         {/* Sort */}
-        <select value={sort} onChange={e => setSort(e.target.value)} style={{
-          padding: '8px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
-          fontWeight: 700, background: 'var(--bg-badge)', border: '1px solid var(--border-default)',
-          color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'var(--font-sans)'
-        }}>
+        <select
+          value={sort}
+          onChange={e => setSort(e.target.value)}
+          className="niramoy-select"
+          style={{ height: '38px', fontSize: '0.8rem', fontWeight: 700 }}
+        >
           <option value="recommended">Recommended</option>
           <option value="rating">Highest Rated</option>
           <option value="reviews">Most Reviewed</option>
@@ -590,11 +611,12 @@ export default function DoctorDiscovery() {
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
               Workplace / Hospital
             </label>
-            <select value={workplace} onChange={e => setWorkplace(e.target.value)} style={{
-              width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
-              background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-sans)'
-            }}>
+            <select
+              value={workplace}
+              onChange={e => setWorkplace(e.target.value)}
+              className="niramoy-select"
+              style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
+            >
               <option value="all">All Workplaces</option>
               {workplaces.slice(0, 30).map(w => (
                 <option key={w.workplace} value={w.workplace}>{w.workplace} ({w.count})</option>
@@ -607,11 +629,12 @@ export default function DoctorDiscovery() {
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
               Chamber / Clinic
             </label>
-            <select value={chamber} onChange={e => setChamber(e.target.value)} style={{
-              width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
-              background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-sans)'
-            }}>
+            <select
+              value={chamber}
+              onChange={e => setChamber(e.target.value)}
+              className="niramoy-select"
+              style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
+            >
               <option value="all">All Chambers</option>
               {chambers.slice(0, 40).map(c => (
                 <option key={c.chamber} value={c.chamber}>{c.chamber} ({c.count})</option>
@@ -624,11 +647,12 @@ export default function DoctorDiscovery() {
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
               Verification
             </label>
-            <select value={verified} onChange={e => setVerified(e.target.value)} style={{
-              width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
-              background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-sans)'
-            }}>
+            <select
+              value={verified}
+              onChange={e => setVerified(e.target.value)}
+              className="niramoy-select"
+              style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
+            >
               <option value="all">All Doctors</option>
               <option value="true">✓ Verified Only</option>
             </select>
@@ -639,11 +663,12 @@ export default function DoctorDiscovery() {
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
               Min. Rating
             </label>
-            <select value={rating} onChange={e => setRating(e.target.value)} style={{
-              width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
-              background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-sans)'
-            }}>
+            <select
+              value={rating}
+              onChange={e => setRating(e.target.value)}
+              className="niramoy-select"
+              style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
+            >
               <option value="all">Any Rating</option>
               <option value="4.5">★ 4.5+</option>
               <option value="4">★ 4.0+</option>

@@ -22,10 +22,11 @@ router.get("/meta/stats", async (req, res, next) => {
     if (metaCache.stats.data && metaCache.stats.expires > Date.now()) {
       return successResponse(res, metaCache.stats.data, "Stats fetched from cache");
     }
-    const [total, verified, specialties, chambers] = await Promise.all([
+    const [total, verified, specialties1, specialties2, chambers] = await Promise.all([
       Doctor.countDocuments({ is_active: true }),
       Doctor.countDocuments({ is_active: true, verified: true }),
-      Doctor.distinct("specialty", { is_active: true }),
+      Doctor.distinct("specialty", { is_active: true, specialty: { $nin: [null, "", "Skip to content"] } }),
+      Doctor.distinct("specialties", { is_active: true }),
       Doctor.aggregate([
         { $match: { is_active: true } },
         { $unwind: "$chambers" },
@@ -33,10 +34,11 @@ router.get("/meta/stats", async (req, res, next) => {
         { $count: "total" }
       ])
     ]);
+    const allUniqueSpecialties = new Set([...specialties1, ...specialties2].filter(Boolean));
     const data = {
       total,
       verified,
-      specialties: specialties.filter(Boolean).length,
+      specialties: allUniqueSpecialties.size,
       chambers: chambers[0]?.total || 0,
       city: "Rajshahi"
     };
@@ -47,17 +49,29 @@ router.get("/meta/stats", async (req, res, next) => {
 });
 
 /**
- * GET /api/doctors/meta/specialties
+ * GET /api/doctors/meta/specialties and /api/doctors/specialties
  * Returns sorted list of unique specialties with counts
  */
-router.get("/meta/specialties", async (req, res, next) => {
+router.get(["/meta/specialties", "/specialties"], async (req, res, next) => {
   try {
     if (metaCache.specialties.data && metaCache.specialties.expires > Date.now()) {
       return successResponse(res, metaCache.specialties.data, "Specialties fetched from cache");
     }
     const result = await Doctor.aggregate([
-      { $match: { is_active: true, specialty: { $nin: [null, "", "Skip to content"] } } },
-      { $group: { _id: "$specialty", count: { $sum: 1 } } },
+      { $match: { is_active: true } },
+      {
+        $project: {
+          allSpecialties: {
+            $setUnion: [
+              { $cond: [{ $and: [{ $ne: ["$specialty", null] }, { $ne: ["$specialty", ""] }, { $ne: ["$specialty", "Skip to content"] }] }, ["$specialty"], []] },
+              { $cond: [{ $isArray: "$specialties" }, "$specialties", []] }
+            ]
+          }
+        }
+      },
+      { $unwind: "$allSpecialties" },
+      { $match: { allSpecialties: { $nin: [null, "", "Skip to content"] } } },
+      { $group: { _id: "$allSpecialties", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $project: { _id: 0, specialty: "$_id", count: 1 } }
     ]);
@@ -135,14 +149,42 @@ router.get("/", async (req, res, next) => {
 
     const filter = { is_active: true };
 
-    // Text search
+    // Search query
     if (q && q.trim()) {
-      filter.$text = { $search: q.trim() };
+      const qTerm = q.trim();
+      const escaped = qTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const qRegex = new RegExp(escaped, "i");
+      filter.$or = [
+        { name: qRegex },
+        { specialty: qRegex },
+        { specialties: qRegex },
+        { workplace: qRegex },
+        { designation: qRegex },
+        { qualifications: qRegex },
+        { medical_focus: qRegex },
+        { "chambers.name": qRegex },
+        { "chambers.address": qRegex }
+      ];
     }
 
     // Filters
     if (specialty && specialty !== "all") {
-      filter.specialty = new RegExp(`^${specialty.trim()}$`, "i");
+      const specRegex = new RegExp(`^${specialty.trim()}$`, "i");
+      const specFilter = {
+        $or: [
+          { specialty: specRegex },
+          { specialties: specRegex }
+        ]
+      };
+      if (filter.$or) {
+        filter.$and = [
+          { $or: filter.$or },
+          specFilter
+        ];
+        delete filter.$or;
+      } else {
+        filter.$or = specFilter.$or;
+      }
     }
     if (workplace && workplace !== "all") {
       filter.workplace = new RegExp(workplace.trim(), "i");
@@ -171,9 +213,9 @@ router.get("/", async (req, res, next) => {
     const [total, doctors] = await Promise.all([
       Doctor.countDocuments(filter),
       Doctor.find(filter, {
-        name: 1, slug: 1, specialty: 1, designation: 1, workplace: 1,
-        qualifications: 1, experience: 1, verified: 1, rating: 1, reviewCount: 1,
-        imageUrl: 1, chambers: 1, bmdcRegistration: 1
+        name: 1, slug: 1, specialty: 1, specialties: 1, designation: 1, workplace: 1,
+        qualifications: 1, degrees: 1, experience: 1, verified: 1, rating: 1, reviewCount: 1,
+        imageUrl: 1, chambers: 1, bmdcRegistration: 1, medical_focus: 1, source: 1, source_metadata: 1
       })
         .sort(sortObj)
         .skip((pageNum - 1) * limitNum)

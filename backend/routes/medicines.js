@@ -10,7 +10,7 @@ const { protect, authorize } = require("../middleware/auth");
 
 // Public
 router.get("/", getMedicines);
-router.get("/meta/categories", getCategories);
+router.get(["/meta/categories", "/categories"], getCategories);
 router.get("/:id", getMedicineById);
 
 // Protected (super_admin, pharmacy_owner, pharmacist)
