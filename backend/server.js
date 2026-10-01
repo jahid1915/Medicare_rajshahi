@@ -39,11 +39,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://vercel.live", "https://va.vercel-scripts.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.google.com", "https://*.gstatic.com", "https://*.sslcommerz.com"],
-      connectSrc: ["'self'", "https://*.vercel.app", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com", "https://vitals.vercel-insights.com", "http://localhost:*", "ws://localhost:*"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://*.sslcommerz.com"],
+      connectSrc: ["'self'", "https://*.vercel.app", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com", "http://localhost:*", "ws://localhost:*"],
       frameSrc: ["'self'", "https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -52,6 +52,8 @@ app.use(helmet({
     }
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-origin" },
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,

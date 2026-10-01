@@ -34,10 +34,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Preconnect for Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Security & Content Security Policy (Zero Third-Party Trackers) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com; font-src 'self' data:; connect-src 'self' https://*.vercel.app https://ickofuqtxsexxyjenmac.supabase.co https://sandbox.sslcommerz.com https://securepay.sslcommerz.com http://localhost:* ws://localhost:*; frame-src 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com;" />
 
     <!-- Schema.org Medical Organization Structured Data (Establishes site credibility) -->
     <script type="application/ld+json">
@@ -51,14 +49,17 @@
       "description": "Verified physician directory, doctor appointment scheduling, pharmacy directory, and emergency healthcare network in Rajshahi, Bangladesh.",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "Medical Mor, Laxmipur",
         "addressLocality": "Rajshahi",
         "addressRegion": "Rajshahi Division",
+        "postalCode": "6000",
         "addressCountry": "BD"
       },
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "Emergency & Patient Care",
-        "telephone": "+8801700000000",
+        "telephone": "+8801711223344",
+        "email": "contact@niramoy.health",
         "availableLanguage": ["Bengali", "English"]
       }
     }

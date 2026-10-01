@@ -236,8 +236,8 @@ export default function HospitalResourceDashboard({ hospitalId, onBack }) {
           hospital={hospital}
           initialResource={selectedResourceForBooking}
           onClose={() => setShowBedModal(false)}
-          onBookingSuccess={(b) => {
-            console.log("Bed booking completed:", b);
+          onBookingSuccess={() => {
+            setShowBedModal(false);
           }}
         />
       )}
