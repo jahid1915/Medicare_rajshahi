@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Search, Stethoscope, Pill, Building2, ChevronRight,
+  Search, Stethoscope, Pill, Building2, ChevronRight, ChevronDown,
   ArrowRight, CheckCircle2, Star, MapPin, Phone,
-  Shield, Clock, Activity, Users, Sparkles, HeartHandshake
+  Shield, Clock, Activity, Users, Sparkles, HeartHandshake, HelpCircle
 } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_BASE_URL || 
@@ -177,10 +177,10 @@ export default function PublicLandingPage() {
               </Link>
             </div>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hero-search" style={{ margin: 0, marginTop: 'var(--sp-6)' }}>
+            {/* Search Bar - DaktariSheba Style Hero Search */}
+            <form onSubmit={handleSearch} className="hero-search" style={{ margin: 0, marginTop: 'var(--sp-5)' }}>
               <div className="hero-search__bar">
-                <Search style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
+                <Search style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.7)', flexShrink: 0 }} />
                 <input
                   type="text"
                   className="hero-search__input"
@@ -190,13 +190,33 @@ export default function PublicLandingPage() {
                   aria-label="Search doctors and specialties"
                 />
                 <button type="submit" className="hero-search__btn">
-                  Search <ArrowRight style={{ width: 14, height: 14 }} />
+                  <span>Search</span>
+                  <ArrowRight style={{ width: 14, height: 14 }} />
                 </button>
               </div>
             </form>
 
+            {/* Quick Service Category Pills right below Hero Search */}
+            <div className="hero-quick-categories">
+              <Link to="/doctors" className="hero-quick-pill">
+                <span>🩺</span> Find Doctors
+              </Link>
+              <Link to="/pharmacies" className="hero-quick-pill">
+                <span>💊</span> Pharmacies
+              </Link>
+              <Link to="/hospitals" className="hero-quick-pill">
+                <span>🏥</span> Hospitals
+              </Link>
+              <Link to="/ambulance" className="hero-quick-pill">
+                <span>🚑</span> Ambulance
+              </Link>
+              <Link to="/ai" className="hero-quick-pill">
+                <span>🤖</span> AI Assistant
+              </Link>
+            </div>
+
             {/* Trust indicators */}
-            <div className="hero__trust" style={{ marginTop: 'var(--sp-5)' }}>
+            <div className="hero__trust" style={{ marginTop: 'var(--sp-4)' }}>
               <div className="hero__trust-item">
                 <CheckCircle2 style={{ width: 13, height: 13, color: '#5eead4' }} />
                 Verified Healthcare Professionals
@@ -219,7 +239,7 @@ export default function PublicLandingPage() {
         </div>
       </section>
 
-      {/* ═════════ QUICK ACTIONS ════════ */}
+      {/* ═════════ QUICK ACTIONS / HEALTHCARE SERVICES ════════ */}
       <section className="quick-actions" aria-labelledby="services-heading">
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)', padding: '0 var(--sp-6)' }}>
           <div className="section-label">Our Services</div>
@@ -227,7 +247,7 @@ export default function PublicLandingPage() {
             Everything You Need for Healthcare
           </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-base)', maxWidth: 520, margin: '0 auto' }}>
-            One platform connecting patients, doctors, pharmacies, hospitals, and diagnostics.
+            One platform connecting patients, doctors, pharmacies, hospitals, and diagnostics across Rajshahi.
           </p>
         </div>
         <div className="quick-actions__grid">
@@ -248,9 +268,9 @@ export default function PublicLandingPage() {
               link: '/hospitals', color: '#0284c7', bg: '#f0f9ff',
             },
             {
-              icon: Activity, title: 'Health Services',
-              desc: 'Diagnostics, telemedicine, prescriptions, and more healthcare tools.',
-              link: '/diagnostics', color: '#d97706', bg: '#fffbeb',
+              icon: Activity, title: '24/7 Ambulance & Emergency',
+              desc: 'Instant emergency contact numbers, ICU ambulance, and blood banks.',
+              link: '/ambulance', color: '#dc2626', bg: '#fef2f2',
             },
           ].map((item, i) => (
             <Link
@@ -414,11 +434,11 @@ export default function PublicLandingPage() {
         </section>
       )}
 
-      {/* ═════════ ABOUT ════════ */}
-      <section style={{ padding: 'var(--sp-20) 0', background: 'var(--color-surface)' }}>
+      {/* ═════════ ABOUT / MISSION (FIXED RESPONSIVE GRID) ════════ */}
+      <section style={{ padding: 'var(--sp-16) 0', background: 'var(--color-surface)' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-16)', alignItems: 'center' }}>
-            <div>
+          <div className="mission-grid">
+            <div className="mission-grid__content">
               <div className="section-label">Our Mission</div>
               <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--color-text)', marginBottom: 'var(--sp-5)', lineHeight: 1.15 }}>
                 Healthcare should<br/>feel simpler.
@@ -435,15 +455,15 @@ export default function PublicLandingPage() {
                 Start Exploring <ArrowRight style={{ width: 16, height: 16 }} />
               </Link>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
+            <div className="mission-grid__cards">
               {[
                 { icon: HeartHandshake, title: 'Human-centered care', desc: 'We put patients first, making healthcare information clear, honest, and accessible.' },
                 { icon: Shield, title: 'Verified information', desc: 'Doctor profiles sourced from official directories with clear source attribution.' },
                 { icon: Users, title: 'Growing network', desc: 'Expanding our network across Rajshahi to cover more specialties and locations.' },
                 { icon: Sparkles, title: 'Modern technology', desc: 'Built with modern web technology for a fast, reliable healthcare experience.' },
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: 'var(--sp-4)', padding: 'var(--sp-4)', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', transition: 'all var(--duration-normal) var(--ease)' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--color-primary-50)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div key={i} className="mission-card">
+                  <div className="mission-card__icon">
                     <item.icon style={{ width: 20, height: 20 }} />
                   </div>
                   <div>
@@ -454,6 +474,40 @@ export default function PublicLandingPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═════════ DAKTARI-SHEBA STYLE FAQ ACCORDION ════════ */}
+      <section className="faq-section" style={{ padding: 'var(--sp-16) 0', background: 'var(--color-bg)' }}>
+        <div className="container" style={{ maxWidth: 800 }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)' }}>
+            <div className="section-label" style={{ justifyContent: 'center' }}>Got Questions?</div>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', marginBottom: 'var(--sp-3)' }}>
+              Frequently Asked Questions
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-base)' }}>
+              Everything you need to know about using Niramoy in Rajshahi.
+            </p>
+          </div>
+
+          <FaqAccordion items={[
+            {
+              q: 'How do I book a doctor appointment on Niramoy?',
+              a: 'Search for a doctor by name, specialty, hospital, or chamber. View verified visiting hours, chamber serial phone numbers, or click "Book Online" to instantly reserve your appointment with phone OTP verification.'
+            },
+            {
+              q: 'Are the doctors and qualifications verified on Niramoy?',
+              a: 'Yes. All doctor profiles are cross-referenced with BMDC registration numbers, medical college affiliations (such as Rajshahi Medical College & Hospital), and official diagnostic chamber directories.'
+            },
+            {
+              q: 'How do I search for pharmacies and medicine availability?',
+              a: 'Visit the Pharmacy section to search for nearby licensed pharmacies across Rajshahi (Medical Mor, Laxmipur, Greater Road, Kazihata), browse medicines in stock, check prices, and place online orders.'
+            },
+            {
+              q: 'How can I check hospital bed availability or call emergency ambulances?',
+              a: 'Our Hospital Resources portal provides real-time updates on General Beds, ICU, and CCU availability. The Ambulance directory provides 24/7 hotline numbers for quick emergency assistance.'
+            }
+          ]} />
         </div>
       </section>
 
@@ -606,6 +660,85 @@ function FeaturedDoctorCard({ doctor }) {
           </a>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ─── FAQ Accordion Component ─── */
+function FaqAccordion({ items }) {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  return (
+    <div className="faq-accordion-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+      {items.map((item, i) => {
+        const isOpen = openIndex === i;
+        return (
+          <div
+            key={i}
+            className={`faq-item ${isOpen ? 'active' : ''}`}
+            style={{
+              borderRadius: 'var(--radius-lg)',
+              border: '1.5px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              overflow: 'hidden',
+              transition: 'all var(--duration-fast) var(--ease)'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setOpenIndex(isOpen ? -1 : i)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 'var(--sp-4) var(--sp-5)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                gap: 'var(--sp-4)'
+              }}
+              aria-expanded={isOpen}
+            >
+              <span style={{
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 700,
+                fontSize: 'var(--text-base)',
+                color: isOpen ? 'var(--color-primary)' : 'var(--color-text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <HelpCircle style={{ width: 18, height: 18, color: 'var(--color-primary)', flexShrink: 0 }} />
+                {item.q}
+              </span>
+              <ChevronDown
+                style={{
+                  width: 18,
+                  height: 18,
+                  color: 'var(--color-text-muted)',
+                  transform: isOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform var(--duration-fast) var(--ease)',
+                  flexShrink: 0
+                }}
+              />
+            </button>
+            {isOpen && (
+              <div
+                style={{
+                  padding: '0 var(--sp-5) var(--sp-5) calc(var(--sp-5) + 28px)',
+                  color: 'var(--color-text-secondary)',
+                  fontSize: 'var(--text-sm)',
+                  lineHeight: 1.7
+                }}
+              >
+                {item.a}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

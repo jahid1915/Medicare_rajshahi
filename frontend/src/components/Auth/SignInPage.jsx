@@ -193,26 +193,15 @@ export default function SignInPage() {
           </p>
 
           {/* Role Tabs */}
-          <div className="role-tabs-scroll" style={{ display: 'flex', gap: '6px', marginBottom: '18px', padding: '4px', background: 'var(--color-surface, #f8fafc)', borderRadius: '12px', border: '1px solid var(--color-border, #e2eceb)' }}>
+          <div className="role-tabs-scroll">
             {ROLE_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
+                className={`role-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab(tab.id);
                   setError('');
-                }}
-                style={{
-                  flex: '1 1 auto',
-                  padding: '7px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: activeTab === tab.id ? 'var(--color-primary, #0d7c6e)' : 'transparent',
-                  color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary, #2f4847)',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
                 }}
               >
                 {tab.label}
@@ -222,24 +211,24 @@ export default function SignInPage() {
 
           {/* Role specific info box */}
           {activeTab === 'patient' ? (
-            <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(13,124,110,0.08)', border: '1px solid rgba(13,124,110,0.2)', marginBottom: '16px', fontSize: '0.82rem', color: 'var(--color-text-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>📱 Phone OTP Sign-in (মোবাইল ওটিপি লগইন)</strong>
+            <div className="auth-mode-toggle-card">
+              <div className="auth-mode-toggle-header">
+                <div className="auth-mode-title">
+                  <strong>📱 Phone OTP Sign-in</strong>
+                  <span className="auth-mode-bn">(মোবাইল ওটিপি লগইন)</span>
+                </div>
                 <button
                   type="button"
+                  className="auth-mode-switch-btn"
                   onClick={() => {
                     setPatientAuthMode(m => m === 'otp' ? 'password' : 'otp');
                     setError('');
                   }}
-                  style={{
-                    background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)',
-                    fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
-                  }}
                 >
-                  {patientAuthMode === 'otp' ? 'Use Password Instead' : 'Use Phone OTP'}
+                  {patientAuthMode === 'otp' ? 'Use Password' : 'Use Phone OTP'}
                 </button>
               </div>
-              <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.8rem', lineHeight: 1.5 }}>
                 {patientAuthMode === 'otp'
                   ? 'Enter your mobile number to receive a secure 6-digit verification code via SMS.'
                   : 'Enter your registered phone/email and account password.'}

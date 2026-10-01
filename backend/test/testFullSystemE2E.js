@@ -144,17 +144,23 @@ async function runTests() {
     assert(branchesRes.status === 200 && branches.length > 0, `Fetched ${branches.length} branches for doctor`);
     const branch = branches[0];
 
-    // Get available slots for tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split("T")[0];
-
-    const slotsRes = await request(app)
-      .get(`/api/doctors/${sampleDoctor._id}/branches/${branch._id}/slots?date=${dateStr}`);
-    
-    const slots = slotsRes.body.data?.slots || [];
-    assert(slotsRes.status === 200 && Array.isArray(slots), "Dynamic time slots generated");
-    const availableSlots = slots.filter(s => s.available);
+    // Get available slots for an active day (skip off-days like Friday if applicable)
+    let dateStr = "";
+    let availableSlots = [];
+    for (let offset = 1; offset <= 7; offset++) {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + offset);
+      const testDateStr = targetDate.toISOString().split("T")[0];
+      const slotsRes = await request(app)
+        .get(`/api/doctors/${sampleDoctor._id}/branches/${branch._id}/slots?date=${testDateStr}`);
+      const slots = slotsRes.body.data?.slots || [];
+      const avail = slots.filter(s => s.available);
+      if (avail.length > 0) {
+        dateStr = testDateStr;
+        availableSlots = avail;
+        break;
+      }
+    }
     assert(availableSlots.length > 0, `Found ${availableSlots.length} available slots for ${dateStr}`);
     const selectedSlot = availableSlots[0];
 
