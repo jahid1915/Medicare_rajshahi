@@ -205,7 +205,8 @@ export default function NiramoyNavbar() {
                   {t('nav.signIn', 'Sign in')}
                 </Link>
                 <Link to="/register" className="navbar__cta">
-                  {t('nav.register', 'Become a member')}
+                  <span className="navbar__cta-full">{t('nav.registerFull', 'Join Niramoy')}</span>
+                  <span className="navbar__cta-short">{t('nav.registerShort', 'Join')}</span>
                 </Link>
               </>
             )}

@@ -821,15 +821,15 @@ select.input {
 
 /* State B — Scrolled: Floating rounded container (premium rounded rectangle) */
 .navbar-scrolled {
-  top: 12px;
-  left: 20px;
-  right: 20px;
-  width: calc(100% - 40px);
-  max-width: 1240px;
+  top: 10px;
+  left: 16px;
+  right: 16px;
+  width: calc(100% - 32px);
+  max-width: 1280px;
   margin: 0 auto;
-  height: 60px;
+  height: 58px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(3, 30, 26, 0.92) 0%, rgba(6, 44, 38, 0.88) 100%);
+  background: linear-gradient(135deg, rgba(3, 30, 26, 0.94) 0%, rgba(6, 44, 38, 0.90) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(94, 234, 212, 0.28);
@@ -838,15 +838,16 @@ select.input {
 
 .navbar__inner {
   width: 100%;
-  max-width: 1240px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 18px;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .navbar__logo-link {
@@ -866,20 +867,22 @@ select.input {
 .navbar__nav {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin: 0 auto 0 20px;
+  gap: 2px;
+  margin: 0 8px;
   flex-wrap: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .navbar__link {
-  padding: 7px 13px;
-  border-radius: 10px;
-  font-size: 0.86rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.83rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
   white-space: nowrap;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   border: 1px solid transparent;
@@ -907,19 +910,19 @@ select.input {
 .navbar__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .navbar__signin {
-  font-size: 0.86rem;
+  font-size: 0.83rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  padding: 7px 14px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.18s ease;
   white-space: nowrap;
 }
 
@@ -936,9 +939,9 @@ select.input {
 .navbar__cta {
   background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
   color: #ffffff !important;
-  padding: 8px 18px;
-  border-radius: 12px;
-  font-size: 0.86rem;
+  padding: 7px 15px;
+  border-radius: 10px;
+  font-size: 0.83rem;
   font-weight: 700;
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -950,6 +953,15 @@ select.input {
   box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.navbar__cta-full {
+  display: inline;
+}
+
+.navbar__cta-short {
+  display: none;
 }
 
 .navbar__cta:hover {
@@ -1252,14 +1264,60 @@ select.input {
   transition: all 0.15s ease;
 }
 
-/* Responsive Media Queries */
-@media (max-width: 960px) {
-  .navbar__nav {
+/* Responsive Media Queries for Navbar & Brand Invariants */
+@media (max-width: 1340px) {
+  .niramoy-logo__tagline {
+    display: none !important;
+  }
+
+  .navbar__cta-full {
     display: none;
   }
 
+  .navbar__cta-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 1240px) and (min-width: 1081px) {
+  .navbar__inner {
+    padding: 0 12px;
+    gap: 4px;
+  }
+
+  .navbar__nav {
+    margin: 0 4px;
+    gap: 1px;
+  }
+
+  .navbar__link {
+    padding: 5px 7px;
+    font-size: 0.79rem;
+    letter-spacing: -0.01em;
+  }
+
+  .navbar__actions {
+    gap: 6px;
+  }
+
+  .navbar__signin {
+    padding: 5px 8px;
+    font-size: 0.8rem;
+  }
+
+  .navbar__cta {
+    padding: 6px 11px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 1080px) {
+  .navbar__nav {
+    display: none !important;
+  }
+
   .navbar__mobile-toggle {
-    display: flex;
+    display: flex !important;
   }
 
   .navbar-top {
@@ -1272,20 +1330,30 @@ select.input {
     right: 10px;
     width: calc(100% - 20px);
     height: 56px;
-    border-radius: 12px;
+    border-radius: 14px;
   }
 
   .navbar__inner {
     padding: 0 14px;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .navbar__signin {
-    display: none;
+    display: none !important;
+  }
+
+  .navbar__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .navbar__cta {
     padding: 6px 12px;
     font-size: 0.8rem;
+    display: inline-flex !important;
   }
 }
 
@@ -2612,45 +2680,14 @@ select.input {
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 768px) {
   :root {
-    --navbar-height: 64px;
+    --navbar-height: 60px;
     --sidebar-width: 0px;
-  }
-
-  .navbar__inner {
-    padding: 0 16px;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .navbar__nav {
-    display: none !important;
-  }
-
-  .navbar__signin {
-    display: none !important;
   }
 
   .navbar__cta {
     display: none !important;
-  }
-
-  .navbar__actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .navbar__mobile-toggle {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .navbar__mobile-menu {
-    display: block;
   }
 }
 

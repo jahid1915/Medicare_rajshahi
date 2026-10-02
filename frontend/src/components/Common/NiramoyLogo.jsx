@@ -170,6 +170,7 @@ export default function NiramoyLogo({
 
         {showTagline && (
           <span
+            className="niramoy-logo__tagline"
             style={{
               fontSize: config.tagline,
               fontWeight: 800,
