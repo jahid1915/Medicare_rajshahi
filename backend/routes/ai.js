@@ -11,7 +11,7 @@ const aiService = require("../services/aiService");
  */
 router.post("/chat", optionalAuth, async (req, res, next) => {
   try {
-    const { message, text } = req.body;
+    const { message, text, language } = req.body;
     const userMessage = message || text || "";
 
     let authenticatedUser = null;
@@ -23,7 +23,8 @@ router.post("/chat", optionalAuth, async (req, res, next) => {
     const result = await aiService.processQuery({
       userMessage,
       user: authenticatedUser,
-      role: authenticatedUser ? authenticatedUser.role : "anonymous"
+      role: authenticatedUser ? authenticatedUser.role : "anonymous",
+      language: language === "bn" ? "bangla" : (language === "en" ? "english" : undefined)
     });
 
     return res.json(result);

@@ -114,19 +114,22 @@ class AiService {
    * @param {string} userMessage - User's query
    * @param {object|null} user - Authenticated user object from req.user (or null if anonymous)
    * @param {string} role - 'anonymous' | 'patient' | 'doctor' | 'admin'
+   * @param {string} language - 'bangla' | 'english' | null
    */
-  async processQuery({ userMessage, user = null, role = "anonymous" }) {
+  async processQuery({ userMessage, user = null, role = "anonymous", language = null }) {
     const raw = (userMessage || "").trim();
     if (!raw) {
       return {
         success: false,
-        reply: "Please enter your question or symptom.",
+        reply: language === "bangla" ? "অনুগ্রহ করে আপনার প্রশ্ন বা উপসর্গের বিবরণ লিখুন।" : "Please enter your question or symptom.",
         entities: [],
         suggestedActions: []
       };
     }
 
-    const lang = detectLanguage(raw);
+    const detected = detectLanguage(raw);
+    // If the input is in Bangla script, always respond in Bangla; otherwise respect explicit language choice if provided
+    const lang = /[\u0980-\u09FF]/.test(raw) ? "bangla" : (language || detected);
     const lower = raw.toLowerCase();
 
     // 1. Intercept prompt injection and secret extraction attempts

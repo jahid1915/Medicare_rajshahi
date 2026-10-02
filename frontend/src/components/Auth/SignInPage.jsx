@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import NiramoyLogo from '../Common/NiramoyLogo';
 import LegalContextModal from '../Legal/LegalContextModal';
 import {
   Mail, Lock, Eye, EyeOff, AlertCircle, Loader2,
   CheckCircle2, Stethoscope, Shield, Users, ArrowRight,
-  Phone, Smartphone, Building2, Pill, UserCheck
+  Phone, Smartphone, Building2, Pill, UserCheck,
+  UserRound, Hospital
 } from 'lucide-react';
 
 const FEATURES = [
@@ -23,14 +25,6 @@ function getDashboardForRole(role) {
   return '/dashboard';
 }
 
-const ROLE_TABS = [
-  { id: 'patient', label: '🧑‍⚕️ Patient (রোগী)', roleName: 'Patient' },
-  { id: 'doctor', label: '🩺 Doctor (ডাক্তার)', roleName: 'Doctor' },
-  { id: 'hospital_admin', label: '🏥 Hospital (হাসপাতাল)', roleName: 'Hospital Authority' },
-  { id: 'pharmacy_owner', label: '💊 Pharmacy (ফার্মেসি)', roleName: 'Pharmacy Owner' },
-  { id: 'super_admin', label: '👑 Admin (অ্যাডমিন)', roleName: 'Admin' }
-];
-
 const DEMO_ACCOUNTS = [
   { roleKey: 'patient', label: '🧑‍⚕️ Patient (Rahim)', identifier: '01711223344', password: 'Pass@123456', role: 'patient' },
   { roleKey: 'patient', label: '🧑‍⚕️ Patient (Email)', identifier: 'patient@niramoy.health', password: 'Patient@123456', role: 'patient' },
@@ -41,12 +35,48 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function SignInPage() {
+  const { t, isBangla } = useLanguage();
   const { login, sendOtp, verifyOtp, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || null;
 
+  const PORTAL_OPTIONS = [
+    {
+      id: 'patient',
+      nameEn: 'Patient',
+      nameBn: 'রোগী',
+      roleName: 'Patient',
+      icon: UserRound,
+    },
+    {
+      id: 'doctor',
+      nameEn: 'Doctor',
+      nameBn: 'ডাক্তার',
+      roleName: 'Doctor',
+      icon: Stethoscope,
+    },
+    {
+      id: 'hospital_admin',
+      nameEn: 'Hospital',
+      nameBn: 'হাসপাতাল',
+      roleName: 'Hospital Authority',
+      icon: Hospital,
+    },
+    {
+      id: 'pharmacy_owner',
+      nameEn: 'Pharmacy',
+      nameBn: 'ফার্মেসি',
+      roleName: 'Pharmacy Owner',
+      icon: Pill,
+    },
+  ];
+
   const [activeTab, setActiveTab] = useState('patient');
+
+  const currentPortal = PORTAL_OPTIONS.find(p => p.id === activeTab);
+  const activePortalLabelEn = currentPortal ? currentPortal.roleName : (activeTab === 'super_admin' ? 'Platform Admin' : 'User');
+  const activePortalLabelBn = currentPortal ? currentPortal.nameBn : (activeTab === 'super_admin' ? 'অ্যাডমিন' : 'ইউজার');
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -188,29 +218,54 @@ export default function SignInPage() {
             <NiramoyLogo size="md" />
           </Link>
 
-          <h1 className="auth-form-card__title" style={{ marginBottom: '6px' }}>Enter Portal</h1>
+          <h1 className="auth-form-card__title" style={{ marginBottom: '6px' }}>
+            {t('auth.signInTitle', 'Enter Portal')}
+          </h1>
           <p className="auth-form-card__subtitle" style={{ marginBottom: '16px' }}>
-            Don't have an account?{' '}
+            {isBangla ? 'কোনো অ্যাকাউন্ট নেই? ' : "Don't have an account? "}
             <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
-              Become a Member / নতুন অ্যাকাউন্ট
+              {isBangla ? 'নতুন অ্যাকাউন্ট তৈরি করুন' : 'Become a Member'}
             </Link>
           </p>
 
-          {/* Role Tabs */}
-          <div className="role-tabs-scroll">
-            {ROLE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`role-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setError('');
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Redesigned Healthcare Portal Selector */}
+          <div className="portal-selector-wrapper">
+            <div className="portal-selector-label" id="portal-selector-label">
+              {isBangla ? 'পোর্টাল নির্বাচন করুন' : 'CONTINUE AS'}
+            </div>
+            <div
+              className="portal-selector-grid"
+              role="tablist"
+              aria-labelledby="portal-selector-label"
+            >
+              {PORTAL_OPTIONS.map((portal) => {
+                const isSelected = activeTab === portal.id;
+                const IconComponent = portal.icon;
+                return (
+                  <button
+                    key={portal.id}
+                    id={`portal-tab-${portal.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    aria-controls="portal-auth-panel"
+                    tabIndex={0}
+                    className={`portal-card-btn ${isSelected ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab(portal.id);
+                      setError('');
+                    }}
+                  >
+                    <div className="portal-card-icon-wrap" aria-hidden="true">
+                      <IconComponent size={16} strokeWidth={2} />
+                    </div>
+                    <span className="portal-card-name-en">{portal.nameEn}</span>
+                    <span className="portal-card-name-bn">{portal.nameBn}</span>
+                    {isSelected && <span className="portal-card-indicator" aria-hidden="true" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Role specific info box */}
@@ -218,8 +273,7 @@ export default function SignInPage() {
             <div className="auth-mode-toggle-card">
               <div className="auth-mode-toggle-header">
                 <div className="auth-mode-title">
-                  <strong>📱 Phone OTP Sign-in</strong>
-                  <span className="auth-mode-bn">(মোবাইল ওটিপি লগইন)</span>
+                  <strong>{isBangla ? '📱 মোবাইল ওটিপি সাইন ইন' : '📱 Phone OTP Sign-in'}</strong>
                 </div>
                 <button
                   type="button"
@@ -229,22 +283,24 @@ export default function SignInPage() {
                     setError('');
                   }}
                 >
-                  {patientAuthMode === 'otp' ? 'Use Password' : 'Use Phone OTP'}
+                  {patientAuthMode === 'otp'
+                    ? (isBangla ? 'পাসওয়ার্ড ব্যবহার করুন' : 'Use Password')
+                    : (isBangla ? 'ফোন ওটিপি ব্যবহার করুন' : 'Use Phone OTP')}
                 </button>
               </div>
               <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.8rem', lineHeight: 1.5 }}>
                 {patientAuthMode === 'otp'
-                  ? 'Enter your mobile number to receive a secure 6-digit verification code via SMS.'
-                  : 'Enter your registered phone/email and account password.'}
+                  ? (isBangla ? 'আপনার মোবাইল নম্বর লিখুন। এসএমএস-এর মাধ্যমে একটি ৬ সংখ্যার ওটিপি কোড পাঠানো হবে।' : 'Enter your mobile number to receive a secure 6-digit verification code via SMS.')
+                  : (isBangla ? 'আপনার নিবন্ধিত ফোন নম্বর/ইমেইল এবং পাসওয়ার্ড প্রদান করুন।' : 'Enter your registered phone/email and account password.')}
               </p>
             </div>
           ) : (
             <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(2,132,199,0.08)', border: '1px solid rgba(2,132,199,0.2)', marginBottom: '16px', fontSize: '0.78rem', color: '#0369a1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <strong>Professional Sign-in:</strong> Doctors, Hospitals, and Pharmacies require verified credentials.
+                <strong>{isBangla ? 'পেশাদারদের সাইন ইন:' : 'Professional Sign-in:'}</strong> {isBangla ? 'ডাক্তার, হাসপাতাল এবং ফার্মেসির জন্য যাচাইকৃত অ্যাকাউন্টের শংসাপত্র প্রয়োজন।' : 'Doctors, Hospitals, and Pharmacies require verified credentials.'}
               </div>
               <Link to={`/register?role=${activeTab}`} style={{ color: '#0284c7', fontWeight: 800, textDecoration: 'underline', flexShrink: 0, marginLeft: '8px' }}>
-                Sign Up →
+                {isBangla ? 'নিবন্ধন করুন →' : 'Sign Up →'}
               </Link>
             </div>
           )}
@@ -268,7 +324,9 @@ export default function SignInPage() {
               {otpStep === 'phone' ? (
                 <form onSubmit={handleRequestOtp} className="auth-form" noValidate>
                   <div className="auth-field">
-                    <label htmlFor="patient-phone">Mobile Phone Number (মোবাইল নম্বর)</label>
+                    <label htmlFor="patient-phone">
+                      {isBangla ? 'মোবাইল ফোন নম্বর' : 'Mobile Phone Number'}
+                    </label>
                     <div className="auth-input-wrap">
                       <Phone style={{ width: 16, height: 16 }} />
                       <input
@@ -284,7 +342,7 @@ export default function SignInPage() {
                       />
                     </div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                      A 6-digit OTP will be dispatched via MIM SMS to your mobile phone.
+                      {isBangla ? 'আপনার মোবাইলে একটি ৬ সংখ্যার ওটিপি কোড পাঠানো হবে।' : 'A 6-digit OTP will be dispatched via SMS to your mobile phone.'}
                     </span>
                   </div>
 
@@ -296,10 +354,10 @@ export default function SignInPage() {
                     disabled={otpLoading}
                   >
                     {otpLoading ? (
-                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Sending OTP…</>
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> {isBangla ? 'কোড পাঠানো হচ্ছে...' : 'Sending OTP…'}</>
                     ) : (
                       <>
-                        Send Verification Code (ওটিপি পাঠান)
+                        {isBangla ? 'ওটিপি কোড পাঠান' : 'Send Verification Code'}
                         <ArrowRight style={{ width: 16, height: 16 }} />
                       </>
                     )}
@@ -310,20 +368,22 @@ export default function SignInPage() {
                   <div style={{ background: '#f8fafc', border: '1px solid #e2eceb', borderRadius: '12px', padding: '12px', marginBottom: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.82rem', color: '#475569' }}>
-                        Code sent to: <strong>{patientPhone}</strong>
+                        {isBangla ? 'কোড পাঠানো হয়েছে: ' : 'Code sent to: '}<strong>{patientPhone}</strong>
                       </span>
                       <button
                         type="button"
                         onClick={() => { setOtpStep('phone'); setOtpCode(''); setError(''); }}
                         style={{ background: 'none', border: 'none', color: 'var(--color-primary, #0d7c6e)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
                       >
-                        Change
+                        {isBangla ? 'পরিবর্তন' : 'Change'}
                       </button>
                     </div>
                   </div>
 
                   <div className="auth-field">
-                    <label htmlFor="patient-otp">Enter 6-Digit Verification Code (৬ সংখ্যার ওটিপি)</label>
+                    <label htmlFor="patient-otp">
+                      {isBangla ? '৬ সংখ্যার যাচাইকরণ কোড লিখুন' : 'Enter 6-Digit Verification Code'}
+                    </label>
                     <div className="auth-input-wrap">
                       <Lock style={{ width: 16, height: 16 }} />
                       <input
@@ -352,10 +412,10 @@ export default function SignInPage() {
                     disabled={otpLoading || otpCode.length !== 6}
                   >
                     {otpLoading ? (
-                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Verifying…</>
+                      <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> {isBangla ? 'যাচাই করা হচ্ছে...' : 'Verifying…'}</>
                     ) : (
                       <>
-                        Verify & Sign In (যাচাই করে প্রবেশ করুন)
+                        {isBangla ? 'যাচাই করে প্রবেশ করুন' : 'Verify & Sign In'}
                         <CheckCircle2 style={{ width: 16, height: 16 }} />
                       </>
                     )}
@@ -364,7 +424,7 @@ export default function SignInPage() {
                   <div style={{ marginTop: 14, textAlign: 'center' }}>
                     {otpCountdown > 0 ? (
                       <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                        Resend code in <strong>{otpCountdown}s</strong>
+                        {isBangla ? `পুনরায় পাঠানোর সময়: ` : `Resend code in `}<strong>{otpCountdown}s</strong>
                       </span>
                     ) : (
                       <button
@@ -376,7 +436,7 @@ export default function SignInPage() {
                           fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline'
                         }}
                       >
-                        Resend Verification Code (পুনরায় কোড পাঠান)
+                        {isBangla ? 'পুনরায় কোড পাঠান' : 'Resend Verification Code'}
                       </button>
                     )}
                   </div>
@@ -389,8 +449,8 @@ export default function SignInPage() {
               <div className="auth-field">
                 <label htmlFor="identifier">
                   {activeTab === 'patient' 
-                    ? 'Mobile Number or Email (মোবাইল নম্বর বা ইমেইল)' 
-                    : 'Email Address or Phone'}
+                    ? (isBangla ? 'মোবাইল নম্বর বা ইমেইল' : 'Mobile Number or Email') 
+                    : (isBangla ? 'ইমেইল বা ফোন নম্বর' : 'Email Address or Phone')}
                 </label>
                 <div className="auth-input-wrap">
                   {activeTab === 'patient' ? (
@@ -416,13 +476,15 @@ export default function SignInPage() {
               </div>
 
               <div className="auth-field">
-                <label htmlFor="password">Password (পাসওয়ার্ড)</label>
+                <label htmlFor="password">
+                  {isBangla ? 'পাসওয়ার্ড' : 'Password'}
+                </label>
                 <div className="auth-input-wrap">
                   <Lock style={{ width: 16, height: 16 }} />
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
+                    placeholder={isBangla ? 'পাসওয়ার্ড লিখুন' : 'Enter your password'}
                     value={form.password}
                     onChange={e => setForm({ ...form, password: e.target.value })}
                     autoComplete="current-password"
@@ -448,10 +510,12 @@ export default function SignInPage() {
                 disabled={loading}
               >
                 {loading ? (
-                  <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> Signing in…</>
+                  <><Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} /> {isBangla ? 'সাইন ইন হচ্ছে...' : 'Signing in…'}</>
                 ) : (
                   <>
-                    Enter Portal as {ROLE_TABS.find(t => t.id === activeTab)?.roleName || 'User'} 
+                    {isBangla 
+                      ? `${activePortalLabelBn} পোর্টাল-এ প্রবেশ করুন`
+                      : `Enter Portal as ${activePortalLabelEn}`}
                     <ArrowRight style={{ width: 16, height: 16 }} />
                   </>
                 )}
@@ -459,15 +523,40 @@ export default function SignInPage() {
             </form>
           )}
 
-
-          {activeTab !== 'patient' && (
+          {activeTab !== 'patient' && activeTab !== 'super_admin' && (
             <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              Are you a new doctor, pharmacy owner, or hospital authority?{' '}
+              {isBangla ? 'নতুন ডাক্তার, ফার্মেসি মালিক অথবা হাসপাতাল কর্তৃপক্ষ? ' : 'Are you a new doctor, pharmacy owner, or hospital authority? '}
               <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
                 Register your facility / সাইন আপ করুন →
               </Link>
             </div>
           )}
+
+          {/* Discreet Admin Login Access */}
+          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab(activeTab === 'super_admin' ? 'patient' : 'super_admin');
+                setError('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '2px 8px',
+                fontSize: '0.73rem',
+                color: activeTab === 'super_admin' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                fontWeight: activeTab === 'super_admin' ? 700 : 500,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                opacity: 0.85
+              }}
+            >
+              {activeTab === 'super_admin'
+                ? (isBangla ? '← সাধারণ পোর্টালে ফিরুন' : '← Return to Healthcare Portals')
+                : (isBangla ? 'সিস্টেম অ্যাডমিন পোর্টাল' : 'Platform Admin Sign-in')}
+            </button>
+          </div>
 
           <p className="auth-footer" style={{ marginTop: '16px' }}>
             By continuing, you agree to Niramoy's{' '}

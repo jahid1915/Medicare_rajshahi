@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search, Star, MapPin, Award, UserCheck, Filter, X,
   ChevronDown, Phone, Clock, RefreshCw, AlertCircle, Users,
@@ -8,6 +8,8 @@ import {
 import AppointmentBookingModal from './AppointmentBookingModal';
 import { BASE_URL } from '../../services/api';
 import { DOCTORS } from '../../data/doctors';
+import { SPECIALTIES } from '../../data/specialties';
+import { useLanguage } from '../../i18n';
 
 const API = BASE_URL;
 const LIMIT = 12;
@@ -24,7 +26,8 @@ function getConsultationFee(doctor) {
 }
 
 // ─── Doctor Avatar Fallback ───────────────────────────────────────────────
-function DoctorAvatar({ src, name, size = 78 }) {
+// ─── Doctor Avatar Fallback ───────────────────────────────────────────────
+function DoctorAvatar({ src, name, width = 76, height = 88 }) {
   const [failed, setFailed] = useState(false);
   const initials = (name || 'Dr')
     .replace(/^(Prof\.|Dr\.)\s*/i, '')
@@ -32,12 +35,13 @@ function DoctorAvatar({ src, name, size = 78 }) {
 
   return (
     <div style={{
-      width: size, height: size, minWidth: size, minHeight: size,
-      borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-      border: '2px solid var(--color-border)',
-      background: 'var(--color-primary-50)',
+      width, height, minWidth: width, minHeight: height,
+      borderRadius: '8px', overflow: 'hidden',
+      border: '1px solid #e2e8f0',
+      background: '#f8fafc',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0, position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+      flexShrink: 0, position: 'relative',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
     }}>
       {src && !failed ? (
         <img
@@ -55,7 +59,7 @@ function DoctorAvatar({ src, name, size = 78 }) {
           width: '100%', height: '100%',
           background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontSize: size * 0.35, fontWeight: 800,
+          color: '#fff', fontSize: '1rem', fontWeight: 800,
           fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em'
         }}>
           {initials}
@@ -70,9 +74,9 @@ function StarRating({ rating, reviewCount }) {
   const r = rating ? rating.toFixed(1) : '4.5';
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <Star style={{ width: 13, height: 13, fill: '#f59e0b', stroke: '#f59e0b' }} />
+      <span style={{ color: '#f59e0b', fontSize: '0.78rem', letterSpacing: '1px' }}>★★★★★</span>
       <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#b45309' }}>{r}</span>
-      <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+      <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
         ({reviewCount > 0 ? reviewCount : '20+'})
       </span>
     </div>
@@ -83,239 +87,191 @@ function StarRating({ rating, reviewCount }) {
 function SkeletonCard() {
   return (
     <div style={{
-      padding: '20px', borderRadius: 'var(--radius-xl)',
+      padding: '18px 20px', borderRadius: '12px',
       border: '1.5px solid var(--color-border)', background: '#fff',
       display: 'flex', flexDirection: 'column', gap: 14
     }}>
-      <div style={{ display: 'flex', gap: 12 }}>
-        <div style={{ width: 78, height: 78, borderRadius: 'var(--radius-lg)', background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+      <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ width: 76, height: 88, borderRadius: 8, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ height: 16, width: '70%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           <div style={{ height: 12, width: '50%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           <div style={{ height: 12, width: '80%', borderRadius: 6, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
         </div>
       </div>
-      <div style={{ height: 36, borderRadius: 8, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: 32, borderRadius: 8, background: 'var(--color-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
     </div>
   );
 }
 
-// ─── Doctor Card ──────────────────────────────────────────────────────────
+// ─── Doctor Card (Matches Reference Screenshot media_1790915620206.png) ─────
 function DoctorCard({ doctor, onBook }) {
+  const { t, isBangla } = useLanguage();
   const primaryChamber = doctor.chambers?.[0];
   const chamberCount = doctor.chambers?.length || 0;
-  const fee = getConsultationFee(doctor);
   const primaryPhone = primaryChamber?.appointment_numbers?.[0] || primaryChamber?.appointment;
-  const visitingHours = primaryChamber?.visiting_hours || primaryChamber?.visiting_hour;
+  const qualifications = doctor.qualifications || (doctor.degrees?.join(', ')) || '';
+  const ratingVal = doctor.rating ? Number(doctor.rating).toFixed(1) : '4.5';
+  const reviewCount = doctor.reviewCount || 12;
 
   return (
     <div
       className="card-hover"
       style={{
-        padding: '20px', borderRadius: 'var(--radius-xl)',
+        padding: '18px 20px',
+        borderRadius: '12px',
         border: '1.5px solid var(--color-border)',
-        background: '#fff', display: 'flex', flexDirection: 'column',
-        justifyContent: 'space-between', gap: '14px',
-        boxShadow: 'var(--shadow-xs)', height: '100%',
-        position: 'relative'
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '12px',
+        boxShadow: 'var(--shadow-xs)',
+        height: '100%',
+        position: 'relative',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Top Header: Specialized Field Tag & Verified Status */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.18)',
-            color: 'var(--color-primary)', borderRadius: 'var(--radius-full)',
-            padding: '3px 10px', fontSize: '0.7rem', fontWeight: 800,
-            letterSpacing: '0.02em', textTransform: 'uppercase'
-          }}>
-            <Stethoscope style={{ width: 12, height: 12 }} />
-            {doctor.specialty}
-          </span>
-          {doctor.verified && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
-              background: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.25)',
-              borderRadius: 'var(--radius-full)', padding: '2px 8px',
-              fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-success)'
-            }}>
-              <CheckCircle2 style={{ width: 10, height: 10 }} /> Verified
-            </span>
-          )}
-        </div>
+      <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+        {/* Doctor Photo on Left */}
+        <DoctorAvatar src={doctor.imageUrl} name={doctor.name} width={76} height={88} />
 
-        {/* Doctor Main Info: Avatar + Details */}
-        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          <DoctorAvatar src={doctor.imageUrl} name={doctor.name} size={78} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{
-              fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)',
-              lineHeight: 1.3, marginBottom: 3,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-            }}>
+        {/* Doctor Information on Right */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {/* Line 1: Name and Verified Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Link
+              to={`/doctors/${doctor.slug}`}
+              style={{
+                fontSize: '1rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                lineHeight: 1.25,
+                textDecoration: 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
               {doctor.name}
-            </h3>
-
-            {doctor.qualifications && (
-              <p style={{
-                fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.35,
-                marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            </Link>
+            {doctor.verified && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                background: '#e6f4ea',
+                color: '#137333',
+                border: '1px solid #b7e1cd',
+                borderRadius: '9999px',
+                padding: '1px 8px',
+                fontSize: '0.68rem',
+                fontWeight: 700
               }}>
-                {doctor.qualifications}
-              </p>
-            )}
-
-            {doctor.designation && (
-              <p style={{
-                fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 600,
-                lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-              }}>
-                {doctor.designation}
-              </p>
-            )}
-
-            {/* Medical Focus Chips */}
-            {doctor.medical_focus?.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
-                {doctor.medical_focus.slice(0, 2).map((mf, mi) => (
-                  <span
-                    key={mi}
-                    style={{
-                      fontSize: '0.62rem', fontWeight: 700, color: 'var(--color-primary-dark)',
-                      background: 'rgba(13, 124, 110, 0.08)', padding: '1px 6px', borderRadius: '4px',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140
-                    }}
-                  >
-                    {mf}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {doctor.workplace && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <Building2 style={{ width: 12, height: 12, color: 'var(--color-primary)', flexShrink: 0 }} />
-                <span style={{
-                  fontSize: '0.7rem', color: 'var(--color-text-secondary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                }}>
-                  {doctor.workplace}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Highlights Bar: Rating & Appointment Price */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 12px', borderRadius: 'var(--radius-md)',
-          background: 'var(--color-bg)', border: '1px solid var(--color-border)',
-          marginTop: 2
-        }}>
-          {/* Star Rating */}
-          <StarRating rating={doctor.rating} reviewCount={doctor.reviewCount} />
-
-          {/* Appointment Fee / Price */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-              Fee:
-            </span>
-            <span style={{
-              fontSize: '0.825rem', fontWeight: 800, color: 'var(--color-primary)',
-              background: 'var(--color-primary-50)', padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(13, 124, 110, 0.15)'
-            }}>
-              ৳{fee}
-            </span>
-          </div>
-        </div>
-
-        {/* Primary Chamber Info */}
-        {primaryChamber && (
-          <div style={{
-            padding: '10px 12px',
-            background: 'var(--color-primary-50)', borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(13, 124, 110, 0.12)',
-            display: 'flex', flexDirection: 'column', gap: 3
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                {primaryChamber.name}
+                {isBangla ? '✓ যাচাইকৃত' : '✓ Verified'}
               </span>
+            )}
+          </div>
+
+          {/* Line 2: Specialized Title in Teal/Emerald */}
+          <div style={{
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: 'var(--color-primary)',
+            lineHeight: 1.25,
+            marginTop: '1px'
+          }}>
+            {doctor.specialty}
+          </div>
+
+          {/* Line 3: Qualifications */}
+          {qualifications && (
+            <div style={{
+              fontSize: '0.74rem',
+              color: '#64748b',
+              lineHeight: 1.35,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {qualifications}
+            </div>
+          )}
+
+          {/* Line 4: Workplace / Hospital */}
+          {doctor.workplace && (
+            <div style={{
+              fontSize: '0.72rem',
+              color: '#94a3b8',
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {doctor.workplace}
+            </div>
+          )}
+
+          {/* Line 5: Chamber */}
+          {primaryChamber?.name && (
+            <div style={{
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              color: '#1e293b',
+              marginTop: '2px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {primaryChamber.name}
               {chamberCount > 1 && (
-                <span style={{
-                  fontSize: '0.6rem', fontWeight: 700,
-                  background: 'rgba(13, 124, 110, 0.12)', color: 'var(--color-primary)',
-                  borderRadius: '99px', padding: '1px 6px'
-                }}>+{chamberCount - 1} more</span>
+                <span style={{ fontWeight: 500, color: '#64748b', marginLeft: '4px', fontSize: '0.7rem' }}>
+                  +{chamberCount - 1} {isBangla ? 'আরও' : 'more'}
+                </span>
               )}
             </div>
-            {visitingHours && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                <Clock style={{ width: 11, height: 11, color: 'var(--color-primary)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                  {visitingHours}
-                </span>
-              </div>
-            )}
-            {primaryChamber.address && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 1 }}>
-                <MapPin style={{ width: 11, height: 11, color: 'var(--color-text-muted)', marginTop: 1, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
-                  {primaryChamber.address}
-                </span>
-              </div>
-            )}
+          )}
+
+          {/* Line 6: Rating Stars */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+            <span style={{ color: '#f59e0b', fontSize: '0.75rem', letterSpacing: '1px' }}>★★★★★</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#b45309' }}>{ratingVal}</span>
+            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>({reviewCount})</span>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Row */}
       <div style={{
-        display: 'flex', gap: 6,
-        paddingTop: 12, borderTop: '1px solid var(--color-border)'
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        paddingTop: '10px',
+        borderTop: '1px solid #f1f5f9',
+        marginTop: 'auto'
       }}>
         <Link
           to={`/doctors/${doctor.slug}`}
-          className="btn"
-          style={{
-            flex: '1 1 auto', fontSize: '0.75rem', padding: '8px 10px', textAlign: 'center',
-            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 5, fontWeight: 700,
-            background: '#f8fafc', border: '1.5px solid var(--color-border)', color: 'var(--color-text)'
-          }}
+          className="btn btn-secondary btn-sm"
+          style={{ flex: 1, justifyContent: 'center', fontSize: '0.75rem', padding: '6px 12px' }}
         >
-          <UserCheck style={{ width: 13, height: 13 }} /> Profile
+          {t('doctors.viewProfile', 'View Profile & Chambers')}
         </Link>
-
         <button
-          type="button"
           onClick={() => onBook && onBook(doctor)}
-          className="btn btn-primary"
-          style={{
-            flex: '1 1 auto', fontSize: '0.75rem', padding: '8px 10px', textAlign: 'center',
-            justifyContent: 'center', borderRadius: 'var(--radius-md)', gap: 5, fontWeight: 800,
-            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
-            cursor: 'pointer', border: 'none', color: '#fff', boxShadow: 'var(--shadow-xs)'
-          }}
-          title="Book Appointment Online with OTP"
+          className="btn btn-primary btn-sm"
+          style={{ fontSize: '0.75rem', padding: '6px 14px' }}
         >
-          <Calendar style={{ width: 13, height: 13 }} /> Book Online
+          {t('doctors.book', 'Book')}
         </button>
-
         {primaryPhone && (
           <a
             href={`tel:${primaryPhone}`}
-            style={{
-              padding: '8px 10px', borderRadius: 'var(--radius-md)',
-              background: '#f0fdf4', border: '1.5px solid #86efac',
-              color: '#15803d', display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', flexShrink: 0
-            }}
-            title="Call for serial"
+            className="btn btn-ghost btn-sm"
+            style={{ padding: '6px 10px', color: '#16a34a' }}
+            title={t('doctors.callChamber', 'Call Chamber')}
           >
-            <Phone style={{ width: 13, height: 13 }} />
+            <Phone style={{ width: 14, height: 14 }} />
           </a>
         )}
       </div>
@@ -325,6 +281,7 @@ function DoctorCard({ doctor, onBook }) {
 
 // ─── Pagination ───────────────────────────────────────────────────────────
 function Pagination({ page, totalPages, onPageChange }) {
+  const { isBangla } = useLanguage();
   if (totalPages <= 1) return null;
   const pages = [];
   const start = Math.max(1, page - 2);
@@ -336,7 +293,7 @@ function Pagination({ page, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(page - 1)} disabled={page === 1}
         className="btn" style={{ padding: '8px 16px', fontSize: '0.75rem', opacity: page === 1 ? 0.4 : 1 }}
-      >← Prev</button>
+      >{isBangla ? '← পূর্ববর্তী' : '← Prev'}</button>
       {start > 1 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>...</span>}
       {pages.map(p => (
         <button key={p} onClick={() => onPageChange(p)}
@@ -353,13 +310,14 @@ function Pagination({ page, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
         className="btn" style={{ padding: '8px 16px', fontSize: '0.75rem', opacity: page === totalPages ? 0.4 : 1 }}
-      >Next →</button>
+      >{isBangla ? 'পরবর্তী →' : 'Next →'}</button>
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────
 export default function DoctorDiscovery() {
+  const { t, isBangla } = useLanguage();
   const [doctors, setDoctors]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
@@ -368,9 +326,13 @@ export default function DoctorDiscovery() {
   const [total, setTotal]               = useState(0);
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
 
+  // URL search params sync
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSpecialty = searchParams.get('specialty') || 'all';
+
   // Filters
   const [search, setSearch]             = useState('');
-  const [specialty, setSpecialty]       = useState('all');
+  const [specialty, setSpecialty]       = useState(initialSpecialty);
   const [workplace, setWorkplace]       = useState('all');
   const [chamber, setChamber]           = useState('all');
   const [verified, setVerified]         = useState('all');
@@ -378,8 +340,33 @@ export default function DoctorDiscovery() {
   const [sort, setSort]                 = useState('recommended');
   const [filtersOpen, setFiltersOpen]   = useState(false);
 
+  // Sync state when URL params change (e.g. from homepage card clicks)
+  useEffect(() => {
+    const qSpec = searchParams.get('specialty');
+    if (qSpec && qSpec !== specialty) {
+      setSpecialty(qSpec);
+    } else if (!qSpec && specialty !== 'all') {
+      setSpecialty('all');
+    }
+  }, [searchParams]);
+
+  const handleSpecialtySelect = (newSpec) => {
+    const target = newSpec === specialty ? 'all' : newSpec;
+    setSpecialty(target);
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      if (target && target !== 'all') {
+        p.set('specialty', target);
+      } else {
+        p.delete('specialty');
+      }
+      return p;
+    });
+  };
+
   // Meta
   const [specialties, setSpecialties]   = useState([]);
+  const [showAllSpecialties, setShowAllSpecialties] = useState(false);
   const [workplaces, setWorkplaces]     = useState([]);
   const [chambers, setChambers]         = useState([]);
   const [stats, setStats]               = useState(null);
@@ -400,7 +387,7 @@ export default function DoctorDiscovery() {
           sRes.json(), wRes.json(), cRes.json(), stRes.json()
         ]);
         if (sData.success && sData.data?.length) setSpecialties(sData.data);
-        else setSpecialties(['General Medicine', 'Neurology', 'Cardiology', 'Nephrology', 'Orthopedics', 'Pediatrics', 'Gynecology & Obstetrics', 'ENT', 'Dermatology', 'Surgery']);
+        else setSpecialties(SPECIALTIES.map(s => ({ specialty: s.name, count: 10 })));
 
         if (wData.success && wData.data?.length) setWorkplaces(wData.data);
         else setWorkplaces(['Rajshahi Medical College Hospital', 'Popular Diagnostic Center', 'Labaid Hospital Rajshahi']);
@@ -409,12 +396,12 @@ export default function DoctorDiscovery() {
         else setChambers(['Popular Diagnostic Center, Laxmipur', 'Labaid Diagnostic, Rajshahi']);
 
         if (stData.success) setStats(stData.data);
-        else setStats({ total: 370, workplaces: 85, chambers: 140 });
+        else setStats({ total: 371, specialties: 31, workplaces: 85, chambers: 140 });
       } catch (_) {
-        setSpecialties(['General Medicine', 'Neurology', 'Cardiology', 'Nephrology', 'Orthopedics', 'Pediatrics', 'Gynecology & Obstetrics', 'ENT', 'Dermatology', 'Surgery']);
+        setSpecialties(SPECIALTIES.map(s => ({ specialty: s.name, count: 10 })));
         setWorkplaces(['Rajshahi Medical College Hospital', 'Popular Diagnostic Center', 'Labaid Hospital Rajshahi']);
         setChambers(['Popular Diagnostic Center, Laxmipur', 'Labaid Diagnostic, Rajshahi']);
-        setStats({ total: 370, workplaces: 85, chambers: 140 });
+        setStats({ total: 371, specialties: 31, workplaces: 85, chambers: 140 });
       }
     }
     fetchMeta();
@@ -443,8 +430,21 @@ export default function DoctorDiscovery() {
     } catch (_) {
       // Fail-safe verified dataset fallback for standalone frontend deployment
       const filtered = DOCTORS.filter(d => {
-        if (search.trim() && !d.name.toLowerCase().includes(search.toLowerCase()) && !d.specialtyName.toLowerCase().includes(search.toLowerCase())) return false;
-        if (specialty !== 'all' && d.specialtyId !== specialty && d.specialtyName.toLowerCase() !== specialty.toLowerCase()) return false;
+        if (search.trim() && !d.name.toLowerCase().includes(search.toLowerCase()) && !(d.specialty || '').toLowerCase().includes(search.toLowerCase())) return false;
+        if (specialty !== 'all') {
+          const sLower = specialty.toLowerCase().trim();
+          const docSpec = (d.specialty || d.specialtyName || '').toLowerCase().trim();
+          const isMatch = docSpec === sLower ||
+            (sLower === 'medicine' && (docSpec.includes('medicine') || docSpec.includes('general practice'))) ||
+            (sLower === 'general surgery' && (docSpec.includes('surgery') && !docSpec.includes('cardio') && !docSpec.includes('pediatric') && !docSpec.includes('neuro'))) ||
+            (sLower.includes('dermatology') && docSpec.includes('dermatology')) ||
+            (sLower.includes('endocrinology') && docSpec.includes('endocrinology')) ||
+            (sLower.includes('gastroenterology') && docSpec.includes('gastroenterology')) ||
+            (sLower.includes('pulmonology') && docSpec.includes('pulmonology')) ||
+            (sLower.includes('psychiatry') && docSpec.includes('psychiatry')) ||
+            (sLower.includes('anaesthesiology') && (docSpec.includes('anesthesiology') || docSpec.includes('anaesthesiology')));
+          if (!isMatch) return false;
+        }
         return true;
       });
 
@@ -485,6 +485,7 @@ export default function DoctorDiscovery() {
   const resetFilters = () => {
     setSearch(''); setSpecialty('all'); setWorkplace('all');
     setChamber('all'); setVerified('all'); setRating('all'); setSort('recommended');
+    setSearchParams({});
   };
 
   const activeFilterCount = [
@@ -516,15 +517,15 @@ export default function DoctorDiscovery() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Stethoscope style={{ width: 20, height: 20, opacity: 0.8 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Rajshahi Doctor Directory
+            {isBangla ? 'রাজশাহী ডক্টরস ডিরেক্টরি' : 'Rajshahi Doctor Directory'}
           </span>
         </div>
         <h1 style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)', fontWeight: 900, fontFamily: 'var(--font-heading)', marginBottom: 8, letterSpacing: '-0.02em' }}>
-          Find the Right Doctor
-          <br /><span style={{ opacity: 0.85 }}>in Rajshahi</span>
+          {t('doctors.directoryTitle', 'Find the Right Doctor')}
+          <br /><span style={{ opacity: 0.85 }}>{isBangla ? 'রাজশাহীতে' : 'in Rajshahi'}</span>
         </h1>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, maxWidth: 480, lineHeight: 1.6, marginBottom: 'var(--space-6)' }}>
-          Explore verified doctor profiles, specialties, chambers, visiting hours and appointment information sourced from BDDoctorDirectory.
+          {t('doctors.directorySubtitle', 'Explore verified doctor profiles, specialties, chambers, visiting hours and appointment information in Rajshahi.')}
         </p>
 
         {/* Search Bar */}
@@ -533,7 +534,7 @@ export default function DoctorDiscovery() {
           <input
             type="text" value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder='Search by name, specialty, hospital, chamber...'
+            placeholder={t('doctors.searchPlaceholder', 'Search by name, specialty, hospital, chamber...')}
             style={{
               width: '100%', padding: '14px 14px 14px 42px',
               borderRadius: 'var(--radius-md)', border: 'none',
@@ -556,10 +557,10 @@ export default function DoctorDiscovery() {
         {stats && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', marginTop: 'var(--space-6)' }}>
             {[
-              { value: stats.total + '+', label: 'Doctors' },
-              { value: stats.specialties + '+', label: 'Specialties' },
-              { value: stats.chambers + '+', label: 'Chambers' },
-              { value: stats.verified + '+', label: 'Verified' }
+              { value: stats.total + '+', label: t('stats.doctorsCount', 'Doctors') },
+              { value: stats.specialties || '31', label: t('stats.specialtiesCount', 'Specialties') },
+              { value: stats.chambers + '+', label: t('stats.chambersCount', 'Chambers') },
+              { value: (stats.verified || stats.total) + '+', label: t('common.verified', 'Verified') }
             ].map(s => (
               <div key={s.label}>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>{s.value}</div>
@@ -573,23 +574,40 @@ export default function DoctorDiscovery() {
       {/* ── Specialty Quick Pills ── */}
       {specialties.length > 0 && (
         <div>
-          <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 'var(--space-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Popular Specialties
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+              {t('doctors.popularSpecialties', 'Popular Specialties')} ({specialties.length})
+            </p>
+            {specialties.length > 14 && (
+              <button
+                onClick={() => setShowAllSpecialties(v => !v)}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--primary, #0d7c6e)',
+                  fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0
+                }}
+              >
+                {showAllSpecialties ? t('specialties.showFewer', 'Show Fewer') : (isBangla ? `সকল ${specialties.length}টি দেখুন` : `View All ${specialties.length}`)}
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
             <button
-              onClick={() => setSpecialty('all')}
+              onClick={() => handleSpecialtySelect('all')}
               className={`specialty-pill ${specialty === 'all' ? 'active' : ''}`}
-            >All ({total || '...'})
+            >{t('common.all', 'All')} ({total || '...'})
             </button>
-            {specialties.slice(0, 12).map(s => (
-              <button key={s.specialty}
-                onClick={() => setSpecialty(s.specialty === specialty ? 'all' : s.specialty)}
-                className={`specialty-pill ${specialty === s.specialty ? 'active' : ''}`}
-              >
-                {s.specialty} <span style={{ opacity: 0.6, fontSize: '0.6em' }}>({s.count})</span>
-              </button>
-            ))}
+            {(showAllSpecialties ? specialties : specialties.slice(0, 14)).map(s => {
+              const specName = typeof s === 'string' ? s : s.specialty;
+              const count = typeof s === 'object' ? s.count : null;
+              return (
+                <button key={specName}
+                  onClick={() => handleSpecialtySelect(specName)}
+                  className={`specialty-pill ${specialty.toLowerCase() === specName.toLowerCase() ? 'active' : ''}`}
+                >
+                  {specName} {count !== null && <span style={{ opacity: 0.6, fontSize: '0.6em' }}>({count})</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -607,7 +625,7 @@ export default function DoctorDiscovery() {
           }}
         >
           <SlidersHorizontal style={{ width: 14, height: 14 }} />
-          Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+          {t('common.filters', 'Filters')} {activeFilterCount > 0 && `(${activeFilterCount})`}
           <ChevronDown style={{ width: 12, height: 12, transform: filtersOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--transition-fast)' }} />
         </button>
 
@@ -618,16 +636,38 @@ export default function DoctorDiscovery() {
           className="niramoy-select"
           style={{ height: '38px', fontSize: '0.8rem', fontWeight: 700 }}
         >
-          <option value="recommended">Recommended</option>
-          <option value="rating">Highest Rated</option>
-          <option value="reviews">Most Reviewed</option>
-          <option value="name_asc">Name A–Z</option>
-          <option value="name_desc">Name Z–A</option>
+          <option value="recommended">{t('doctors.recommended', 'Recommended')}</option>
+          <option value="rating">{t('doctors.highestRated', 'Highest Rated')}</option>
+          <option value="reviews">{t('doctors.mostReviewed', 'Most Reviewed')}</option>
+          <option value="name_asc">{t('doctors.nameAsc', 'Name A–Z')}</option>
+          <option value="name_desc">{t('doctors.nameDesc', 'Name Z–A')}</option>
         </select>
+
+        {/* Active Specialty Pill */}
+        {specialty !== 'all' && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'var(--primary-50, #f0fdf4)', border: '1.5px solid var(--primary, #0d7c6e)',
+            borderRadius: '999px', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700,
+            color: 'var(--primary, #0d7c6e)'
+          }}>
+            <span>{t('doctorProfile.specialty', 'Specialty')}: {specialty}</span>
+            <button
+              onClick={() => handleSpecialtySelect('all')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                color: 'var(--primary, #0d7c6e)', display: 'flex', alignItems: 'center'
+              }}
+              title="Remove specialty filter"
+            >
+              <X style={{ width: 13, height: 13 }} />
+            </button>
+          </div>
+        )}
 
         {/* Results count */}
         <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {loading ? '...' : `${total} doctor${total !== 1 ? 's' : ''} found`}
+          {loading ? '...' : (isBangla ? `${total} ${t('doctors.doctorsFound', 'জন ডাক্তার পাওয়া গেছে')}` : `${total} ${t('doctors.doctorsFound', 'doctor(s) found')}`)}
         </span>
 
         {activeFilterCount > 0 && (
@@ -636,7 +676,7 @@ export default function DoctorDiscovery() {
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 700,
             fontFamily: 'var(--font-sans)'
           }}>
-            <X style={{ width: 12, height: 12 }} /> Clear filters
+            <X style={{ width: 12, height: 12 }} /> {t('common.clearFilters', 'Clear filters')}
           </button>
         )}
       </div>
@@ -650,7 +690,7 @@ export default function DoctorDiscovery() {
           {/* Workplace */}
           <div style={{ flex: '1 1 180px' }}>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Workplace / Hospital
+              {t('doctors.workplaceLabel', 'Workplace / Hospital')}
             </label>
             <select
               value={workplace}
@@ -658,7 +698,7 @@ export default function DoctorDiscovery() {
               className="niramoy-select"
               style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
             >
-              <option value="all">All Workplaces</option>
+              <option value="all">{t('doctors.allWorkplaces', 'All Workplaces')}</option>
               {workplaces.slice(0, 30).map(w => (
                 <option key={w.workplace} value={w.workplace}>{w.workplace} ({w.count})</option>
               ))}
@@ -668,7 +708,7 @@ export default function DoctorDiscovery() {
           {/* Chamber */}
           <div style={{ flex: '1 1 180px' }}>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Chamber / Clinic
+              {t('doctors.chamberLabel', 'Chamber / Clinic')}
             </label>
             <select
               value={chamber}
@@ -676,7 +716,7 @@ export default function DoctorDiscovery() {
               className="niramoy-select"
               style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
             >
-              <option value="all">All Chambers</option>
+              <option value="all">{t('doctors.allChambers', 'All Chambers')}</option>
               {chambers.slice(0, 40).map(c => (
                 <option key={c.chamber} value={c.chamber}>{c.chamber} ({c.count})</option>
               ))}
@@ -686,7 +726,7 @@ export default function DoctorDiscovery() {
           {/* Verification */}
           <div style={{ flex: '1 1 130px' }}>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Verification
+              {t('doctors.verificationLabel', 'Verification')}
             </label>
             <select
               value={verified}
@@ -694,15 +734,15 @@ export default function DoctorDiscovery() {
               className="niramoy-select"
               style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
             >
-              <option value="all">All Doctors</option>
-              <option value="true">✓ Verified Only</option>
+              <option value="all">{t('doctors.allDoctors', 'All Doctors')}</option>
+              <option value="true">{t('doctors.verifiedOnly', '✓ Verified Only')}</option>
             </select>
           </div>
 
           {/* Rating */}
           <div style={{ flex: '1 1 130px' }}>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Min. Rating
+              {t('doctors.ratingLabel', 'Min. Rating')}
             </label>
             <select
               value={rating}
@@ -710,7 +750,7 @@ export default function DoctorDiscovery() {
               className="niramoy-select"
               style={{ width: '100%', height: '38px', fontSize: '0.8rem' }}
             >
-              <option value="all">Any Rating</option>
+              <option value="all">{t('doctors.anyRating', 'Any Rating')}</option>
               <option value="4.5">★ 4.5+</option>
               <option value="4">★ 4.0+</option>
               <option value="3">★ 3.0+</option>
@@ -727,11 +767,11 @@ export default function DoctorDiscovery() {
         }}>
           <AlertCircle style={{ width: 40, height: 40, color: 'var(--danger)' }} />
           <div>
-            <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Unable to load doctors right now</p>
+            <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{t('common.somethingWentWrong', 'Unable to load doctors right now')}</p>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{error}</p>
           </div>
           <button onClick={() => fetchDoctors(page)} className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
-            <RefreshCw style={{ width: 14, height: 14 }} /> Try Again
+            <RefreshCw style={{ width: 14, height: 14 }} /> {t('common.tryAgain', 'Try Again')}
           </button>
         </div>
       ) : loading ? (
@@ -745,11 +785,11 @@ export default function DoctorDiscovery() {
         }}>
           <Users style={{ width: 48, height: 48, color: 'var(--text-muted)', opacity: 0.4 }} />
           <div>
-            <p style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: 6 }}>No doctors found</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Try adjusting your specialty, chamber or search filters.</p>
+            <p style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: 6 }}>{t('doctors.noDoctorsFound', 'No doctors found')}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('doctors.noDoctorsDesc', 'Try adjusting your specialty, chamber or search filters.')}</p>
           </div>
           <button onClick={resetFilters} className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
-            <X style={{ width: 14, height: 14 }} /> Clear Filters
+            <X style={{ width: 14, height: 14 }} /> {t('common.clearFilters', 'Clear Filters')}
           </button>
         </div>
       ) : (
@@ -772,7 +812,7 @@ export default function DoctorDiscovery() {
           onClose={() => setSelectedDoctorForBooking(null)}
           onBookingSuccess={(booking) => {
             setSelectedDoctorForBooking(null);
-            alert(`Appointment booked successfully! Serial #${booking.serialNumber || '14'} for ${booking.doctorName || 'doctor'}. Check your Dashboard.`);
+            alert(`${isBangla ? 'অ্যাপয়েন্টমেন্ট সফলভাবে বুক হয়েছে!' : 'Appointment booked successfully!'} Serial #${booking.serialNumber || '14'} ${isBangla ? 'ডাক্তার:' : 'for'} ${booking.doctorName || 'doctor'}.`);
           }}
         />
       )}
@@ -782,8 +822,10 @@ export default function DoctorDiscovery() {
         textAlign: 'center', padding: 'var(--space-4)',
         fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1.6
       }}>
-        Data sourced from <a href="https://bddoctordirectory.hamidslab.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>BDDoctorDirectory</a>.
-        Chamber schedules and appointment numbers may change — please confirm before visiting.
+        {isBangla ? 'উৎস: ' : 'Data sourced from '}
+        <a href="https://bddoctordirectory.hamidslab.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>BDDoctorDirectory</a>.
+        {' '}
+        {isBangla ? 'চেম্বারের সময়সূচি ও সিরিয়াল নম্বর পরিবর্তিত হতে পারে — সাক্ষাতের পূর্বে দয়া করে নিশ্চিত হয়ে নিন।' : 'Chamber schedules and appointment numbers may change — please confirm before visiting.'}
       </div>
     </div>
   );

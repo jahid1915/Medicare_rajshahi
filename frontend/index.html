@@ -34,8 +34,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Security & Content Security Policy (Zero Third-Party Trackers) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com; font-src 'self' data:; connect-src 'self' https://*.vercel.app https://ickofuqtxsexxyjenmac.supabase.co https://sandbox.sslcommerz.com https://securepay.sslcommerz.com http://localhost:* ws://localhost:*; frame-src 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com;" />
+    <!-- Security & Content Security Policy (Zero Third-Party Trackers, Google Fonts for Bengali Typography) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://images.unsplash.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.vercel.app https://ickofuqtxsexxyjenmac.supabase.co https://sandbox.sslcommerz.com https://securepay.sslcommerz.com http://localhost:* ws://localhost:*; frame-src 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sandbox.sslcommerz.com https://securepay.sslcommerz.com;" />
+
+    <!-- Google Fonts for Bengali & Latin Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Schema.org Medical Organization Structured Data (Establishes site credibility) -->
     <script type="application/ld+json">

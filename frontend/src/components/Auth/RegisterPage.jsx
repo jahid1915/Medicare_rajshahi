@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import { hospitalsAPI, pharmaciesAPI } from '../../services/api';
 import NiramoyLogo from '../Common/NiramoyLogo';
 import LegalContextModal from '../Legal/LegalContextModal';
@@ -86,6 +87,7 @@ const ROLE_CONFIG = [
 
 export default function RegisterPage() {
   const { register, sendOtp, verifyOtp, isAuthenticated, user } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || null;
@@ -405,22 +407,34 @@ export default function RegisterPage() {
       <div className="auth-form-side" style={{ padding: 'var(--sp-8) var(--sp-4)' }}>
         <div className="auth-form-card" style={{ maxWidth: 580, padding: '36px 32px' }}>
           <h1 className="auth-form-card__title" style={{ fontSize: '1.65rem', marginBottom: 4 }}>
-            {activeRole === 'patient' ? 'Become a Member' : 'Create Niramoy Account'}
+            {activeRole === 'patient'
+              ? (language === 'bn' ? 'সদস্য হিসেবে যুক্ত হোন' : 'Become a Member')
+              : (language === 'bn' ? 'Niramoy অ্যাকাউন্ট তৈরি করুন' : 'Create Niramoy Account')}
           </h1>
           <p className="auth-form-card__subtitle" style={{ marginBottom: 20 }}>
-            Already registered?{' '}
-            <Link to="/signin" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Enter Portal</Link>
+            {language === 'bn' ? 'ইতিমধ্যে অ্যাকাউন্ট আছে? ' : 'Already registered? '}
+            <Link to="/signin" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+              {language === 'bn' ? 'পোর্টাল প্রবেশ করুন' : 'Enter Portal'}
+            </Link>
           </p>
 
           {/* Role Switcher Tabs */}
           <div style={{ marginBottom: 24 }}>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Select Account Type
+              {language === 'bn' ? 'অ্যাকাউন্টের ধরন নির্বাচন করুন' : 'Select Account Type'}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
               {ROLE_CONFIG.map(r => {
                 const isSelected = activeRole === r.id;
                 const Icon = r.icon;
+                const roleLabels = {
+                  patient: { en: 'Patient', bn: 'রোগী' },
+                  doctor: { en: 'Doctor', bn: 'ডাক্তার' },
+                  pharmacy_owner: { en: 'Pharmacy', bn: 'ফার্মেসি' },
+                  hospital_admin: { en: 'Hospital', bn: 'হাসপাতাল' },
+                  ambulance_op: { en: 'Ambulance', bn: 'অ্যাম্বুলেন্স' }
+                };
+                const displayLabel = roleLabels[r.id]?.[language] || r.label;
                 return (
                   <button
                     key={r.id}
@@ -436,7 +450,7 @@ export default function RegisterPage() {
                   >
                     <Icon style={{ width: 20, height: 20, color: isSelected ? r.color : 'var(--color-text-muted)' }} />
                     <span style={{ fontSize: '11px', fontWeight: isSelected ? 800 : 600, color: isSelected ? r.color : 'var(--color-text-primary)', textAlign: 'center', lineHeight: 1.2 }}>
-                      {r.label}
+                      {displayLabel}
                     </span>
                   </button>
                 );

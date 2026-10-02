@@ -163,7 +163,13 @@ export const doctorsAPI = {
   getById: (id) => request("GET", `/doctors/${id}`),
   getBranches: (id) => request("GET", `/doctors/${id}/branches`),
   getBranchSchedules: (id, branchId) => request("GET", `/doctors/${id}/branches/${branchId}/schedules`),
-  getAvailableSlots: (id, branchId, date) => request("GET", `/doctors/${id}/branches/${branchId}/slots?date=${date}`)
+  getAvailableSlots: (id, branchId, date) => request("GET", `/doctors/${id}/branches/${branchId}/slots?date=${date}`),
+  getMe: () => request("GET", "/doctors/me", null, true),
+  updateMe: (body) => request("PUT", "/doctors/me", body, true),
+  getMyPatients: () => request("GET", "/doctors/me/patients", null, true),
+  getMySchedule: () => request("GET", "/doctors/me/schedule", null, true),
+  toggleSlotAvailability: (body) => request("POST", "/doctors/me/schedule/slot-toggle", body, true),
+  getMyStats: () => request("GET", "/doctors/me/stats", null, true)
 };
 
 // Appointments API
@@ -277,6 +283,6 @@ export const notificationsAPI = {
 
 // AI Healthcare & Navigation API
 export const aiAPI = {
-  chat: (message) => request("POST", "/ai/chat", { message })
+  chat: (message, language = 'en') => request("POST", "/ai/chat", { message, language })
 };
 

@@ -25,12 +25,14 @@ import {
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../i18n";
 import { pharmacyOrdersAPI } from "../../services/api";
 import { addAuditLog, getStoredState, saveStoredState } from "../../data/mockUserStore";
 
 export default function MedicineCart() {
   const navigate = useNavigate();
   const { user, sendOtp, verifyPatientCheckout } = useAuth();
+  const { language, t } = useLanguage();
   const {
     groupedByPharmacy,
     updateQuantity,
@@ -323,15 +325,15 @@ export default function MedicineCart() {
               marginBottom: "0.5rem"
             }}
           >
-            <ArrowLeft size={16} /> Continue Shopping
+            <ArrowLeft size={16} /> {language === 'bn' ? 'ওষুধ নির্বাচন চালিয়ে যান' : 'Continue Shopping'}
           </Link>
           <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
-            Medicine Cart & Checkout
+            {language === 'bn' ? 'ওষুধের কার্ট ও চেকআউট' : 'Medicine Cart & Checkout'}
           </h1>
         </div>
 
         <span style={{ fontSize: "1rem", color: "var(--color-text-secondary, #2f4847)", fontWeight: 700, background: "var(--color-surface-2, #f0f5f4)", padding: "0.35rem 0.85rem", borderRadius: "999px", border: "1px solid var(--color-border, #e2eceb)" }}>
-          {totalItemsCount} item{totalItemsCount !== 1 ? "s" : ""}
+          {totalItemsCount} {language === 'bn' ? 'টি পণ্য' : (totalItemsCount !== 1 ? "items" : "item")}
         </span>
       </div>
 
@@ -349,14 +351,16 @@ export default function MedicineCart() {
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
             <CheckCircle2 size={24} color="#0f8a3c" />
             <h3 style={{ margin: 0, color: "#0f8a3c", fontSize: "1.2rem", fontWeight: 800 }}>
-              Order Placed Successfully!
+              {language === 'bn' ? 'অর্ডার সফলভাবে গ্রহণ করা হয়েছে!' : 'Order Placed Successfully!'}
             </h3>
           </div>
           {completedOrders.map((ord, idx) => (
             <div key={idx} style={{ fontSize: "0.92rem", color: "var(--color-text, #142422)", lineHeight: 1.6 }}>
-              Order Reference: <strong>{ord.order_number}</strong> • Total: <strong>৳{ord.total_amount}</strong> • Status: <span style={{ color: "#c25e00", fontWeight: 700 }}>Pending Confirmation</span>
+              {language === 'bn' ? 'অর্ডার নম্বর:' : 'Order Reference:'} <strong>{ord.order_number}</strong> • {language === 'bn' ? 'মোট:' : 'Total:'} <strong>৳{ord.total_amount}</strong> • {language === 'bn' ? 'অবস্থা:' : 'Status:'} <span style={{ color: "#c25e00", fontWeight: 700 }}>{language === 'bn' ? 'নিশ্চিতকরণের অপেক্ষায়' : 'Pending Confirmation'}</span>
               <br />
-              The pharmacy is reviewing your order. If prescription medicines are included, a registered A-Grade pharmacist will verify the prescription before dispatch.
+              {language === 'bn'
+                ? 'ফার্মেসি আপনার অর্ডার যাচাই করছে। প্রেসক্রিপশন ওষুধ থাকলে এ-গ্রেড ফার্মাসিস্ট যাচাই করার পর ডেলিভারি নিশ্চিত হবে।'
+                : 'The pharmacy is reviewing your order. If prescription medicines are included, a registered A-Grade pharmacist will verify the prescription before dispatch.'}
             </div>
           ))}
           <div style={{ marginTop: "1rem" }}>
@@ -373,7 +377,7 @@ export default function MedicineCart() {
                 fontSize: "0.88rem"
               }}
             >
-              Track Order in Dashboard →
+              {language === 'bn' ? 'ড্যাশবোর্ডে অর্ডার ট্র্যাক করুন →' : 'Track Order in Dashboard →'}
             </Link>
           </div>
         </div>
@@ -383,9 +387,13 @@ export default function MedicineCart() {
       {pharmacyKeys.length === 0 && completedOrders.length === 0 ? (
         <div style={{ textAlign: "center", padding: "5rem 2rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
           <ShoppingCart size={48} style={{ color: "var(--color-text-muted, #47615f)", margin: "0 auto 1rem" }} />
-          <h2 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>Your cart is empty</h2>
+          <h2 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>
+            {t('pharmacy.cartEmpty', 'Your cart is empty')}
+          </h2>
           <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: "0 0 1.5rem", fontSize: "0.95rem" }}>
-            Browse Rajshahi pharmacies or search medicines to add items to your cart.
+            {language === 'bn'
+              ? 'রাজশাহীর ফার্মেসি ব্রাউজ করুন অথবা ওষুধ অনুসন্ধান করে কার্টে যোগ করুন।'
+              : 'Browse Rajshahi pharmacies or search medicines to add items to your cart.'}
           </p>
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
             <Link
@@ -400,7 +408,7 @@ export default function MedicineCart() {
                 boxShadow: "0 4px 12px rgba(13, 124, 110, 0.25)"
               }}
             >
-              Search Medicines
+              {language === 'bn' ? 'ওষুধ খুঁজুন' : 'Search Medicines'}
             </Link>
             <Link
               to="/pharmacies"
@@ -414,7 +422,7 @@ export default function MedicineCart() {
                 fontWeight: 700
               }}
             >
-              Browse Pharmacies
+              {language === 'bn' ? 'ফার্মেসি খুঁজুন' : 'Browse Pharmacies'}
             </Link>
           </div>
         </div>

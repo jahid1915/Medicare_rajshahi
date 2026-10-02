@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { NiramoyIcon } from '../Common/NiramoyLogo';
+import { useLanguage } from '../../i18n';
 
 export default function NiramoyFooter() {
   const currentYear = new Date().getFullYear();
+  const { t, isBangla } = useLanguage();
 
   const handleNavClick = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -37,7 +39,7 @@ export default function NiramoyFooter() {
 
               <div className="footer-contact-item">
                 <MapPin size={17} className="footer-contact-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span>Medical Mor, Laxmipur, Rajshahi - 6000</span>
+                <span>{isBangla ? 'মেডিকেল মোড়, লক্ষ্মীপুর, রাজশাহী - ৬০০০' : 'Medical Mor, Laxmipur, Rajshahi - 6000'}</span>
               </div>
             </div>
 
@@ -75,34 +77,34 @@ export default function NiramoyFooter() {
 
           {/* Column 1: Company */}
           <div className="footer-links-col footer-col-company">
-            <h3 className="footer-col-title">Company</h3>
+            <h3 className="footer-col-title">{isBangla ? 'কোম্পানি' : 'Company'}</h3>
             <div className="footer-links-list">
-              <Link to="/about" onClick={handleNavClick} className="footer-nav-link">About us</Link>
-              <Link to="/health-tips" onClick={handleNavClick} className="footer-nav-link">Health Tips</Link>
-              <Link to="/contact" onClick={handleNavClick} className="footer-nav-link">Contact us</Link>
+              <Link to="/about" onClick={handleNavClick} className="footer-nav-link">{isBangla ? 'আমাদের সম্পর্কে' : 'About us'}</Link>
+              <Link to="/health-tips" onClick={handleNavClick} className="footer-nav-link">{isBangla ? 'স্বাস্থ্য পরামর্শ' : 'Health Tips'}</Link>
+              <Link to="/contact" onClick={handleNavClick} className="footer-nav-link">{t('footer.contactUs', 'Contact us')}</Link>
             </div>
           </div>
 
           {/* Column 2: Services */}
           <div className="footer-links-col footer-col-services">
-            <h3 className="footer-col-title">Services</h3>
+            <h3 className="footer-col-title">{t('footer.medicalServices', 'Services')}</h3>
             <div className="footer-links-list">
-              <Link to="/doctors" onClick={handleNavClick} className="footer-nav-link">Doctors</Link>
-              <Link to="/hospitals" onClick={handleNavClick} className="footer-nav-link">Hospitals and Clinics</Link>
-              <Link to="/ambulance" onClick={handleNavClick} className="footer-nav-link">Ambulance</Link>
-              <Link to="/ai" onClick={handleNavClick} className="footer-nav-link">Niramoy AI</Link>
-              <Link to="/facilities" onClick={handleNavClick} className="footer-nav-link">Find a facility</Link>
+              <Link to="/doctors" onClick={handleNavClick} className="footer-nav-link">{t('nav.doctors', 'Doctors')}</Link>
+              <Link to="/hospitals" onClick={handleNavClick} className="footer-nav-link">{t('nav.hospitals', 'Hospitals and Clinics')}</Link>
+              <Link to="/ambulance" onClick={handleNavClick} className="footer-nav-link">{t('nav.ambulance', 'Ambulance')}</Link>
+              <Link to="/ai" onClick={handleNavClick} className="footer-nav-link">{t('nav.ai', 'Niramoy AI')}</Link>
+              <Link to="/facilities" onClick={handleNavClick} className="footer-nav-link">{t('nav.facilities', 'Find a facility')}</Link>
             </div>
           </div>
 
           {/* Column 3: Legal */}
           <div className="footer-links-col footer-col-legal">
-            <h3 className="footer-col-title">Legal</h3>
+            <h3 className="footer-col-title">{isBangla ? 'আইনি তথ্য' : 'Legal'}</h3>
             <div className="footer-links-list">
-              <Link to="/terms" onClick={handleNavClick} className="footer-nav-link">Terms of Service</Link>
-              <Link to="/privacy" onClick={handleNavClick} className="footer-nav-link">Privacy Policy</Link>
-              <Link to="/cookie-policy" onClick={handleNavClick} className="footer-nav-link">Cookie Policy</Link>
-              <Link to="/disclaimer" onClick={handleNavClick} className="footer-nav-link">Disclaimer</Link>
+              <Link to="/terms" onClick={handleNavClick} className="footer-nav-link">{t('footer.terms', 'Terms of Service')}</Link>
+              <Link to="/privacy" onClick={handleNavClick} className="footer-nav-link">{t('footer.privacy', 'Privacy Policy')}</Link>
+              <Link to="/cookie-policy" onClick={handleNavClick} className="footer-nav-link">{t('footer.cookies', 'Cookie Policy')}</Link>
+              <Link to="/disclaimer" onClick={handleNavClick} className="footer-nav-link">{t('footer.disclaimer', 'Disclaimer')}</Link>
             </div>
           </div>
 
@@ -111,7 +113,7 @@ export default function NiramoyFooter() {
         {/* Bottom Copyright Row */}
         <div className="footer-bottom-row">
           <p className="footer-copyright">
-            © {currentYear} Niramoy. All rights reserved.
+            {t('footer.copyright', `© ${currentYear} Niramoy. All rights reserved.`)}
           </p>
         </div>
 

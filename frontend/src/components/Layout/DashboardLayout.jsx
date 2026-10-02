@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import NiramoyLogo from '../Common/NiramoyLogo';
+import LanguageToggle from '../Common/LanguageToggle';
 import MobileBottomNav from './MobileBottomNav';
 import {
   LayoutDashboard, Sparkles, UserCheck, ShoppingBag,
   FileText, Activity, Users, Lock, LogOut, Sun, Moon,
   Building2, Sliders, AlertOctagon, BarChart2, Radio, Stethoscope,
   Pill, ClipboardList, Ambulance, CreditCard, CalendarDays,
-  Heart, FolderOpen, Settings, Home, ChevronRight, Menu, X
+  Heart, FolderOpen, Settings, Home, ChevronRight, Menu, X,
+  Bell, Clock, MessageSquare
 } from 'lucide-react';
 
 const PATIENT_NAV = [
@@ -30,13 +33,15 @@ const PATIENT_NAV = [
 ];
 
 const DOCTOR_NAV = [
-  { path: '/doctor-portal', label: 'Overview', icon: LayoutDashboard },
-  { path: '/doctor-portal/appointments', label: "Today's Patients", icon: CalendarDays },
-  { path: '/doctor-portal/consultations', label: 'Consultations', icon: Stethoscope },
-  { path: '/doctor-portal/ai-copilot', label: 'AI Copilot', icon: Sparkles },
-  { path: '/doctor-portal/prescriptions', label: 'Prescriptions', icon: ClipboardList },
-  { path: '/doctor-portal/patients', label: 'Patient Records', icon: Users },
-  { path: '/doctor-portal/feedback', label: 'AI Feedback', icon: BarChart2 },
+  { path: '/doctor-portal', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/doctor-portal/appointments', label: 'Appointments Queue', icon: CalendarDays },
+  { path: '/doctor-portal/patients', label: 'Patient Directory', icon: Users },
+  { path: '/doctor-portal/messages', label: 'Messages & Chat', icon: MessageSquare },
+  { path: '/doctor-portal/schedule', label: 'Chamber & Schedule', icon: Clock },
+  { path: '/doctor-portal/consultations', label: 'Teleconsultation', icon: Stethoscope },
+  { path: '/doctor-portal/prescriptions', label: 'Prescriptions Vault', icon: ClipboardList },
+  { path: '/doctor-portal/profile', label: 'Doctor Profile', icon: UserCheck },
+  { path: '/doctor-portal/settings', label: 'Practice Settings', icon: Settings },
 ];
 
 const PHARMACY_NAV = [
@@ -93,6 +98,7 @@ function getRoleLabel(role) {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -176,7 +182,7 @@ export default function DashboardLayout() {
             )}
           </div>
 
-          {/* User Card */}
+          {/* User Card with Global Language Switcher */}
           <div style={{
             padding: '12px 14px', borderRadius: 'var(--radius-lg)',
             background: 'var(--color-primary-50)', border: '1px solid rgba(13, 124, 110, 0.1)',
@@ -187,6 +193,10 @@ export default function DashboardLayout() {
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.email}
+            </div>
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(13, 124, 110, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Language:</span>
+              <LanguageToggle variant="default" />
             </div>
           </div>
 
@@ -231,7 +241,7 @@ export default function DashboardLayout() {
               minHeight: 44
             }}
           >
-            <Home style={{ width: 16, height: 16 }} /> Public Site
+            <Home style={{ width: 16, height: 16 }} /> {t('nav.home', 'Public Site')}
           </button>
           <button
             onClick={() => { logout(); navigate('/'); }}
@@ -243,7 +253,7 @@ export default function DashboardLayout() {
               minHeight: 44
             }}
           >
-            <LogOut style={{ width: 16, height: 16 }} /> Sign Out
+            <LogOut style={{ width: 16, height: 16 }} /> {t('nav.signOut', 'Sign Out')}
           </button>
         </div>
       </aside>
@@ -255,26 +265,65 @@ export default function DashboardLayout() {
           className="dashboard-mobile-bar"
           style={{
             display: 'none', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 16px', background: 'var(--color-surface)',
-            borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 40,
-            minHeight: 56
+            padding: '8px 14px', background: 'var(--color-surface, #ffffff)',
+            borderBottom: '1px solid var(--color-border, #e2e8f0)', position: 'sticky', top: 0, zIndex: 40,
+            minHeight: 54, paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))'
           }}
         >
-          <Link to="/" style={{ textDecoration: 'none', minWidth: 0 }}>
-            <NiramoyLogo size="sm" showTagline={false} />
-          </Link>
-          <button
-            onClick={() => setMobileOpen(true)}
-            style={{
-              background: 'var(--color-bg-muted)', border: 'none', cursor: 'pointer',
-              color: 'var(--color-text-primary)', width: 40, height: 40,
-              borderRadius: 'var(--radius-md)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center'
-            }}
-            aria-label="Open navigation menu"
-          >
-            <Menu style={{ width: 22, height: 22 }} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <button
+              onClick={() => setMobileOpen(true)}
+              style={{
+                background: 'var(--color-bg-muted, #f1f5f9)', border: 'none', cursor: 'pointer',
+                color: 'var(--color-text-primary, #0f172a)', width: 44, height: 44,
+                borderRadius: 'var(--radius-md, 8px)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}
+              aria-label="Open navigation menu"
+            >
+              <Menu style={{ width: 22, height: 22 }} />
+            </button>
+            <Link to="/" style={{ textDecoration: 'none', minWidth: 0, display: 'flex', alignItems: 'center' }}>
+              <NiramoyLogo size="sm" showTagline={false} />
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LanguageToggle variant="default" />
+            <button
+              onClick={() => navigate(location.pathname.startsWith('/doctor-portal') ? '/doctor-portal/messages' : '/dashboard')}
+              style={{
+                background: 'var(--color-bg-muted, #f1f5f9)', border: 'none', cursor: 'pointer',
+                color: 'var(--color-text-secondary, #475569)', width: 44, height: 44,
+                borderRadius: 'var(--radius-md, 8px)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', position: 'relative'
+              }}
+              aria-label="Notifications"
+            >
+              <Bell style={{ width: 19, height: 19 }} />
+              <span style={{
+                position: 'absolute', top: 9, right: 9, width: 8, height: 8,
+                borderRadius: '50%', background: 'var(--color-primary, #0d7c6e)'
+              }} />
+            </button>
+
+            <button
+              onClick={() => navigate(location.pathname.startsWith('/doctor-portal') ? '/doctor-portal/profile' : '/dashboard')}
+              style={{
+                background: 'var(--color-primary-50, #f0fdfa)', border: '1px solid rgba(13, 124, 110, 0.2)',
+                cursor: 'pointer', color: 'var(--color-primary, #0d7c6e)', minWidth: 44, height: 44,
+                borderRadius: 'var(--radius-md, 8px)', display: 'flex', padding: '0 8px',
+                alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 700, fontSize: '0.8rem'
+              }}
+              aria-label="Profile"
+            >
+              <UserCheck style={{ width: 18, height: 18 }} />
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', background: '#10b981',
+                boxShadow: '0 0 0 2px white'
+              }} />
+            </button>
+          </div>
         </header>
 
         {/* Router Outlet */}

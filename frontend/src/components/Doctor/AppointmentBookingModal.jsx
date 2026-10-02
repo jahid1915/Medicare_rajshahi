@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import { doctorsAPI, appointmentsAPI, paymentsAPI } from '../../services/api';
 import LegalContextModal from '../Legal/LegalContextModal';
 import NiramoySelect from '../Common/NiramoySelect';
@@ -55,6 +56,7 @@ function DoctorAvatarThumb({ src, name }) {
 export default function AppointmentBookingModal({ doctor, onClose, onBookingSuccess }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
 
   // Doctor Details
   const doctorId = doctor?._id || doctor?.id || doctor?.slug;
@@ -450,10 +452,10 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
           borderBottom: '1px solid #f1f5f9', gap: '8px', overflowX: 'auto', fontSize: '0.75rem', fontWeight: 700
         }}>
           {[
-            { id: 'branch_schedule', label: '1. Branch & Slot' },
-            { id: 'patient_info', label: '2. Patient Details' },
-            { id: 'otp_verify', label: '3. Email OTP' },
-            { id: 'confirmed', label: '4. Confirmed' }
+            { id: 'branch_schedule', label: language === 'bn' ? '১. চেম্বার ও সময়' : '1. Branch & Slot' },
+            { id: 'patient_info', label: language === 'bn' ? '২. রোগীর বিবরণ' : '2. Patient Details' },
+            { id: 'otp_verify', label: language === 'bn' ? '৩. ওটিপি যাচাই' : '3. Email OTP' },
+            { id: 'confirmed', label: language === 'bn' ? '৪. নিশ্চিতকরণ' : '4. Confirmed' }
           ].map((st, idx) => {
             const isActive = step === st.id;
             return (
@@ -747,7 +749,9 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
               {/* Bottom Step Action */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                 <div>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Consultation Fee:</span>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    {language === 'bn' ? 'পরামর্শ ফি:' : 'Consultation Fee:'}
+                  </span>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary, #0d7c6e)' }}>৳{fee} BDT</div>
                 </div>
                 <button
@@ -761,7 +765,7 @@ export default function AppointmentBookingModal({ doctor, onClose, onBookingSucc
                     display: 'flex', alignItems: 'center', gap: '8px'
                   }}
                 >
-                  Continue to Details <ArrowRight size={16} />
+                  {language === 'bn' ? 'পরবর্তী ধাপে যান' : 'Continue to Details'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>

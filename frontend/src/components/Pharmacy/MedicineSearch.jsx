@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { medicinesAPI, pharmaciesAPI } from "../../services/api";
 import { useCart } from "../../context/CartContext";
+import { useLanguage } from "../../i18n";
 
 const CATEGORIES = [
   "All",
@@ -33,6 +34,19 @@ const CATEGORIES = [
   "Antidiabetic",
   "Emergency & Critical"
 ];
+
+const CATEGORY_MAP_BN = {
+  "All": "সকল",
+  "Analgesic & Antipyretic": "ব্যথানাশক ও জ্বর",
+  "Gastrointestinal": "গ্যাস্ট্রোইনটেস্টাইনাল",
+  "Antibiotic": "অ্যান্টিবায়োটিক",
+  "Antihistamine": "অ্যান্টিহিস্টামিন",
+  "Vitamin & Mineral": "ভিটামিন ও খনিজ",
+  "Respiratory": "শ্বাসতন্ত্র",
+  "Cardiovascular": "হৃদরোগ ও রক্তচাপ",
+  "Antidiabetic": "ডায়াবেটিস",
+  "Emergency & Critical": "জরুরি ও ক্রিটিক্যাল"
+};
 
 const DEFAULT_MEDICINES = [
   {
@@ -200,6 +214,7 @@ const DEFAULT_PHARMACIES_STOCK = [
 ];
 
 export default function MedicineSearch() {
+  const { t, isBangla } = useLanguage();
   const { addToCart, totalItemsCount } = useCart();
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -299,13 +314,13 @@ export default function MedicineSearch() {
       >
         <div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(13, 124, 110, 0.12)", border: "1px solid rgba(13, 124, 110, 0.2)", padding: "0.3rem 0.85rem", borderRadius: "999px", color: "var(--color-primary, #0d7c6e)", fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.75rem" }}>
-            <Sparkles size={14} /> Multi-Pharmacy Price & Stock Comparison
+            <Sparkles size={14} /> {isBangla ? 'মাল্টি-ফার্মেসি মূল্য ও স্টক যাচাই' : 'Multi-Pharmacy Price & Stock Comparison'}
           </div>
           <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem 0", color: "var(--color-text, #142422)", letterSpacing: "-0.02em" }}>
-            Search Medicines in Rajshahi
+            {t('pharmacy.title', 'Search Medicines in Rajshahi')}
           </h1>
           <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0, maxWidth: "680px", lineHeight: 1.5, fontSize: "0.95rem" }}>
-            Compare live prices, batch availability, and delivery options across verified Rajshahi pharmacies for both OTC and prescription medicines.
+            {t('pharmacy.subtitle', 'Compare live prices, batch availability, and delivery options across verified Rajshahi pharmacies for both OTC and prescription medicines.')}
           </p>
         </div>
 
@@ -326,7 +341,7 @@ export default function MedicineSearch() {
               boxShadow: "0 4px 14px rgba(13, 124, 110, 0.25)"
             }}
           >
-            <ShoppingCart size={18} /> Cart ({totalItemsCount})
+            <ShoppingCart size={18} /> {t('nav.cart', 'Cart')} ({totalItemsCount})
           </Link>
         </div>
       </div>
@@ -347,7 +362,7 @@ export default function MedicineSearch() {
             <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted, #47615f)" }} />
             <input
               type="text"
-              placeholder="Search by brand name (Napa, Seclo), generic (Paracetamol), or manufacturer (Square)..."
+              placeholder={t('pharmacy.searchMedicinePlaceholder', 'Search by brand name (Napa, Seclo), generic (Paracetamol)...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -374,7 +389,7 @@ export default function MedicineSearch() {
               boxShadow: "0 2px 8px rgba(13, 124, 110, 0.2)"
             }}
           >
-            Search
+            {t('common.search', 'Search')}
           </button>
         </form>
 
@@ -397,7 +412,7 @@ export default function MedicineSearch() {
                 transition: "all 0.15s ease"
               }}
             >
-              {cat}
+              {isBangla ? (CATEGORY_MAP_BN[cat] || cat) : cat}
             </button>
           ))}
         </div>
@@ -407,13 +422,13 @@ export default function MedicineSearch() {
       {loading ? (
         <div style={{ textAlign: "center", padding: "4rem" }}>
           <div className="spinner" style={{ margin: "0 auto 1rem" }} />
-          <p style={{ color: "var(--color-text-secondary, #2f4847)" }}>Searching medicine catalog...</p>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)" }}>{isBangla ? 'ওষুধের তালিকা অনুসন্ধান করা হচ্ছে...' : 'Searching medicine catalog...'}</p>
         </div>
       ) : medicines.length === 0 ? (
         <div style={{ textAlign: "center", padding: "4rem", background: "#ffffff", borderRadius: "16px", border: "1px solid var(--color-border, #e2eceb)" }}>
           <AlertCircle size={40} style={{ color: "var(--color-text-muted, #47615f)", margin: "0 auto 1rem" }} />
-          <h3 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>No medicines matched your query</h3>
-          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0 }}>Try searching with a generic name (e.g., Paracetamol, Omeprazole) or broad term.</p>
+          <h3 style={{ color: "var(--color-text, #142422)", margin: "0 0 0.5rem" }}>{t('common.noDataFound', 'No medicines matched your query')}</h3>
+          <p style={{ color: "var(--color-text-secondary, #2f4847)", margin: 0 }}>{isBangla ? 'অন্য কোনো জেনেরিক নাম (যেমন: Paracetamol, Omeprazole) দিয়ে অনুসন্ধান করার চেষ্টা করুন।' : 'Try searching with a generic name (e.g., Paracetamol, Omeprazole) or broad term.'}</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -445,11 +460,11 @@ export default function MedicineSearch() {
 
                       {med.requires_prescription ? (
                         <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#c91c1c", background: "rgba(201, 28, 28, 0.1)", border: "1px solid rgba(201, 28, 28, 0.25)", padding: "0.2rem 0.55rem", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                          <ShieldAlert size={13} /> Prescription Required
+                          <ShieldAlert size={13} /> {t('pharmacy.requiresPrescription', 'Prescription Required')}
                         </span>
                       ) : (
                         <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f8a3c", background: "rgba(15, 138, 60, 0.1)", border: "1px solid rgba(15, 138, 60, 0.25)", padding: "0.2rem 0.55rem", borderRadius: "6px" }}>
-                          OTC Available
+                          {t('pharmacy.noPrescriptionNeeded', 'OTC Available')}
                         </span>
                       )}
                     </div>
@@ -459,16 +474,16 @@ export default function MedicineSearch() {
                     </h3>
 
                     <p style={{ fontSize: "0.88rem", color: "var(--color-text-secondary, #2f4847)", margin: "0 0 0.4rem 0" }}>
-                      Generic: <strong style={{ color: "var(--color-text, #142422)" }}>{med.generic_name}</strong>
+                      {isBangla ? 'জেনেরিক:' : 'Generic:'} <strong style={{ color: "var(--color-text, #142422)" }}>{med.generic_name}</strong>
                     </p>
 
                     <div style={{ fontSize: "0.82rem", color: "var(--color-text-muted, #47615f)" }}>
-                      Mfg: {med.manufacturer} • {med.unit || "strip of 10"}
+                      {isBangla ? 'প্রস্তুতকারক:' : 'Mfg:'} {med.manufacturer} • {med.unit || (isBangla ? "১০টির পাতা" : "strip of 10")}
                     </div>
 
                     {med.indications && (
                       <p style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", margin: "0.5rem 0 0 0", lineHeight: 1.45 }}>
-                        <span style={{ color: "var(--color-text-muted, #47615f)", fontWeight: 600 }}>Indications:</span> {med.indications}
+                        <span style={{ color: "var(--color-text-muted, #47615f)", fontWeight: 600 }}>{isBangla ? 'ব্যবহারের ক্ষেত্র:' : 'Indications:'}</span> {med.indications}
                       </p>
                     )}
                   </div>
@@ -476,11 +491,11 @@ export default function MedicineSearch() {
                   {/* Price & Compare CTA */}
                   <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #47615f)", fontWeight: 500 }}>Starts from</div>
+                      <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #47615f)", fontWeight: 500 }}>{isBangla ? 'সর্বনিম্ন মূল্য' : 'Starts from'}</div>
                       <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "var(--color-primary, #0d7c6e)" }}>
                         ৳{med.unit_price || 30}
                       </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted, #47615f)" }}>per {med.unit || "unit"}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted, #47615f)" }}>{isBangla ? `প্রতি ${med.unit || "ইউনিট"}` : `per ${med.unit || "unit"}`}</div>
                     </div>
 
                     <button
@@ -500,7 +515,7 @@ export default function MedicineSearch() {
                         transition: "all 0.15s ease"
                       }}
                     >
-                      <Store size={16} /> Compare Pharmacies {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      <Store size={16} /> {isBangla ? 'ফার্মেসি যাচাই' : 'Compare Pharmacies'} {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                   </div>
                 </div>
@@ -515,7 +530,7 @@ export default function MedicineSearch() {
                     }}
                   >
                     <h4 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 1rem 0", color: "var(--color-text, #142422)", display: "flex", alignItems: "center", gap: "0.45rem" }}>
-                      <Store size={17} color="var(--color-primary, #0d7c6e)" /> Available at Rajshahi Pharmacies:
+                      <Store size={17} color="var(--color-primary, #0d7c6e)" /> {isBangla ? 'রাজশাহীর ফার্মেসিসমূহে স্টক:' : 'Available at Rajshahi Pharmacies:'}
                     </h4>
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
@@ -544,10 +559,10 @@ export default function MedicineSearch() {
                                 {pharmacy.name}
                               </div>
                               <div style={{ fontSize: "0.82rem", color: "var(--color-text-secondary, #2f4847)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                                <MapPin size={13} color="var(--color-primary, #0d7c6e)" /> {pharmacy.area} • Delivery ~{pharmacy.delivery_eta_mins}m (৳{pharmacy.delivery_fee})
+                                <MapPin size={13} color="var(--color-primary, #0d7c6e)" /> {pharmacy.area} • {isBangla ? 'ডেলিভারি' : 'Delivery'} ~{pharmacy.delivery_eta_mins}{isBangla ? 'মি.' : 'm'} (৳{pharmacy.delivery_fee})
                               </div>
                               <div style={{ fontSize: "0.78rem", color: "#0f8a3c", marginTop: "0.35rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                                <Check size={13} /> In Stock ({stock.stock_quantity} units)
+                                <Check size={13} /> {t('pharmacy.inStock', 'In Stock')} ({stock.stock_quantity} {isBangla ? 'পিস' : 'units'})
                               </div>
                             </div>
 
@@ -574,11 +589,11 @@ export default function MedicineSearch() {
                               >
                                 {isAdded ? (
                                   <>
-                                    <Check size={14} /> Added
+                                    <Check size={14} /> {t('pharmacy.addedToCart', 'Added')}
                                   </>
                                 ) : (
                                   <>
-                                    <Plus size={14} /> Add
+                                    <Plus size={14} /> {t('pharmacy.addToCart', 'Add')}
                                   </>
                                 )}
                               </button>

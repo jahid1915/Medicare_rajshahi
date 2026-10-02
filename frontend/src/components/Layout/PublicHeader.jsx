@@ -2,19 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../i18n';
 import NiramoyLogo from '../Common/NiramoyLogo';
+import LanguageToggle from '../Common/LanguageToggle';
 import {
   LayoutDashboard, LogOut, X, Menu, ShoppingCart
 } from 'lucide-react';
 
-const MAIN_NAV_LINKS = [
-  { label: 'Home', href: '/' },
-  { label: 'Doctors', href: '/doctors' },
-  { label: 'Hospitals', href: '/hospitals' },
-  { label: 'Diagnostics', href: '/diagnostics' },
-  { label: 'Pharmacy', href: '/pharmacies' },
-  { label: 'Medicine', href: '/medicines' },
-  { label: 'AI', href: '/ai' },
+const MAIN_NAV_ITEMS = [
+  { id: 'home', key: 'nav.home', defaultLabel: 'Home', href: '/' },
+  { id: 'doctors', key: 'nav.doctors', defaultLabel: 'Doctors', href: '/doctors' },
+  { id: 'hospitals', key: 'nav.hospitals', defaultLabel: 'Hospitals', href: '/hospitals' },
+  { id: 'diagnostics', key: 'nav.diagnostics', defaultLabel: 'Diagnostics', href: '/diagnostics' },
+  { id: 'pharmacy', key: 'nav.pharmacy', defaultLabel: 'Pharmacy', href: '/pharmacies' },
+  { id: 'medicine', key: 'nav.medicine', defaultLabel: 'Medicine', href: '/medicines' },
+  { id: 'ai', key: 'nav.ai', defaultLabel: 'AI', href: '/ai' },
 ];
 
 function getDashboard(role) {
@@ -28,6 +30,7 @@ function getDashboard(role) {
 export default function NiramoyNavbar() {
   const { user, logout } = useAuth();
   const { cartItems = [] } = useCart?.() || {};
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -129,10 +132,11 @@ export default function NiramoyNavbar() {
 
           {/* Desktop Navigation Menu — strictly Home through AI */}
           <nav className="navbar__nav" aria-label="Primary Navigation">
-            {MAIN_NAV_LINKS.map(link => {
+            {MAIN_NAV_ITEMS.map(link => {
               const isActive = link.href === '/'
                 ? location.pathname === '/'
                 : location.pathname.startsWith(link.href);
+              const label = t(link.key, link.defaultLabel);
               return (
                 <Link
                   key={link.href}
@@ -141,14 +145,17 @@ export default function NiramoyNavbar() {
                   onMouseEnter={() => prefetchRoute(link.href)}
                   onFocus={() => prefetchRoute(link.href)}
                 >
-                  {link.label}
+                  {label}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Right Action: Become a member CTA & Sign in */}
+          {/* Right Action: Language Switcher, Cart, Sign in & Become a member CTA */}
           <div className="navbar__actions">
+            {/* Global Language Switcher Slider: [ EN | বাংলা ] */}
+            <LanguageToggle variant="nav" />
+
             {cartCount > 0 && (
               <Link to="/cart" className="navbar__cart" aria-label={`Cart (${cartCount} items)`}>
                 <ShoppingCart style={{ width: 17, height: 17 }} />
@@ -181,13 +188,13 @@ export default function NiramoyNavbar() {
                       className="navbar__user-menu-item"
                       onClick={() => setUserDropdownOpen(false)}
                     >
-                      <LayoutDashboard size={15} /> Dashboard
+                      <LayoutDashboard size={15} /> {t('nav.dashboard', 'Dashboard')}
                     </Link>
                     <button
                       className="navbar__user-menu-item danger"
                       onClick={() => { logout(); navigate('/'); setUserDropdownOpen(false); }}
                     >
-                      <LogOut size={15} /> Sign Out
+                      <LogOut size={15} /> {t('nav.signOut', 'Sign Out')}
                     </button>
                   </div>
                 )}
@@ -195,10 +202,10 @@ export default function NiramoyNavbar() {
             ) : (
               <>
                 <Link to="/signin" className="navbar__signin">
-                  Sign in
+                  {t('nav.signIn', 'Sign in')}
                 </Link>
                 <Link to="/register" className="navbar__cta">
-                  Become a member
+                  {t('nav.register', 'Become a member')}
                 </Link>
               </>
             )}
@@ -240,10 +247,11 @@ export default function NiramoyNavbar() {
 
             <div className="navbar__mobile-body">
               <div className="navbar__mobile-links">
-                {MAIN_NAV_LINKS.map(link => {
+                {MAIN_NAV_ITEMS.map(link => {
                   const isActive = link.href === '/'
                     ? location.pathname === '/'
                     : location.pathname.startsWith(link.href);
+                  const label = t(link.key, link.defaultLabel);
                   return (
                     <Link
                       key={link.href}
@@ -251,7 +259,7 @@ export default function NiramoyNavbar() {
                       onClick={() => setMobileOpen(false)}
                       className={`navbar__mobile-link ${isActive ? 'active' : ''}`}
                     >
-                      <span>{link.label}</span>
+                      <span>{label}</span>
                     </Link>
                   );
                 })}
@@ -275,7 +283,7 @@ export default function NiramoyNavbar() {
                     style={{ background: 'rgba(94, 234, 212, 0.15)', color: '#5eead4', border: '1px solid rgba(94, 234, 212, 0.3)' }}
                   >
                     <LayoutDashboard size={16} />
-                    <span>Open Dashboard</span>
+                    <span>{t('nav.dashboard', 'Dashboard')}</span>
                   </Link>
                   <button
                     onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
@@ -283,7 +291,7 @@ export default function NiramoyNavbar() {
                     style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                   >
                     <LogOut size={16} />
-                    <span>Sign Out</span>
+                    <span>{t('nav.signOut', 'Sign Out')}</span>
                   </button>
                 </>
               ) : (
@@ -294,7 +302,7 @@ export default function NiramoyNavbar() {
                     className="navbar__cta"
                     style={{ justifyContent: 'center', width: '100%', padding: '12px' }}
                   >
-                    Become a member
+                    {t('nav.register', 'Become a member')}
                   </Link>
                   <Link
                     to="/signin"
@@ -302,7 +310,7 @@ export default function NiramoyNavbar() {
                     className="navbar__signin"
                     style={{ textAlign: 'center', padding: '10px' }}
                   >
-                    Sign in
+                    {t('nav.signIn', 'Sign in')}
                   </Link>
                 </div>
               )}

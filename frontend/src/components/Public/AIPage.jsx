@@ -7,28 +7,41 @@ import {
 } from 'lucide-react';
 import { SPECIALTIES, classifyHealthInput } from '../../data/specialties';
 import { aiAPI } from '../../services/api';
+import { useLanguage } from '../../i18n';
 
-const SAMPLE_PROMPTS = [
+const SAMPLE_PROMPTS_EN = [
   'Rajshahi te skin specialist doctor ke ke ache?',
-  'রাজশাহীতে অ্যাম্বুলেন্স কোথায় পাব?',
-  'Niramoy te doctor appointment kivabe nibo?',
+  'Where can I find an ambulance in Rajshahi?',
+  'How do I book a doctor appointment on Niramoy?',
   'What are standard fasting blood sugar targets for adults?',
   'Severe pressure in my chest spreading to my left arm.',
   'Can I take antacids at the same time as my daily iron tablet?'
 ];
 
+const SAMPLE_PROMPTS_BN = [
+  'রাজশাহীতে চর্মরোগ বিশেষজ্ঞ ডাক্তার কারা আছেন?',
+  'জরুরি অ্যাম্বুলেন্স কোথায় পাওয়া যাবে?',
+  'Niramoy-তে ডাক্তার অ্যাপয়েন্টমেন্ট কীভাবে বুক করব?',
+  'ডায়াবেটিসে খালি পেটে রক্তের শর্করার স্বাভাবিক মাত্রা কত?',
+  'বুকের বাম পাশে তীব্র ব্যথা ও চাপ অনুভূত হচ্ছে।',
+  'অ্যান্টাসিড ও আয়রন ট্যাবলেট কি একসাথে খাওয়া যাবে?'
+];
+
 export default function AIPage() {
+  const { t, language, isBangla } = useLanguage();
   const [inputQuery, setInputQuery] = useState('');
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: 'Hello! I am Niramoy AI, your intelligent health navigation assistant for Rajshahi. You can ask in Bangla, English, or Banglish:\n\n• "Rajshahi te skin doctor ke ache?"\n• "রাজশাহীতে অ্যাম্বুলেন্স কোথায় পাব?"\n• "Niramoy te doctor appointment kivabe nibo?"\n• Describe your symptoms for safe clinical guidance.\n\n*Informational guidance only — emergency patients should proceed directly to RMCH.*',
+      text: isBangla
+        ? 'আসসালামু আলাইকুম! আমি Niramoy AI, রাজশাহীতে আপনার স্বাস্থ্য সহকারী। আপনি বাংলা, ইংরেজি অথবা বাংলিশে জিজ্ঞাসা করতে পারেন:\n\n• "রাজশাহীতে চর্মরোগ বিশেষজ্ঞ ডাক্তার কে আছেন?"\n• "জরুরি অ্যাম্বুলেন্স কোথায় পাব?"\n• "Niramoy-তে ডাক্তার অ্যাপয়েন্টমেন্ট কীভাবে নিব?"\n\n*শুধুমাত্র প্রাথমিক স্বাস্থ্য তথ্যের জন্য — জরুরি পরিস্থিতিতে সরাসরি রাজশাহী মেডিকেল কলেজ হাসপাতালে যোগাযোগ করুন।*'
+        : 'Hello! I am Niramoy AI, your intelligent health navigation assistant for Rajshahi. You can ask in Bangla, English, or Banglish:\n\n• "Rajshahi te skin doctor ke ache?"\n• "রাজশাহীতে অ্যাম্বুলেন্স কোথায় পাব?"\n• "Niramoy te doctor appointment kivabe nibo?"\n• Describe your symptoms for safe clinical guidance.\n\n*Informational guidance only — emergency patients should proceed directly to RMCH.*',
       entities: [],
       suggestedActions: [
-        { label: 'Find Doctors', link: '/doctors' },
-        { label: 'Emergency Ambulance', link: '/ambulance' }
+        { label: isBangla ? 'ডাক্তার খুঁজুন' : 'Find Doctors', link: '/doctors' },
+        { label: isBangla ? 'জরুরি অ্যাম্বুলেন্স' : 'Emergency Ambulance', link: '/ambulance' }
       ],
-      timestamp: 'Just now'
+      timestamp: isBangla ? 'এইমাত্র' : 'Just now'
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +63,7 @@ export default function AIPage() {
     setEmergencyAlert(false);
 
     try {
-      const res = await aiAPI.chat(text);
+      const res = await aiAPI.chat(text, language);
       const isEmergency = (res.reply || '').includes('⚠️') || (res.reply || '').includes('EMERGENCY') || (res.reply || '').includes('সতর্কতা');
       if (isEmergency) setEmergencyAlert(true);
 
@@ -124,13 +137,13 @@ export default function AIPage() {
             padding: '4px 12px', borderRadius: '99px',
             background: 'rgba(255,255,255,0.15)', fontSize: '0.8rem', fontWeight: 700, marginBottom: '14px'
           }}>
-            <Sparkles size={14} /> CLINICAL DECISION SUPPORT & NAVIGATION
+            <Sparkles size={14} /> {isBangla ? 'ক্লিনিক্যাল সিদ্ধান্ত ও স্বাস্থ্য সহায়ক' : 'CLINICAL DECISION SUPPORT & NAVIGATION'}
           </div>
           <h1 style={{ fontSize: 'clamp(2rem, 4vw, 2.8rem)', fontWeight: 900, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
-            Niramoy AI Health Assistant
+            {t('ai.title', 'Niramoy AI Health Assistant')}
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.9)', maxWidth: '680px', margin: 0, lineHeight: 1.5 }}>
-            An intelligent healthcare companion designed for symptom navigation, prescription comprehension, and immediate linkage to verified BMDC physicians in Rajshahi.
+            {t('ai.subtitle', 'An intelligent healthcare companion designed for symptom navigation, prescription comprehension, and immediate linkage to verified BMDC physicians in Rajshahi.')}
           </p>
         </div>
       </section>
@@ -144,7 +157,11 @@ export default function AIPage() {
         }}>
           <ShieldCheck size={22} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
           <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: 1.6 }}>
-            <strong>Assistance Protocol & Scope:</strong> Niramoy AI is a supportive navigation tool, <em>not an autonomous medical doctor</em>. It does not replace a physical clinical consultation or formulate binding diagnostic conclusions. In emergencies, immediately call <strong>999</strong>.
+            {isBangla ? (
+              <><strong>সুরক্ষা প্রটোকল ও পরিধি:</strong> Niramoy AI একটি সহায়ক স্বাস্থ্য গাইডেন্স সিস্টেম, <em>এটি কোনো স্বয়ংক্রিয় ডাক্তার নয়</em>। এটি কোনো বাধ্যতামূলক রোগ নির্ণয় করে না। জরুরি পরিস্থিতিতে অবিলম্বে <strong>৯৯৯</strong> নম্বরে যোগাযোগ করুন।</>
+            ) : (
+              <><strong>Assistance Protocol & Scope:</strong> Niramoy AI is a supportive navigation tool, <em>not an autonomous medical doctor</em>. It does not replace a physical clinical consultation or formulate binding diagnostic conclusions. In emergencies, immediately call <strong>999</strong>.</>
+            )}
           </div>
         </div>
       </div>
@@ -175,14 +192,16 @@ export default function AIPage() {
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>Niramoy Health Navigator</h3>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>
+                    {isBangla ? 'Niramoy হেলথ নেভিগেটর' : 'Niramoy Health Navigator'}
+                  </h3>
                   <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }}></span> Clinical Safety Rules Active
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }}></span> {isBangla ? 'ক্লিনিক্যাল সুরক্ষা বিধি সক্রিয়' : 'Clinical Safety Rules Active'}
                   </div>
                 </div>
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #47615f)', background: '#fff', border: '1px solid var(--color-border, #e2eceb)', padding: '3px 8px', borderRadius: '6px' }}>
-                Bilingual (EN / BN)
+                {isBangla ? 'দ্বিভাষিক (EN / বাংলা)' : 'Bilingual (EN / BN)'}
               </span>
             </div>
 
@@ -320,14 +339,14 @@ export default function AIPage() {
 
               {loading && (
                 <div style={{ alignSelf: 'flex-start', background: 'var(--color-bg-muted, #f8fafc)', padding: '10px 16px', borderRadius: '14px', fontSize: '0.82rem', color: 'var(--color-text-muted, #47615f)' }}>
-                  Analyzing symptoms against clinical safety database...
+                  {isBangla ? 'ক্লিনিক্যাল সুরক্ষা ডাটাবেসে উপসর্গ পর্যালোচনা করা হচ্ছে...' : 'Analyzing symptoms against clinical safety database...'}
                 </div>
               )}
             </div>
 
             {/* Suggested Prompts */}
             <div style={{ padding: '8px 16px', borderTop: '1px solid var(--color-border, #e2eceb)', background: '#ffffff', overflowX: 'auto', display: 'flex', gap: '8px', scrollbarWidth: 'none' }}>
-              {SAMPLE_PROMPTS.map((p, i) => (
+              {(isBangla ? SAMPLE_PROMPTS_BN : SAMPLE_PROMPTS_EN).map((p, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(p)}
@@ -346,7 +365,7 @@ export default function AIPage() {
             <div style={{ padding: '14px 16px', borderTop: '1px solid var(--color-border, #e2eceb)', background: 'var(--color-surface, #ffffff)', display: 'flex', gap: '10px' }}>
               <input
                 type="text"
-                placeholder="Type your health question or symptom..."
+                placeholder={t('ai.inputPlaceholder', 'Type your health question or symptom...')}
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
@@ -358,7 +377,7 @@ export default function AIPage() {
                 className="btn btn-primary"
                 style={{ padding: '10px 18px', fontWeight: 700 }}
               >
-                Send
+                {t('ai.send', 'Send')}
               </button>
             </div>
           </div>
@@ -370,25 +389,25 @@ export default function AIPage() {
               borderRadius: '20px', padding: '28px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
             }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 16px 0' }}>
-                How Niramoy AI Protects Patients
+                {isBangla ? 'Niramoy AI কীভাবে রোগীদের সুরক্ষা দেয়' : 'How Niramoy AI Protects Patients'}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {[
                   {
-                    title: 'Automated Red-Flag Escalation',
-                    desc: 'Instantly identifies critical signs of acute coronary events, strokes, anaphylaxis, and acute respiratory failure, immediately directing users to dial 999 or proceed to RMCH ER.'
+                    title: isBangla ? 'স্বয়ংক্রিয় জরুরি উপসর্গ সনাক্তকরণ' : 'Automated Red-Flag Escalation',
+                    desc: isBangla ? 'হার্ট অ্যাটাক, স্ট্রোক, শ্বাসকষ্টের মতো আশঙ্কাজনক লক্ষণ তাৎক্ষণিক শনাক্ত করে রোগীকে ৯৯৯ বা সরাসরি রাজশাহী মেডিকেল কলেজ হাসপাতালে যাওয়ার নির্দেশনা দেয়।' : 'Instantly identifies critical signs of acute coronary events, strokes, anaphylaxis, and acute respiratory failure, immediately directing users to dial 999 or proceed to RMCH ER.'
                   },
                   {
-                    title: 'Specialist Chamber Handoff',
-                    desc: 'Instead of speculating on unverified treatments, Niramoy AI maps symptoms to appropriate clinical specialties and presents BMDC-registered practitioners with chamber hours.'
+                    title: isBangla ? 'বিশেষজ্ঞ ডাক্তার রেফারেল' : 'Specialist Chamber Handoff',
+                    desc: isBangla ? 'অযাচাইকৃত ওষুধের অনুমানের বদলে উপসর্গ অনুযায়ী বিএমডিসি নিবন্ধিত বিশেষজ্ঞ ডাক্তার ও চেম্বারের সময়সূচি প্রদর্শন করে।' : 'Instead of speculating on unverified treatments, Niramoy AI maps symptoms to appropriate clinical specialties and presents BMDC-registered practitioners with chamber hours.'
                   },
                   {
-                    title: 'Drug Interaction & Safety Warnings',
-                    desc: 'Flags common dangerous medication pairings (e.g. NSAIDs during suspected dengue fever or double dosing) before clinical consultations.'
+                    title: isBangla ? 'ওষুধের মিথস্ক্রিয়া ও সুরক্ষা সতর্কতা' : 'Drug Interaction & Safety Warnings',
+                    desc: isBangla ? 'চিকিৎসককে দেখানোর পূর্বে একাধিক ওষুধের বিপজ্জনক সংমিশ্রণ সম্পর্কে রোগীদের আগাম সতর্ক করে।' : 'Flags common dangerous medication pairings (e.g. NSAIDs during suspected dengue fever or double dosing) before clinical consultations.'
                   },
                   {
-                    title: 'Zero Hallucinated Prescriptions',
-                    desc: 'Strict safety policies prevent the AI from generating unauthorized pharmaceutical prescriptions. Only registered human doctors can issue medical prescriptions.'
+                    title: isBangla ? 'অননুমোদিত প্রেসক্রিপশন নিষেধ' : 'Zero Hallucinated Prescriptions',
+                    desc: isBangla ? 'কঠোর নিরাপত্তা নীতিমালার কারণে কৃত্রিম বুদ্ধিমত্তা কোনো অননুমোদিত ওষুধ প্রেসক্রাইব করতে পারে না। শুধুমাত্র নিবন্ধিত মানবিক চিকিৎসকই প্রেসক্রিপশন প্রদান করতে পারেন।' : 'Strict safety policies prevent the AI from generating unauthorized pharmaceutical prescriptions. Only registered human doctors can issue medical prescriptions.'
                   }
                 ].map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
@@ -408,20 +427,20 @@ export default function AIPage() {
               borderRadius: '20px', padding: '24px'
             }}>
               <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 10px 0', color: 'var(--color-primary, #0d7c6e)' }}>
-                Need Immediate Medical Care?
+                {isBangla ? 'জরুরি চিকিৎসা সেবা প্রয়োজন?' : 'Need Immediate Medical Care?'}
               </h4>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary, #2f4847)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
-                Skip the AI chat and connect directly with healthcare infrastructure across Rajshahi.
+                {isBangla ? 'এআই চ্যাট বাদ দিয়ে সরাসরি রাজশাহীর স্বাস্থ্য সেবার সাথে যুক্ত হোন।' : 'Skip the AI chat and connect directly with healthcare infrastructure across Rajshahi.'}
               </p>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <Link to="/doctors" className="btn btn-primary" style={{ fontSize: '0.82rem' }}>
-                  Find Doctors
+                  {t('nav.doctors', 'Find Doctors')}
                 </Link>
                 <Link to="/ambulance" className="btn btn-secondary" style={{ background: '#ffffff', fontSize: '0.82rem' }}>
-                  Ambulance Dispatch
+                  {t('nav.ambulance', 'Ambulance Dispatch')}
                 </Link>
                 <Link to="/hospitals" className="btn btn-secondary" style={{ background: '#ffffff', fontSize: '0.82rem' }}>
-                  Hospital Beds
+                  {t('nav.hospitals', 'Hospital Beds')}
                 </Link>
               </div>
             </div>

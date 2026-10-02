@@ -1,4 +1,5 @@
 const Prescription = require("../models/Prescription");
+const { supabaseAdmin, isSupabaseConfigured } = require("../config/supabase");
 const { successResponse, errorResponse, paginatedResponse } = require("../utils/responseHelper");
 
 // POST /api/prescriptions
@@ -36,10 +37,48 @@ exports.createPrescription = async (req, res, next) => {
         appt.completed_at = new Date();
         if (data.diagnosis) appt.doctor_notes = (appt.doctor_notes ? appt.doctor_notes + "\n" : "") + `Diagnosis: ${data.diagnosis}`;
         await appt.save();
+
+        if (isSupabaseConfigured()) {
+          try {
+            await supabaseAdmin
+              .from("appointments")
+              .update({
+                status: "COMPLETED",
+                completed_at: new Date().toISOString(),
+                doctor_notes: appt.doctor_notes
+              })
+              .or(`id.eq.${appt._id},legacy_mongodb_id.eq.${appt._id},appointment_id.eq.${appt.appointmentId || appt._id}`);
+          } catch (sbAptErr) {
+            console.warn("⚠️ [Supabase] Appointment status sync warning:", sbAptErr.message);
+          }
+        }
       }
     }
 
     const prescription = await Prescription.create(data);
+
+    // Sync to Supabase prescriptions table if configured
+    if (isSupabaseConfigured()) {
+      try {
+        await supabaseAdmin.from("prescriptions").insert({
+          legacy_mongodb_id: prescription._id.toString(),
+          prescription_number: prescription.prescription_number || `RX-${Date.now().toString().slice(-6)}`,
+          patient_id: data.patient_id?.toString(),
+          doctor_id: data.doctor_id?.toString() || req.user._id.toString(),
+          appointment_id: data.appointment_id?.toString() || null,
+          appointment_number: data.appointment_number || "",
+          doctor_name: data.doctor_name || req.user.name || "Attending Physician",
+          doctor_specialization: data.doctor_specialization || "General Medicine",
+          diagnosis: data.diagnosis || "",
+          advice: data.advice || "",
+          tests_advised: Array.isArray(data.tests_advised) ? data.tests_advised : [],
+          created_at: new Date().toISOString()
+        });
+      } catch (sbRxErr) {
+        console.warn("⚠️ [Supabase] Prescription sync warning:", sbRxErr.message);
+      }
+    }
+
     return successResponse(res, prescription, "Prescription created successfully", 201);
   } catch (err) {
     next(err);

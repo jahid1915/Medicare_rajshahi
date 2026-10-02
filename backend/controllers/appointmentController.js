@@ -674,6 +674,25 @@ exports.updateAppointmentStatus = async (req, res, next) => {
     if (ai_triage_summary !== undefined) appt.ai_triage_summary = ai_triage_summary;
 
     await appt.save();
+
+    // Persist status update to Supabase PostgreSQL (authoritative source of truth)
+    if (isSupabaseConfigured()) {
+      try {
+        const sbUpdates = {};
+        if (status) {
+          sbUpdates.status = status;
+          if (status === "COMPLETED") sbUpdates.completed_at = new Date().toISOString();
+        }
+        if (doctor_notes !== undefined) sbUpdates.doctor_notes = doctor_notes;
+        await supabaseAdmin
+          .from("appointments")
+          .update(sbUpdates)
+          .or(`id.eq.${req.params.id},legacy_mongodb_id.eq.${req.params.id},appointment_id.eq.${appt.appointmentId || appt._id}`);
+      } catch (sbErr) {
+        console.warn("⚠️ [Supabase] Status update error:", sbErr.message);
+      }
+    }
+
     return successResponse(res, appt, "Appointment status and clinical record updated successfully");
   } catch (err) {
     next(err);

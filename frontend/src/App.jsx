@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { LanguageProvider } from './i18n';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Layouts
@@ -35,6 +36,7 @@ const AdminTransactions = React.lazy(() => import('./components/Admin/AdminTrans
 const WhatIfSimulator = React.lazy(() => import('./components/Simulation/WhatIfSimulator'));
 const EarlyWarningCenter = React.lazy(() => import('./components/Admin/EarlyWarningCenter'));
 const SpecialistWorkspaces = React.lazy(() => import('./components/Doctor/SpecialistWorkspaces'));
+const DoctorPortal = React.lazy(() => import('./components/Doctor/DoctorPortal'));
 const MedicalMemoryTimeline = React.lazy(() => import('./components/Patient/MedicalMemoryTimeline'));
 const DocumentComparisonView = React.lazy(() => import('./components/Diagnostic/DocumentComparisonView'));
 const ResearchSuiteView = React.lazy(() => import('./components/Research/ResearchSuiteView'));
@@ -105,8 +107,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <AuthProvider>
-        <CartProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <CartProvider>
           <React.Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ═══ PUBLIC ROUTES (No auth required) ═══ */}
@@ -176,13 +179,17 @@ export default function App() {
                 <DashboardLayout />
               </ProtectedRoute>
             }>
-              <Route path="doctor-portal" element={<SpecialistWorkspaces />} />
-              <Route path="doctor-portal/appointments" element={<ComingSoon title="Today's Patients" />} />
-              <Route path="doctor-portal/consultations" element={<ComingSoon title="Consultations" />} />
-              <Route path="doctor-portal/ai-copilot" element={<ComingSoon title="AI Clinical Copilot" />} />
-              <Route path="doctor-portal/prescriptions" element={<ComingSoon title="Prescriptions" />} />
-              <Route path="doctor-portal/patients" element={<ComingSoon title="Patient Records" />} />
-              <Route path="doctor-portal/feedback" element={<ComingSoon title="AI Feedback" />} />
+              <Route path="doctor-portal" element={<DoctorPortal initialTab="dashboard" />} />
+              <Route path="doctor-portal/appointments" element={<DoctorPortal initialTab="appointments" />} />
+              <Route path="doctor-portal/patients" element={<DoctorPortal initialTab="patients" />} />
+              <Route path="doctor-portal/messages" element={<DoctorPortal initialTab="messages" />} />
+              <Route path="doctor-portal/schedule" element={<DoctorPortal initialTab="schedule" />} />
+              <Route path="doctor-portal/consultations" element={<DoctorPortal initialTab="consultations" />} />
+              <Route path="doctor-portal/prescriptions" element={<DoctorPortal initialTab="prescriptions" />} />
+              <Route path="doctor-portal/profile" element={<DoctorPortal initialTab="profile" />} />
+              <Route path="doctor-portal/settings" element={<DoctorPortal initialTab="settings" />} />
+              <Route path="doctor-portal/ai-copilot" element={<DoctorPortal initialTab="tools" />} />
+              <Route path="doctor-portal/feedback" element={<DoctorPortal initialTab="tools" />} />
             </Route>
 
             {/* ═══ PHARMACY PORTAL (auth + pharmacy roles) ═══ */}
@@ -238,6 +245,7 @@ export default function App() {
         </React.Suspense>
         </CartProvider>
       </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   );
 }

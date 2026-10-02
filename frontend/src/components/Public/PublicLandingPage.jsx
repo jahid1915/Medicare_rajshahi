@@ -8,33 +8,37 @@ import {
 import { BASE_URL } from '../../services/api';
 import { SPECIALTIES } from '../../data/specialties';
 import { DOCTORS } from '../../data/doctors';
+import { useLanguage } from '../../i18n';
 
 const API = BASE_URL;
 
 /* ─── Specialty emoji/icon map ─── */
 const SPECIALTY_META = {
   'General Medicine': { emoji: '🩺', color: '#0d7c6e', bg: '#f0faf9' },
-  'ENT':              { emoji: '👂', color: '#7c3aed', bg: '#f5f3ff' },
-  'Surgery':          { emoji: '⚕️', color: '#0284c7', bg: '#f0f9ff' },
+  'ENT': { emoji: '👂', color: '#7c3aed', bg: '#f5f3ff' },
+  'Surgery': { emoji: '⚕️', color: '#0284c7', bg: '#f0f9ff' },
   'Gynecology & Obstetrics': { emoji: '👶', color: '#db2777', bg: '#fdf2f8' },
-  'Pediatrics':       { emoji: '🧒', color: '#d97706', bg: '#fffbeb' },
-  'Orthopedics':      { emoji: '🦴', color: '#059669', bg: '#f0fdf4' },
-  'Cardiology':       { emoji: '❤️', color: '#dc2626', bg: '#fef2f2' },
-  'Internal Medicine':{ emoji: '🏥', color: '#0369a1', bg: '#f0f9ff' },
-  'Neurology':        { emoji: '🧠', color: '#7c3aed', bg: '#f5f3ff' },
-  'Dermatology':      { emoji: '🌿', color: '#16a34a', bg: '#f0fdf4' },
-  'Ophthalmology':    { emoji: '👁️', color: '#0d7c6e', bg: '#f0faf9' },
-  'Dentistry':        { emoji: '🦷', color: '#0891b2', bg: '#ecfeff' },
+  'Pediatrics': { emoji: '🧒', color: '#d97706', bg: '#fffbeb' },
+  'Orthopedics': { emoji: '🦴', color: '#059669', bg: '#f0fdf4' },
+  'Cardiology': { emoji: '❤️', color: '#dc2626', bg: '#fef2f2' },
+  'Internal Medicine': { emoji: '🏥', color: '#0369a1', bg: '#f0f9ff' },
+  'Neurology': { emoji: '🧠', color: '#7c3aed', bg: '#f5f3ff' },
+  'Dermatology': { emoji: '🌿', color: '#16a34a', bg: '#f0fdf4' },
+  'Ophthalmology': { emoji: '👁️', color: '#0d7c6e', bg: '#f0faf9' },
+  'Dentistry': { emoji: '🦷', color: '#0891b2', bg: '#ecfeff' },
 };
 
 function getSpecialtyMeta(name) {
-  if (!name) return { emoji: '🩺', color: '#0d7c6e', bg: '#f0faf9' };
-  if (SPECIALTY_META[name]) return SPECIALTY_META[name];
-  const found = Object.entries(SPECIALTY_META).find(([k]) =>
-    name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())
+  if (!name) return SPECIALTIES[12] || { name: 'Medicine', image: '/specialties/medicine-general-physician.webp' };
+  const clean = name.trim().toLowerCase();
+  const found = SPECIALTIES.find(s =>
+    s.name.toLowerCase() === clean ||
+    s.id === clean ||
+    s.slug === clean ||
+    s.name.toLowerCase().includes(clean) ||
+    clean.includes(s.name.toLowerCase())
   );
-  if (found) return found[1];
-  return { emoji: '🩺', color: '#0d7c6e', bg: '#f0faf9' };
+  return found || SPECIALTIES[12] || { name: 'Medicine', image: '/specialties/medicine-general-physician.webp' };
 }
 
 /* ─── Animated Stat Counter ─── */
@@ -78,7 +82,7 @@ function HealthOrb({ stats }) {
       {/* Core */}
       <div className="health-orb__core">
         <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-          <path d="M26 8C24.3 8 23 9.3 23 11v8h-8c-1.7 0-3 1.3-3 3s1.3 3 3 3h8v8c0 1.7 1.3 3 3 3s3-1.3 3-3v-8h8c1.7 0 3-1.3 3-3s-1.3-3-3-3h-8v-8c0-1.7-1.3-3-3-3z" fill="white"/>
+          <path d="M26 8C24.3 8 23 9.3 23 11v8h-8c-1.7 0-3 1.3-3 3s1.3 3 3 3h8v8c0 1.7 1.3 3 3 3s3-1.3 3-3v-8h8c1.7 0 3-1.3 3-3s-1.3-3-3-3h-8v-8c0-1.7-1.3-3-3-3z" fill="white" />
         </svg>
       </div>
       {/* Orbiting nodes */}
@@ -121,6 +125,7 @@ function HealthOrb({ stats }) {
 /* ─── Main Component ─── */
 export default function PublicLandingPage() {
   const navigate = useNavigate();
+  const { t, isBangla } = useLanguage();
   const [search, setSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [stats, setStats] = useState(null);
@@ -133,15 +138,32 @@ export default function PublicLandingPage() {
     Promise.allSettled([
       fetch(`${API}/doctors/meta/stats`).then(r => r.json()),
       fetch(`${API}/doctors/meta/specialties`).then(r => r.json()),
-      fetch(`${API}/doctors?limit=3&sort=-rating`).then(r => r.json()),
+      fetch(`${API}/doctors?limit=6&sort=rating`).then(r => r.json()),
     ]).then(([statsRes, specsRes, docsRes]) => {
       if (statsRes.status === 'fulfilled' && statsRes.value.success) {
         setStats(statsRes.value.data);
       }
       if (specsRes.status === 'fulfilled' && specsRes.value.success && specsRes.value.data?.length > 0) {
-        setSpecialties(specsRes.value.data.slice(0, 12));
+        const countMap = {};
+        specsRes.value.data.forEach(item => {
+          countMap[item.specialty] = item.count;
+        });
+        const combined = SPECIALTIES.map(s => ({
+          specialty: s.name,
+          name: s.name,
+          count: countMap[s.name] || 0,
+          image: s.image,
+          slug: s.slug
+        }));
+        setSpecialties(combined);
       } else {
-        setSpecialties(SPECIALTIES.slice(0, 12).map((s, idx) => ({ name: s.name, count: 20 + (idx * 3) })));
+        setSpecialties(SPECIALTIES.map((s, idx) => ({
+          specialty: s.name,
+          name: s.name,
+          count: 10 + (idx * 2),
+          image: s.image,
+          slug: s.slug
+        })));
       }
       if (docsRes.status === 'fulfilled' && docsRes.value.success && docsRes.value.data?.length > 0) {
         setFeaturedDoctors(docsRes.value.data);
@@ -172,10 +194,10 @@ export default function PublicLandingPage() {
   };
 
   const STAT_ITEMS = [
-    { label: 'Verified Doctors', value: stats?.total || 351, suffix: '+' },
-    { label: 'Specialties', value: stats?.specialties || 30, suffix: '+' },
-    { label: 'Hospitals & Clinics', value: stats?.workplaces || 80, suffix: '+' },
-    { label: 'Chambers Available', value: stats?.chambers || 350, suffix: '+' },
+    { label: t('stats.doctorsCount', 'Verified Doctors'), value: stats?.total || 351, suffix: '+' },
+    { label: t('stats.specialtiesCount', 'Specialties'), value: stats?.specialties || 30, suffix: '+' },
+    { label: t('stats.workplacesCount', 'Hospitals & Clinics'), value: stats?.workplaces || 80, suffix: '+' },
+    { label: t('stats.chambersCount', 'Chambers Available'), value: stats?.chambers || 350, suffix: '+' },
   ];
 
   return (
@@ -192,12 +214,12 @@ export default function PublicLandingPage() {
             </div>
 
             <h1 className="hero__title" style={{ fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.03em', color: '#ffffff', margin: '0 0 10px 0' }}>
-              Your Healthcare,{' '}
-              <span style={{ color: '#5eead4', display: 'inline-block' }}>Simplified.</span>
+              {t('hero.titlePrefix', 'Your Healthcare,')}{' '}
+              <span style={{ color: '#5eead4', display: 'inline-block' }}>{t('hero.titleSuffix', 'Simplified.')}</span>
             </h1>
 
             <p className="hero__subtitle" style={{ maxWidth: 460, fontSize: '1.02rem', lineHeight: 1.5, color: 'rgba(255,255,255,0.85)', margin: '0 0 20px 0' }}>
-              Connect with verified specialist physicians, check real-time chamber availability, and confirm your appointment with ease.
+              {t('hero.subtitle', 'Connect with verified specialist physicians, check real-time chamber availability, and confirm your appointment with ease.')}
             </p>
 
             {/* Focused Doctor Search Bar (Part 8 & 9) */}
@@ -208,7 +230,7 @@ export default function PublicLandingPage() {
                   <input
                     type="text"
                     className="hero-doctor-search__input"
-                    placeholder="Search doctor or specialty (e.g. Cardiology, Dr. Sourav)..."
+                    placeholder={t('hero.searchPlaceholder', 'Search doctor or specialty (e.g. Cardiology, Dr. Sourav)...')}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     aria-label="Search doctor or specialty"
@@ -222,7 +244,7 @@ export default function PublicLandingPage() {
                   <input
                     type="text"
                     className="hero-doctor-search__input"
-                    placeholder="Area / Location (Rajshahi)"
+                    placeholder={t('hero.locationPlaceholder', 'Area / Location (Rajshahi)')}
                     value={locationFilter}
                     onChange={e => setLocationFilter(e.target.value)}
                     aria-label="Area or location"
@@ -231,11 +253,11 @@ export default function PublicLandingPage() {
 
                 <button type="submit" className="hero-doctor-search__btn">
                   <Search size={16} />
-                  <span>Find Doctor</span>
+                  <span>{t('hero.findDoctorBtn', 'Find Doctor')}</span>
                 </button>
               </div>
               <div className="hero-doctor-search__hint">
-                Popular: Cardiology, Gynecology, Pediatrics, Medicine, Orthopedics, ENT
+                {t('hero.popularLabel', 'Popular: Cardiology, Gynecology, Pediatrics, Medicine, Orthopedics, ENT')}
               </div>
             </form>
           </div>
@@ -250,34 +272,34 @@ export default function PublicLandingPage() {
       {/* ═════════ QUICK ACTIONS / HEALTHCARE SERVICES ════════ */}
       <section className="quick-actions" aria-labelledby="services-heading">
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)', padding: '0 var(--sp-6)' }}>
-          <div className="section-label">Our Services</div>
+          <div className="section-label">{t('services.label', 'Our Services')}</div>
           <h2 id="services-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', marginBottom: 'var(--sp-3)' }}>
-            Everything You Need for Healthcare
+            {t('services.title', 'Everything You Need for Healthcare')}
           </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-base)', maxWidth: 520, margin: '0 auto' }}>
-            One platform connecting patients, doctors, pharmacies, hospitals, and diagnostics across Rajshahi.
+            {t('services.subtitle', 'One platform connecting patients, doctors, pharmacies, hospitals, and diagnostics across Rajshahi.')}
           </p>
         </div>
         <div className="quick-actions__grid">
           {[
             {
-              icon: Stethoscope, title: 'Find a Doctor',
-              desc: 'Browse 30+ specialties. Filter by hospital, experience, and availability.',
+              icon: Stethoscope, title: t('services.doctorTitle', 'Find a Doctor'),
+              desc: t('services.doctorDesc', 'Browse 30+ specialties. Filter by hospital, experience, and availability.'),
               link: '/doctors', color: 'var(--color-primary)', bg: 'var(--color-primary-50)',
             },
             {
-              icon: Pill, title: 'Find a Pharmacy',
-              desc: 'Discover pharmacies near you. Search medicines, compare availability.',
+              icon: Pill, title: t('services.pharmacyTitle', 'Find a Pharmacy'),
+              desc: t('services.pharmacyDesc', 'Discover pharmacies near you. Search medicines, compare availability.'),
               link: '/pharmacies', color: '#7c3aed', bg: '#f5f3ff',
             },
             {
-              icon: Building2, title: 'Hospital Resources',
-              desc: 'Check real-time bed availability, emergency departments, and hospital info.',
+              icon: Building2, title: t('services.hospitalTitle', 'Hospital Resources'),
+              desc: t('services.hospitalDesc', 'Check real-time bed availability, emergency departments, and hospital info.'),
               link: '/hospitals', color: '#0284c7', bg: '#f0f9ff',
             },
             {
-              icon: Activity, title: '24/7 Ambulance & Emergency',
-              desc: 'Instant emergency contact numbers, ICU ambulance, and blood banks.',
+              icon: Activity, title: t('services.emergencyTitle', '24/7 Ambulance & Emergency'),
+              desc: t('services.emergencyDesc', 'Instant emergency contact numbers, ICU ambulance, and blood banks.'),
               link: '/ambulance', color: '#dc2626', bg: '#fef2f2',
             },
           ].map((item, i) => (
@@ -295,7 +317,7 @@ export default function PublicLandingPage() {
               </div>
               <p className="quick-action-desc">{item.desc}</p>
               <div className="quick-action-link">
-                Explore <ChevronRight style={{ width: 15, height: 15 }} />
+                {t('common.explore', 'Explore')} <ChevronRight style={{ width: 15, height: 15 }} />
               </div>
             </Link>
           ))}
@@ -305,12 +327,12 @@ export default function PublicLandingPage() {
       {/* ═════════ LIVE STATS ════════ */}
       <section className="stats-section" aria-labelledby="stats-heading">
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)' }}>
-          <div className="section-label" style={{ justifyContent: 'center' }}>Healthcare you can trust</div>
+          <div className="section-label" style={{ justifyContent: 'center' }}>{t('stats.label', 'Healthcare you can trust')}</div>
           <h2 id="stats-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', marginBottom: 'var(--sp-3)' }}>
-            Niramoy by the numbers
+            {t('stats.title', 'Niramoy by the numbers')}
           </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-base)', maxWidth: 480, margin: '0 auto' }}>
-            Real data from our growing Rajshahi healthcare network.
+            {t('stats.subtitle', 'Real data from our growing Rajshahi healthcare network.')}
           </p>
         </div>
         <div className="stats-grid">
@@ -325,72 +347,123 @@ export default function PublicLandingPage() {
         </div>
       </section>
 
-      {/* ═════════ FEATURED SPECIALTIES ════════ */}
-      {specialties.length > 0 && (
-        <section className="specialty-section" aria-labelledby="specialties-heading">
-          <div className="container">
-            <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)' }}>
-              <div className="section-label" style={{ justifyContent: 'center' }}>Browse by specialty</div>
-              <h2 id="specialties-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)' }}>
-                Find the right specialist
+      {/* ═════════ POPULAR SPECIALTIES (Matches Reference Screenshots) ════════ */}
+      <section className="specialty-section" aria-labelledby="specialties-heading" style={{ background: '#f8fafc', padding: 'var(--sp-16) 0' }}>
+        <div className="container">
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: '16px', marginBottom: 'var(--sp-8)'
+          }}>
+            <div>
+              <h2 id="specialties-heading" style={{
+                fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)',
+                fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', marginBottom: 6
+              }}>
+                {t('specialties.heading', 'Popular Specialties')}
               </h2>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', margin: 0 }}>
+                {t('specialties.subtitle', 'Browse doctors by the most searched medical specialties.')}
+              </p>
             </div>
-            <div className="specialty-grid">
-              {specialties.map((spec, i) => {
-                const specName = spec.specialty || spec.name || 'Specialty';
-                const count = spec.count || 0;
-                const meta = getSpecialtyMeta(specName);
-                return (
-                  <Link
-                    key={i}
-                    to={`/doctors?specialty=${encodeURIComponent(specName)}`}
-                    className="specialty-card"
-                    style={{ '--card-color': meta.color }}
-                  >
-                    <div className="specialty-card__icon" style={{ background: meta.bg, color: meta.color }}>
-                      <span style={{ fontSize: '1.6rem' }}>{meta.emoji}</span>
-                    </div>
-                    <div style={{
-                      fontSize: '0.625rem', fontWeight: 800, textTransform: 'uppercase',
-                      letterSpacing: '0.06em', color: meta.color, background: meta.bg,
-                      padding: '2px 8px', borderRadius: '99px', marginTop: 2
-                    }}>
-                      Specialized Field
-                    </div>
-                    <div className="specialty-card__name" style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)', lineHeight: 1.25 }}>
-                      {specName}
-                    </div>
-                    <div className="specialty-card__count" style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                      {count} Verified Doctors
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 'var(--sp-8)' }}>
-              <Link to="/doctors" className="btn btn-secondary btn-lg">
-                View All Specialties <ArrowRight style={{ width: 16, height: 16 }} />
-              </Link>
-            </div>
+            <Link
+              to="/doctors"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                color: 'var(--color-primary, #0d7c6e)', fontWeight: 700, fontSize: '0.95rem',
+                textDecoration: 'none'
+              }}
+            >
+              {t('specialties.viewAll', 'View all specialties')} <ArrowRight style={{ width: 16, height: 16 }} />
+            </Link>
           </div>
-        </section>
-      )}
+
+          {/* Specialty Grid Cards (31 Cards) */}
+          <div className="specialty-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: '20px'
+          }}>
+            {specialties.map((spec, i) => {
+              const specName = spec.specialty || spec.name || 'Specialty';
+              const meta = getSpecialtyMeta(specName);
+              const count = spec.count || 0;
+              const imgSrc = spec.image || meta.image || `/specialties/${meta.slug}.webp`;
+
+              return (
+                <Link
+                  key={i}
+                  to={`/doctors?specialty=${encodeURIComponent(specName)}`}
+                  className="specialty-card"
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '24px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    gap: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                >
+                  <div style={{
+                    width: 96, height: 96, borderRadius: '16px',
+                    overflow: 'hidden', background: '#f1f5f9',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  }}>
+                    <img
+                      src={imgSrc}
+                      alt={specName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.parentNode.innerHTML = `<span style="font-size:2.2rem">🩺</span>`;
+                      }}
+                    />
+                  </div>
+                  <div style={{
+                    fontSize: '1rem', fontWeight: 800,
+                    color: '#0f172a', lineHeight: 1.3, marginTop: 4
+                  }}>
+                    {specName}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                    {count} {isBangla ? 'জন যাচাইকৃত ডাক্তার' : `Verified Doctor${count !== 1 ? 's' : ''}`}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 'var(--sp-10)' }}>
+            <Link to="/doctors" className="btn btn-secondary btn-lg">
+              {t('specialties.viewAll', 'Explore All 31 Specialties')} <ArrowRight style={{ width: 16, height: 16 }} />
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* ═════════ HOW NIRAMOY WORKS ════════ */}
       <section className="how-section" aria-labelledby="how-heading">
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 'var(--sp-12)' }}>
-            <div className="section-label" style={{ justifyContent: 'center' }}>Simple Process</div>
+            <div className="section-label" style={{ justifyContent: 'center' }}>{isBangla ? 'সহজ প্রক্রিয়া' : 'Simple Process'}</div>
             <h2 id="how-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)' }}>
-              How Niramoy Works
+              {isBangla ? 'যেভাবে Niramoy কাজ করে' : 'How Niramoy Works'}
             </h2>
           </div>
           <div className="how-steps">
             {[
-              { n: '01', title: 'Search', desc: 'Search by doctor name, specialty, hospital, or location.' },
-              { n: '02', title: 'Compare', desc: 'View qualifications, workplaces, chamber schedules.', active: true },
-              { n: '03', title: 'Choose', desc: 'Select the right doctor for your specific health need.' },
-              { n: '04', title: 'Connect', desc: 'Call the appointment number or walk into the chamber.' },
+              { n: '01', title: isBangla ? 'অনুসন্ধান' : 'Search', desc: isBangla ? 'ডাক্তারের নাম, বিশেষত্ব, হাসপাতাল বা এলাকা দিয়ে খুঁজুন।' : 'Search by doctor name, specialty, hospital, or location.' },
+              { n: '02', title: isBangla ? 'তুলনা করুন' : 'Compare', desc: isBangla ? 'ডিগ্রি, কর্মস্থল ও চেম্বারের সময়সূচি দেখুন।' : 'View qualifications, workplaces, chamber schedules.', active: true },
+              { n: '03', title: isBangla ? 'বাছাই করুন' : 'Choose', desc: isBangla ? 'আপনার প্রয়োজনে সঠিক চিকিৎসক নির্বাচন করুন।' : 'Select the right doctor for your specific health need.' },
+              { n: '04', title: isBangla ? 'অ্যাপয়েন্টমেন্ট নিন' : 'Connect', desc: isBangla ? 'অনলাইনে বুক করুন অথবা চেম্বার নম্বরে সরাসরি কল করুন।' : 'Call the appointment number or walk into the chamber.' },
             ].map((step, i) => (
               <div key={i} className="how-step">
                 <div className={`how-step__num ${step.active ? 'active' : ''}`}>{step.n}</div>
@@ -408,19 +481,19 @@ export default function PublicLandingPage() {
           <div className="container">
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-4)', marginBottom: 'var(--sp-8)' }}>
               <div>
-                <div className="section-label">Featured Professionals</div>
+                <div className="section-label">{isBangla ? 'বিশেষজ্ঞ চিকিৎসকবৃন্দ' : 'Featured Professionals'}</div>
                 <h2 id="doctors-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)' }}>
-                  Meet our top doctors
+                  {isBangla ? 'আমাদের শীর্ষ চিকিৎসকদের সাথে পরিচিত হোন' : 'Meet our top doctors'}
                 </h2>
               </div>
               <Link to="/doctors" className="btn btn-ghost" style={{ flexShrink: 0 }}>
-                View All <ArrowRight style={{ width: 15, height: 15 }} />
+                {t('common.viewAll', 'View All')} <ArrowRight style={{ width: 15, height: 15 }} />
               </Link>
             </div>
 
             {loadingDoctors ? (
               <div className="doctor-cards-grid">
-                {[1,2,3].map(i => (
+                {[1, 2, 3].map(i => (
                   <div key={i} className="doctor-card">
                     <div className="skeleton" style={{ width: 60, height: 60, borderRadius: 12 }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -434,7 +507,7 @@ export default function PublicLandingPage() {
             ) : (
               <div className="doctor-cards-grid">
                 {featuredDoctors.map((doc, i) => (
-                  <FeaturedDoctorCard key={doc._id || i} doctor={doc} />
+                  <FeaturedDoctorCard key={doc._id || i} doctor={doc} isBangla={isBangla} />
                 ))}
               </div>
             )}
@@ -442,33 +515,51 @@ export default function PublicLandingPage() {
         </section>
       )}
 
-      {/* ═════════ ABOUT / MISSION (FIXED RESPONSIVE GRID) ════════ */}
+      {/* ═════════ ABOUT / MISSION ════════ */}
       <section style={{ padding: 'var(--sp-16) 0', background: 'var(--color-surface)' }}>
         <div className="container">
           <div className="mission-grid">
             <div className="mission-grid__content">
-              <div className="section-label">Our Mission</div>
+              <div className="section-label">{isBangla ? 'আমাদের লক্ষ্য' : 'Our Mission'}</div>
               <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--color-text)', marginBottom: 'var(--sp-5)', lineHeight: 1.15 }}>
-                Healthcare should<br/>feel simpler.
+                {isBangla ? <>স্বাস্থ্যসেবা হোক<br />আরও সহজ ও সুলভ।</> : <>Healthcare should<br />feel simpler.</>}
               </h2>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-base)', lineHeight: 1.8, marginBottom: 'var(--sp-5)' }}>
-                Niramoy was built to make healthcare discovery more accessible in Bangladesh —
-                bringing doctors, pharmacies, hospitals, and patients into one connected digital experience.
+                {isBangla
+                  ? 'বাংলাদেশে স্বাস্থ্যসেবাকে আরও সহজলভ্য করার লক্ষ্যে Niramoy প্ল্যাটফর্মের সৃষ্টি — যা ডাক্তার, ফার্মেসি, হাসপাতাল এবং রোগীদের একক ডিজিটাল সেতুবন্ধনে যুক্ত করে।'
+                  : 'Niramoy was built to make healthcare discovery more accessible in Bangladesh — bringing doctors, pharmacies, hospitals, and patients into one connected digital experience.'}
               </p>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-base)', lineHeight: 1.8, marginBottom: 'var(--sp-6)' }}>
-                We believe that finding the right doctor shouldn't be complicated. With clear information,
-                real contact details, and verified sources, we help patients make informed decisions.
+                {isBangla
+                  ? 'আমরা বিশ্বাস করি সঠিক ডাক্তার খুঁজে পাওয়া কখনোই জটিল হওয়া উচিত নয়। যাচাইকৃত উৎস, সঠিক যোগাযোগের তথ্য এবং বাস্তব অভিজ্ঞতার মাধ্যমে আমরা রোগীদের সঠিক সিদ্ধান্ত নিতে সহায়তা করি।'
+                  : "We believe that finding the right doctor shouldn't be complicated. With clear information, real contact details, and verified sources, we help patients make informed decisions."}
               </p>
               <Link to="/doctors" className="btn btn-primary btn-lg">
-                Start Exploring <ArrowRight style={{ width: 16, height: 16 }} />
+                {isBangla ? 'ডাক্তার খুঁজুন' : 'Start Exploring'} <ArrowRight style={{ width: 16, height: 16 }} />
               </Link>
             </div>
             <div className="mission-grid__cards">
               {[
-                { icon: HeartHandshake, title: 'Human-centered care', desc: 'We put patients first, making healthcare information clear, honest, and accessible.' },
-                { icon: Shield, title: 'Verified information', desc: 'Doctor profiles sourced from official directories with clear source attribution.' },
-                { icon: Users, title: 'Growing network', desc: 'Expanding our network across Rajshahi to cover more specialties and locations.' },
-                { icon: Sparkles, title: 'Modern technology', desc: 'Built with modern web technology for a fast, reliable healthcare experience.' },
+                {
+                  icon: HeartHandshake,
+                  title: isBangla ? 'মানুষের পাশে সর্বদাই' : 'Human-centered care',
+                  desc: isBangla ? 'রোগীদের প্রাধান্য দিয়ে স্বাস্থ্যসেবার তথ্য সহজ ও নির্ভুলভাবে উপস্থাপন করা হয়।' : 'We put patients first, making healthcare information clear, honest, and accessible.'
+                },
+                {
+                  icon: Shield,
+                  title: isBangla ? 'যাচাইকৃত তথ্য' : 'Verified information',
+                  desc: isBangla ? 'অফিসিয়াল ডিরেক্টরি এবং বিএমডিসি রেজিস্ট্রেশন থেকে যাচাইকৃত চিকিৎসকদের তথ্য।' : 'Doctor profiles sourced from official directories with clear source attribution.'
+                },
+                {
+                  icon: Users,
+                  title: isBangla ? 'বিস্তৃত নেটওয়ার্ক' : 'Growing network',
+                  desc: isBangla ? 'রাজশাহীর বিভিন্ন এলাকা ও সকল বিশেষত্ব কাভার করার জন্য আমাদের নেটওয়ার্ক প্রতিনিয়ত বাড়ছে।' : 'Expanding our network across Rajshahi to cover more specialties and locations.'
+                },
+                {
+                  icon: Sparkles,
+                  title: isBangla ? 'আধুনিক প্রযুক্তি' : 'Modern technology',
+                  desc: isBangla ? 'দ্রুত এবং নির্ভরযোগ্য ডিজিটাল স্বাস্থ্যসেবা নিশ্চিত করতে আধুনিক ওয়েব প্রযুক্তির ব্যবহার।' : 'Built with modern web technology for a fast, reliable healthcare experience.'
+                },
               ].map((item, i) => (
                 <div key={i} className="mission-card">
                   <div className="mission-card__icon">
@@ -489,16 +580,33 @@ export default function PublicLandingPage() {
       <section className="faq-section" style={{ padding: 'var(--sp-16) 0', background: 'var(--color-bg)' }}>
         <div className="container" style={{ maxWidth: 800 }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--sp-10)' }}>
-            <div className="section-label" style={{ justifyContent: 'center' }}>Got Questions?</div>
+            <div className="section-label" style={{ justifyContent: 'center' }}>{isBangla ? 'প্রশ্ন আছে?' : 'Got Questions?'}</div>
             <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', marginBottom: 'var(--sp-3)' }}>
-              Frequently Asked Questions
+              {isBangla ? 'সাধারণ প্রশ্নোত্তর (FAQ)' : 'Frequently Asked Questions'}
             </h2>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-base)' }}>
-              Everything you need to know about using Niramoy in Rajshahi.
+              {isBangla ? 'রাজশাহীতে Niramoy ব্যবহারের সব দরকারি তথ্য জানুন।' : 'Everything you need to know about using Niramoy in Rajshahi.'}
             </p>
           </div>
 
-          <FaqAccordion items={[
+          <FaqAccordion items={isBangla ? [
+            {
+              q: 'Niramoy-এ কীভাবে ডাক্তারের অ্যাপয়েন্টমেন্ট বুক করব?',
+              a: 'ডাক্তারের নাম, বিশেষত্ব, হাসপাতাল বা চেম্বার দিয়ে সার্চ করুন। এরপর রোগী দেখার সময় ও চেম্বার নম্বর দেখুন, অথবা "বুক করুন" বাটনে ক্লিক করে মোবাইল ওটিপি দিয়ে তাৎক্ষণিক অ্যাপয়েন্টমেন্ট নিশ্চিত করুন।'
+            },
+            {
+              q: 'Niramoy-এর ডাক্তারদের ডিগ্রি ও তথ্য কি যাচাইকৃত?',
+              a: 'হ্যাঁ। সকল ডাক্তারের প্রোফাইল বিএমডিসি (BMDC) রেজিস্ট্রেশন নম্বর, মেডিকেল কলেজ সংশ্লিষ্টতা (যেমন রাজশাহী মেডিকেল কলেজ হাসপাতাল) ও অফিসিয়াল চেম্বারের ডিরেক্টরি থেকে যাচাই করা হয়।'
+            },
+            {
+              q: 'ফার্মেসি অনুসন্ধান এবং ওষুধের প্রাপ্যতা কীভাবে জানব?',
+              a: 'ফার্মেসি সেকশনে গিয়ে রাজশাহীর বিভিন্ন এলাকার (মেডিকেল মোড়, লক্ষ্মীপুর, গ্রেটার রোড, কাজীহাটা) নিবন্ধিত ফার্মেসি অনুসন্ধান করতে পারবেন, স্টকে থাকা ওষুধ দেখতে পাবেন এবং অর্ডার করতে পারবেন।'
+            },
+            {
+              q: 'হাসপাতালের বেড ও জরুরি অ্যাম্বুলেন্স সেবা কীভাবে পাব?',
+              a: 'আমাদের হাসপাতাল পোর্টালে সাধারণ শয্যা ও আইসিইউ-র প্রাপ্যতা নিয়মিত আপডেট করা হয়। এছাড়া অ্যাম্বুলেন্স ডিরেক্টরি থেকে ২৪/৭ জরুরি হটলাইনে কল করা যায়।'
+            }
+          ] : [
             {
               q: 'How do I book a doctor appointment on Niramoy?',
               a: 'Search for a doctor by name, specialty, hospital, or chamber. View verified visiting hours, chamber serial phone numbers, or click "Book Online" to instantly reserve your appointment with phone OTP verification.'
@@ -523,19 +631,23 @@ export default function PublicLandingPage() {
       <section className="cta-section">
         <div className="cta-section__inner">
           <div className="section-label" style={{ justifyContent: 'center', background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', marginBottom: 'var(--sp-6)', display: 'inline-flex' }}>
-            Your Healthcare Journey
+            {isBangla ? 'আপনার স্বাস্থ্যসেবার যাত্রা' : 'Your Healthcare Journey'}
           </div>
-          <h2 className="cta-section__title">Your healthcare journey<br/>starts here.</h2>
+          <h2 className="cta-section__title">
+            {isBangla ? <>আপনার সুস্থতার যাত্রা<br />শুরু হোক এখান থেকেই।</> : <>Your healthcare journey<br />starts here.</>}
+          </h2>
           <p className="cta-section__subtitle">
-            Find the right care, connect with healthcare professionals, and manage your healthcare experience with Niramoy.
+            {isBangla
+              ? 'সঠিক চিকিৎসা সেবা গ্রহণ করুন, নির্ভরযোগ্য চিকিৎসকদের সাথে যুক্ত হোন এবং Niramoy-এর মাধ্যমে স্বাস্থ্যসেবা ব্যবস্থাপনা করুন সহজে।'
+              : 'Find the right care, connect with healthcare professionals, and manage your healthcare experience with Niramoy.'}
           </p>
           <div style={{ display: 'flex', gap: 'var(--sp-4)', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/doctors" className="hero__btn-primary" style={{ fontSize: 'var(--text-base)' }}>
               <Stethoscope style={{ width: 18, height: 18 }} />
-              Find a Doctor
+              {t('services.doctorTitle', 'Find a Doctor')}
             </Link>
             <Link to="/register" className="hero__btn-secondary" style={{ fontSize: 'var(--text-base)' }}>
-              Explore Niramoy <ArrowRight style={{ width: 16, height: 16 }} />
+              {isBangla ? 'Niramoy এক্সপ্লোর করুন' : 'Explore Niramoy'} <ArrowRight style={{ width: 16, height: 16 }} />
             </Link>
           </div>
         </div>
@@ -544,127 +656,204 @@ export default function PublicLandingPage() {
   );
 }
 
-/* ─── Featured Doctor Card ─── */
-function FeaturedDoctorCard({ doctor }) {
+/* ─── Featured Doctor Card (Matches Reference Screenshot media_1790915620206.png) ─── */
+function FeaturedDoctorCard({ doctor, isBangla = false }) {
+  const primaryChamber = doctor.chambers?.[0];
+  const chamberCount = doctor.chambers?.length || 0;
+  const phone = primaryChamber?.appointment_numbers?.[0] || primaryChamber?.appointment;
+  const qualifications = doctor.qualifications || (doctor.degrees?.join(', ')) || '';
+  const ratingVal = doctor.rating ? Number(doctor.rating).toFixed(1) : '4.5';
+  const reviewCount = doctor.reviewCount || 12;
+
   const initials = (doctor.name || 'Dr')
     .replace(/^(Prof\.|Dr\.)\s*/i, '')
     .split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
-  const phone = doctor.chambers?.[0]?.appointment_numbers?.[0];
-
   return (
-    <div className="doctor-card card-hover">
-      {/* Specialized Field Tag at Top */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 'var(--sp-3)' }}>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '3px 10px', borderRadius: 'var(--radius-full)',
-          background: 'var(--color-primary-50)', color: 'var(--color-primary)',
-          fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase',
-          letterSpacing: '0.04em', border: '1px solid var(--color-primary-100)'
+    <div
+      className="card-hover"
+      style={{
+        padding: '18px 20px',
+        borderRadius: '12px',
+        border: '1.5px solid var(--color-border)',
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '12px',
+        boxShadow: 'var(--shadow-xs)',
+        height: '100%',
+        position: 'relative',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+      }}
+    >
+      <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+        {/* Doctor Photo on Left */}
+        <div style={{
+          width: 76, height: 88, minWidth: 76, minHeight: 88,
+          borderRadius: '8px', overflow: 'hidden',
+          border: '1px solid #e2e8f0', background: '#f8fafc',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, position: 'relative', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
         }}>
-          <Stethoscope style={{ width: 12, height: 12 }} />
-          {doctor.specialty}
-        </span>
-        {doctor.experience && (
-          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {doctor.experience}
-          </span>
-        )}
-      </div>
-
-      {/* Header */}
-      <div style={{ display: 'flex', gap: 'var(--sp-4)', alignItems: 'flex-start' }}>
-        {/* Avatar */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
           {doctor.imageUrl ? (
             <img
               src={doctor.imageUrl}
               alt={doctor.name}
               loading="lazy"
-              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-              style={{ width: 60, height: 60, borderRadius: 'var(--radius-lg)', objectFit: 'cover', border: '2px solid var(--color-border)' }}
+              referrerPolicy="no-referrer"
+              onError={e => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : null}
           <div style={{
-            width: 60, height: 60, borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
             display: doctor.imageUrl ? 'none' : 'flex',
             alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 900, fontSize: '1.1rem',
-            fontFamily: 'var(--font-heading)'
+            color: '#fff', fontSize: '1rem', fontWeight: 800,
+            fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em'
           }}>
             {initials}
           </div>
-          {doctor.verified && (
-            <div style={{
-              position: 'absolute', bottom: -4, right: -4,
-              width: 18, height: 18, borderRadius: '50%',
-              background: 'var(--color-success)', border: '2px solid white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <CheckCircle2 style={{ width: 10, height: 10, color: 'white' }} />
-            </div>
-          )}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, color: 'var(--color-text)', fontSize: 'var(--text-base)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {doctor.name}
+
+        {/* Doctor Information on Right */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {/* Line 1: Name and Verified Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Link
+              to={`/doctors/${doctor.slug || doctor._id}`}
+              style={{
+                fontSize: '1rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                lineHeight: 1.25,
+                textDecoration: 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {doctor.name}
+            </Link>
+            {doctor.verified && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                background: '#e6f4ea',
+                color: '#137333',
+                border: '1px solid #b7e1cd',
+                borderRadius: '9999px',
+                padding: '1px 8px',
+                fontSize: '0.68rem',
+                fontWeight: 700
+              }}>
+                {isBangla ? '✓ যাচাইকৃত' : '✓ Verified'}
+              </span>
+            )}
           </div>
-          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-primary)', marginBottom: 3 }}>
+
+          {/* Line 2: Specialized Title in Teal/Emerald */}
+          <div style={{
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: 'var(--color-primary)',
+            lineHeight: 1.25,
+            marginTop: '1px'
+          }}>
             {doctor.specialty}
           </div>
-          {doctor.rating > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Star style={{ width: 12, height: 12, fill: '#f59e0b', stroke: '#f59e0b' }} />
-              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: '#b45309' }}>{doctor.rating.toFixed(1)}</span>
-              {doctor.reviewCount > 0 && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>({doctor.reviewCount})</span>}
+
+          {/* Line 3: Qualifications */}
+          {qualifications && (
+            <div style={{
+              fontSize: '0.74rem',
+              color: '#64748b',
+              lineHeight: 1.35,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {qualifications}
             </div>
           )}
+
+          {/* Line 4: Workplace / Hospital */}
+          {doctor.workplace && (
+            <div style={{
+              fontSize: '0.72rem',
+              color: '#94a3b8',
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {doctor.workplace}
+            </div>
+          )}
+
+          {/* Line 5: Chamber */}
+          {primaryChamber?.name && (
+            <div style={{
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              color: '#1e293b',
+              marginTop: '2px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {primaryChamber.name}
+              {chamberCount > 1 && (
+                <span style={{ fontWeight: 500, color: '#64748b', marginLeft: '4px', fontSize: '0.7rem' }}>
+                  +{chamberCount - 1} {isBangla ? 'আরও' : 'more'}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Line 6: Rating Stars */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+            <span style={{ color: '#f59e0b', fontSize: '0.75rem', letterSpacing: '1px' }}>★★★★★</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#b45309' }}>{ratingVal}</span>
+            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>({reviewCount})</span>
+          </div>
         </div>
       </div>
 
-      {/* Info */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-        {doctor.qualifications && (
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-            {doctor.qualifications}
-          </p>
-        )}
-        {doctor.workplace && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Building2 style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {doctor.workplace}
-            </span>
-          </div>
-        )}
-        {doctor.chambers?.[0]?.address && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <MapPin style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {doctor.chambers[0].address}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--sp-2)', marginTop: 'auto', paddingTop: 'var(--sp-3)', borderTop: '1px solid var(--color-border-light)' }}>
+      {/* Action Row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        paddingTop: '10px',
+        borderTop: '1px solid #f1f5f9',
+        marginTop: 'auto'
+      }}>
         <Link
-          to={`/doctors/${doctor.slug}`}
-          className="btn btn-primary btn-sm"
-          style={{ flex: 1, justifyContent: 'center' }}
+          to={`/doctors/${doctor.slug || doctor._id}`}
+          className="btn btn-secondary btn-sm"
+          style={{ flex: 1, justifyContent: 'center', fontSize: '0.75rem', padding: '6px 12px' }}
         >
-          View Profile
+          {isBangla ? 'প্রোফাইল ও চেম্বার' : 'View Profile & Chambers'}
+        </Link>
+        <Link
+          to={`/doctors/${doctor.slug || doctor._id}`}
+          className="btn btn-primary btn-sm"
+          style={{ fontSize: '0.75rem', padding: '6px 14px' }}
+        >
+          {isBangla ? 'বুকিং' : 'Book'}
         </Link>
         {phone && (
           <a
             href={`tel:${phone}`}
-            className="btn btn-secondary btn-sm"
-            aria-label={`Call ${doctor.name}`}
+            className="btn btn-ghost btn-sm"
+            style={{ padding: '6px 10px', color: '#16a34a' }}
+            title={isBangla ? 'চেম্বারে ফোন করুন' : 'Call Chamber'}
           >
-            <Phone style={{ width: 13, height: 13 }} />
+            <Phone style={{ width: 14, height: 14 }} />
           </a>
         )}
       </div>
