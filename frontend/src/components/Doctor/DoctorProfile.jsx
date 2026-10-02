@@ -26,9 +26,14 @@ function getConsultationFee(doctor) {
 // ─── Avatar Fallback ──────────────────────────────────────────────────────
 function DoctorAvatar({ src, name, size = 110 }) {
   const [failed, setFailed] = useState(false);
-  const initials = (name || 'Dr')
+  const initials = String(name || 'Dr')
     .replace(/^(Prof\.|Dr\.)\s*/i, '')
-    .split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(w => w?.[0] || '')
+    .join('')
+    .toUpperCase() || 'DR';
 
   if (!src || failed) {
     return (
@@ -282,9 +287,15 @@ export default function DoctorProfile() {
   }
 
   const primaryPhone = doctor.chambers?.[0]?.appointment_numbers?.[0] || doctor.chambers?.[0]?.appointment;
-  const qualificationsList = doctor.degrees?.length > 0
+  const qualificationsList = Array.isArray(doctor.degrees)
     ? doctor.degrees
-    : (doctor.qualifications ? doctor.qualifications.split(/[,;]+/).map(q => q.trim()).filter(Boolean) : []);
+    : (typeof doctor.degrees === 'string' && doctor.degrees.trim()
+        ? doctor.degrees.split(/[,;]+/).map(q => q.trim()).filter(Boolean)
+        : (Array.isArray(doctor.qualifications)
+            ? doctor.qualifications
+            : (typeof doctor.qualifications === 'string' && doctor.qualifications.trim()
+                ? doctor.qualifications.split(/[,;]+/).map(q => q.trim()).filter(Boolean)
+                : [])));
 
   const allSpecialties = Array.from(new Set([
     doctor.specialty,

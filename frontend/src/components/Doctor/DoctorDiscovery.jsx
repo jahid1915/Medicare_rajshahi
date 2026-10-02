@@ -29,9 +29,14 @@ function getConsultationFee(doctor) {
 // ─── Doctor Avatar Fallback ───────────────────────────────────────────────
 function DoctorAvatar({ src, name, width = 76, height = 88 }) {
   const [failed, setFailed] = useState(false);
-  const initials = (name || 'Dr')
+  const initials = String(name || 'Dr')
     .replace(/^(Prof\.|Dr\.)\s*/i, '')
-    .split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(w => w?.[0] || '')
+    .join('')
+    .toUpperCase() || 'DR';
 
   return (
     <div style={{
@@ -110,7 +115,9 @@ function DoctorCard({ doctor, onBook }) {
   const primaryChamber = doctor.chambers?.[0];
   const chamberCount = doctor.chambers?.length || 0;
   const primaryPhone = primaryChamber?.appointment_numbers?.[0] || primaryChamber?.appointment;
-  const qualifications = doctor.qualifications || (doctor.degrees?.join(', ')) || '';
+  const qualifications = doctor.qualifications
+    ? (Array.isArray(doctor.qualifications) ? doctor.qualifications.join(', ') : String(doctor.qualifications))
+    : (Array.isArray(doctor.degrees) ? doctor.degrees.join(', ') : (doctor.degrees ? String(doctor.degrees) : ''));
   const ratingVal = doctor.rating ? Number(doctor.rating).toFixed(1) : '4.5';
   const reviewCount = doctor.reviewCount || 12;
 

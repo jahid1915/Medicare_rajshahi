@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { LanguageProvider } from './i18n';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 
 // Layouts
 import PublicLayout from './components/Layout/PublicLayout';
@@ -105,12 +106,13 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <LanguageProvider>
-        <AuthProvider>
-          <CartProvider>
-          <React.Suspense fallback={<PageLoader />}>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ScrollToTop />
+        <LanguageProvider>
+          <AuthProvider>
+            <CartProvider>
+            <React.Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ═══ PUBLIC ROUTES (No auth required) ═══ */}
             <Route element={<PublicLayout />}>
@@ -247,5 +249,6 @@ export default function App() {
       </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

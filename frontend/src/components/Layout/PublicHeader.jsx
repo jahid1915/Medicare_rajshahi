@@ -88,7 +88,7 @@ export default function NiramoyNavbar() {
   const cartCount = cartItems?.reduce?.((s, i) => s + (i.quantity || 1), 0) || 0;
 
   const initials = user?.name
-    ? user.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+    ? String(user.name).trim().split(/\s+/).slice(0, 2).map(w => w?.[0] || '').join('').toUpperCase() || 'U'
     : '?';
 
   // Pre-warm primary routes on idle
